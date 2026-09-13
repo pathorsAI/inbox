@@ -420,6 +420,7 @@
     "CAMPAIGN_PROACTIVE": "主動觸發",
     "CAMPAIGN_TEMPLATES": "模板",
     "BACK_TO_MAIN": "返回主選單",
+    "TOGGLE_GROUP": "展開或收合{label}",
     "SECTIONS": {
       "WORK": "日常工作",
       "CUSTOMERS": "客戶與觸及",

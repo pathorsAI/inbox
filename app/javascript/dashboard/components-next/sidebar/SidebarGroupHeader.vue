@@ -1,5 +1,6 @@
 <script setup>
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useMapGetter } from 'dashboard/composables/store.js';
 import Icon from 'next/icon/Icon.vue';
 import SidebarUnreadBadge from './SidebarUnreadBadge.vue';
@@ -19,7 +20,9 @@ const props = defineProps({
   badgeTo: { type: [Object, String], default: null },
 });
 
-const emit = defineEmits(['toggle']);
+const emit = defineEmits(['toggle', 'activate']);
+
+const { t } = useI18n();
 
 const showBadge = useMapGetter(props.getterKeys.badge);
 const dynamicCount = useMapGetter(props.getterKeys.count);
@@ -44,7 +47,7 @@ const count = computed(() =>
       'text-n-slate-12 font-medium': hasActiveChild,
       'text-n-slate-11 hover:bg-n-alpha-2': !isActive && !hasActiveChild,
     }"
-    @click.stop="emit('toggle')"
+    @click.stop="emit('activate')"
   >
     <div v-if="icon" class="relative flex items-center gap-2">
       <Icon v-if="icon" :icon="icon" class="size-4" />
@@ -79,11 +82,19 @@ const count = computed(() =>
         />
       </component>
     </div>
-    <span
+    <button
       v-if="expandable"
-      v-show="isExpanded"
-      class="i-lucide-chevron-up size-3"
-      @click.stop="emit('toggle')"
-    />
+      type="button"
+      class="grid flex-shrink-0 place-content-center rounded size-4 text-n-slate-11 hover:bg-n-alpha-2 disabled:hover:bg-transparent disabled:cursor-default"
+      :disabled="hasActiveChild"
+      :aria-expanded="isExpanded"
+      :aria-label="t('SIDEBAR.TOGGLE_GROUP', { label })"
+      @click.stop.prevent="emit('toggle')"
+    >
+      <span
+        class="i-lucide-chevron-down size-3 transition-transform duration-200 motion-reduce:transition-none"
+        :class="{ 'rotate-180': isExpanded }"
+      />
+    </button>
   </component>
 </template>

@@ -52,6 +52,41 @@ export function useSidebarResize() {
   };
 }
 
+// Which groups the agent has opened. Several can be open at once, and the set
+// survives a reload through uiSettings — the same place the sidebar width is
+// kept. A group holding the active route is deliberately not stored here: it
+// renders open on its own (see `hasActiveChild` in SidebarGroup), so plain
+// navigation never writes to the user's settings.
+export function useSidebarExpandedGroups() {
+  const { uiSettings, updateUISettings } = useUISettings();
+
+  const expandedItems = ref([
+    ...(uiSettings.value.sidebar_expanded_groups || []),
+  ]);
+
+  const isItemExpanded = name => expandedItems.value.includes(name);
+
+  const persist = () => {
+    updateUISettings({ sidebar_expanded_groups: [...expandedItems.value] });
+  };
+
+  const toggleExpandedItem = name => {
+    expandedItems.value = isItemExpanded(name)
+      ? expandedItems.value.filter(item => item !== name)
+      : [...expandedItems.value, name];
+    persist();
+  };
+
+  const expandItem = name => {
+    if (isItemExpanded(name)) return;
+
+    expandedItems.value = [...expandedItems.value, name];
+    persist();
+  };
+
+  return { expandedItems, isItemExpanded, toggleExpandedItem, expandItem };
+}
+
 export function usePopoverState() {
   const setActivePopover = name => {
     clearTimeout(globalCloseTimeout);

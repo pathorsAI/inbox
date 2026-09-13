@@ -422,6 +422,7 @@
     "CAPTAIN_AI": "Captain",
     "CONVERSATION_WORKFLOW": "Conversation Workflow",
     "BACK_TO_MAIN": "Back to main menu",
+    "TOGGLE_GROUP": "Expand or collapse {label}",
     "SECTIONS": {
       "WORK": "Work",
       "CUSTOMERS": "Customers & outreach",

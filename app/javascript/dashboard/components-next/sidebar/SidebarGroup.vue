@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, onUnmounted, watch, nextTick, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { useSidebarContext, usePopoverState } from './provider';
 import { useRoute, useRouter } from 'vue-router';
 import Policy from 'dashboard/components/policy.vue';
@@ -26,8 +26,9 @@ const props = defineProps({
 });
 
 const {
-  expandedItem,
-  setExpandedItem,
+  isItemExpanded,
+  toggleExpandedItem,
+  expandItem,
   resolvePath,
   resolvePermissions,
   resolveFeatureFlag,
@@ -50,7 +51,7 @@ const navigableChildren = computed(() => {
 
 const route = useRoute();
 const router = useRouter();
-const isExpanded = computed(() => expandedItem.value === props.name);
+const isExpanded = computed(() => isItemExpanded(props.name));
 const isExpandable = computed(() => props.children);
 const hasChildren = computed(
   () => Array.isArray(props.children) && props.children.length > 0
@@ -219,9 +220,12 @@ const hasActiveChild = computed(() => {
   return activeChild.value !== undefined;
 });
 
-const areChildrenVisible = computed(
-  () => !hasChildren.value || isExpanded.value || hasActiveChild.value
-);
+// The group holding the active route always shows its children, whether or not
+// the agent opened it. Everything that renders the open state reads this rather
+// than `isExpanded`, so navigating never has to write to the stored set.
+const isOpen = computed(() => isExpanded.value || hasActiveChild.value);
+
+const areChildrenVisible = computed(() => !hasChildren.value || isOpen.value);
 
 const handleCollapsedClick = () => {
   if (hasChildren.value && hasAccessibleChildren.value) {
@@ -230,24 +234,23 @@ const handleCollapsedClick = () => {
   }
 };
 
+// The chevron folds the group and nothing else — no navigation, so an agent can
+// peek into a group without leaving the page they are on.
 const toggleTrigger = () => {
-  if (
-    hasAccessibleChildren.value &&
-    !isExpanded.value &&
-    !hasActiveChild.value
-  ) {
-    // if not already expanded, navigate to the first child
-    const firstItem = accessibleItems.value[0];
-    router.push(firstItem.to);
-  }
-  setExpandedItem(props.name);
+  toggleExpandedItem(props.name);
 };
 
-onMounted(async () => {
-  await nextTick();
-  if (hasActiveChild.value) {
-    setExpandedItem(props.name);
+// The name is what navigates: to the group's own page when it has one, else to
+// its first child. Either way the group ends up open.
+const handleActivate = () => {
+  if (!props.to && hasAccessibleChildren.value) {
+    router.push(accessibleItems.value[0].to);
   }
+
+  if (hasChildren.value) expandItem(props.name);
+};
+
+onMounted(() => {
   window.addEventListener('blur', handleWindowBlur);
   document.addEventListener('mouseleave', handleWindowBlur);
 });
@@ -256,16 +259,6 @@ onUnmounted(() => {
   window.removeEventListener('blur', handleWindowBlur);
   document.removeEventListener('mouseleave', handleWindowBlur);
 });
-
-watch(
-  hasActiveChild,
-  hasNewActiveChild => {
-    if (hasNewActiveChild && !isExpanded.value) {
-      setExpandedItem(props.name);
-    }
-  },
-  { once: true }
-);
 </script>
 
 <!-- eslint-disable-next-line vue/no-root-v-if -->
@@ -334,39 +327,50 @@ watch(
         :is-active="isActive"
         :has-active-child="hasActiveChild"
         :expandable="hasChildren"
-        :is-expanded="isExpanded"
+        :is-expanded="isOpen"
         @toggle="toggleTrigger"
+        @activate="handleActivate"
       />
-      <ul
+      <!-- Grid-rows reveal: the row track animates between 0fr and 1fr so the
+           children slide open at their natural height, no measuring needed. -->
+      <div
         v-if="hasChildren"
-        v-show="isExpanded || hasActiveChild"
-        class="grid m-0 list-none min-w-0"
+        class="grid transition-[grid-template-rows] duration-200 ease-out motion-reduce:transition-none"
+        :class="
+          isOpen ? '[grid-template-rows:1fr]' : '[grid-template-rows:0fr]'
+        "
       >
-        <template v-for="child in visibleChildren" :key="child.name">
-          <SidebarSubGroup
-            v-if="child.children"
-            :name="`${name}:${child.name}`"
-            :label="child.label"
-            :icon="child.icon"
-            :children="child.children"
-            :collapsible="child.collapsible"
-            :show-tree-line="child.showTreeLine"
-            :end-tree-line="child.showTreeLine && isLastVisibleChild(child)"
-            :is-expanded="isExpanded"
-            :active-child="activeChild"
-            :sort-options="child.sortOptions"
-            :active-sort="child.activeSort"
-            @update-sort="child.onSortChange"
-          />
-          <SidebarGroupLeaf
-            v-else-if="isAllowed(child.to)"
-            v-show="isExpanded || activeChild?.name === child.name"
-            v-bind="child"
-            :active="activeChild?.name === child.name"
-          />
-        </template>
-      </ul>
-      <ul v-else-if="isExpandable && isExpanded">
+        <!-- Clipped children stay in the DOM for the animation, so they are
+             taken out of the tab order while the group is folded. -->
+        <ul
+          :inert="isOpen ? undefined : true"
+          class="grid overflow-hidden m-0 list-none min-w-0 min-h-0"
+        >
+          <template v-for="child in visibleChildren" :key="child.name">
+            <SidebarSubGroup
+              v-if="child.children"
+              :name="`${name}:${child.name}`"
+              :label="child.label"
+              :icon="child.icon"
+              :children="child.children"
+              :collapsible="child.collapsible"
+              :show-tree-line="child.showTreeLine"
+              :end-tree-line="child.showTreeLine && isLastVisibleChild(child)"
+              :is-expanded="isOpen"
+              :active-child="activeChild"
+              :sort-options="child.sortOptions"
+              :active-sort="child.activeSort"
+              @update-sort="child.onSortChange"
+            />
+            <SidebarGroupLeaf
+              v-else-if="isAllowed(child.to)"
+              v-bind="child"
+              :active="activeChild?.name === child.name"
+            />
+          </template>
+        </ul>
+      </div>
+      <ul v-else-if="isExpandable && isOpen">
         <SidebarGroupEmptyLeaf />
       </ul>
     </template>

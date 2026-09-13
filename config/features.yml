@@ -27,8 +27,7 @@
   help_url: https://chwt.app/hc/fb
 - name: conversation_unread_counts
   display_name: Conversation Unread Counts
-  enabled: false
-  chatwoot_internal: true
+  enabled: true
 - name: ip_lookup
   display_name: IP Lookup
   enabled: false
@@ -231,8 +230,7 @@
   chatwoot_internal: true
 - name: unread_count_for_filters
   display_name: Unread Count For Filters
-  enabled: false
-  chatwoot_internal: true
+  enabled: true
 - name: companies
   display_name: Companies
   enabled: false

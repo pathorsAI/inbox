@@ -3,6 +3,7 @@ import { h, ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import {
   provideSidebarContext,
+  useSidebarExpandedGroups,
   useSidebarResize,
   useSidebarRouteMeta,
 } from './provider';
@@ -152,11 +153,8 @@ const toggleShortcutModalFn = show => {
 
 useSidebarKeyboardShortcuts(toggleShortcutModalFn);
 
-const expandedItem = ref(null);
-
-const setExpandedItem = name => {
-  expandedItem.value = expandedItem.value === name ? null : name;
-};
+const { expandedItems, isItemExpanded, toggleExpandedItem, expandItem } =
+  useSidebarExpandedGroups();
 
 const {
   sidebarWidth,
@@ -179,8 +177,10 @@ const startX = ref(0);
 const startWidth = ref(0);
 
 provideSidebarContext({
-  expandedItem,
-  setExpandedItem,
+  expandedItems,
+  isItemExpanded,
+  toggleExpandedItem,
+  expandItem,
   isCollapsed: isEffectivelyCollapsed,
   sidebarWidth,
   isResizing,
