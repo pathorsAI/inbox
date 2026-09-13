@@ -48,7 +48,9 @@ class ContactMergeAction
   end
 
   def merge_calls
-    # overridden in enterprise/app/actions/enterprise/contact_merge_action.rb
+    # rubocop:disable Rails/SkipsModelValidations
+    Call.where(account_id: @account.id, contact_id: @mergee_contact.id).update_all(contact_id: @base_contact.id)
+    # rubocop:enable Rails/SkipsModelValidations
   end
 
   def merge_and_remove_mergee_contact

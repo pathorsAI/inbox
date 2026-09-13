@@ -7,7 +7,6 @@ import {
   useSidebarRouteMeta,
 } from './provider';
 import { useAccount } from 'dashboard/composables/useAccount';
-import { useConfig } from 'dashboard/composables/useConfig';
 import { useKbd } from 'dashboard/composables/utils/useKbd';
 import { useMapGetter } from 'dashboard/composables/store';
 import { useEmitter } from 'dashboard/composables/emitter';
@@ -53,7 +52,6 @@ const emit = defineEmits([
 ]);
 
 const { accountScopedRoute, isOnChatwootCloud } = useAccount();
-const { isEnterprise } = useConfig();
 const store = useStore();
 const route = useRoute();
 
@@ -66,11 +64,6 @@ const isSettingsContext = computed(() =>
   /\/accounts\/\d+\/settings(\/|$)/.test(route.path)
 );
 
-// Calls run on the enterprise-only API (cloud runs enterprise); hide the entry
-// on community so it doesn't lead to a dashboard/CTA the backend can't serve.
-const isCallsAvailable = computed(
-  () => isOnChatwootCloud.value || isEnterprise
-);
 const searchShortcut = useKbd([`$mod`, 'k']);
 const { t } = useI18n();
 
@@ -86,6 +79,13 @@ const accountId = useMapGetter('getCurrentAccountId');
 const currentUserId = useMapGetter('getCurrentUserID');
 const isFeatureEnabledonAccount = useMapGetter(
   'accounts/isFeatureEnabledonAccount'
+);
+
+// The fork serves call history from its own CE endpoint
+// (Api::V1::Accounts::CallsController), so the entry no longer depends on the
+// edition; the voice feature flag is the only gate.
+const isCallsAvailable = computed(() =>
+  isFeatureEnabledonAccount.value(accountId.value, FEATURE_FLAGS.CHANNEL_VOICE)
 );
 
 const hasAdvancedAssignment = computed(() => {

@@ -303,11 +303,19 @@ const isInThisPathorsCall = computed(
     isJoinedPathorsCall.value &&
     isActivePathorsCall(pathorsCallId.value)
 );
+// Once an agent joins, the join endpoint writes accepted_by_agent_id and the
+// message update broadcast carries it to every other tab, so the button
+// disappears for everyone but the agent who took the call. That field is never
+// cleared — it is the persisted "who handled this call" attribution the bubble
+// and the calls list read — so matching it against the viewer is also what
+// lets an agent rejoin a call they left.
 const canJoinPathorsCall = computed(
   () =>
     isPathorsCallLive.value &&
     !!pathorsCallId.value &&
-    !isJoinedPathorsCall.value
+    !isJoinedPathorsCall.value &&
+    (!acceptedByAgentId.value ||
+      acceptedByAgentId.value === currentUserId.value)
 );
 const pathorsCallDurationLabel = computed(() =>
   formatDuration(pathorsCallDuration.value)

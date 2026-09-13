@@ -37,6 +37,8 @@ class Call < ApplicationRecord
   # Once a call reaches one of these it can never go back to a live state.
   TERMINAL_STATUSES = %w[completed no_answer failed rejected].freeze
   DISPLAY_STATUSES = { 'in_progress' => 'in-progress', 'no_answer' => 'no-answer' }.freeze
+  # The dashboard speaks inbound/outbound; the column stores incoming/outgoing.
+  DISPLAY_DIRECTIONS = { 'incoming' => 'inbound', 'outgoing' => 'outbound' }.freeze
   # Calls handled end-to-end by the Pathors voice agent have no human answerer,
   # so the bubble gets a synthetic handler name instead of a blank subtext.
   PATHORS_AGENT_NAME = 'Pathors AI'.freeze
@@ -73,12 +75,25 @@ class Call < ApplicationRecord
     super(self.class.normalize_timestamp(value))
   end
 
+  # Inverses of the display forms, for filters that arrive from the dashboard.
+  def self.status_from_display(value)
+    value.to_s.tr('-', '_')
+  end
+
+  def self.direction_from_label(value)
+    DISPLAY_DIRECTIONS.key(value.to_s) || value.to_s
+  end
+
   def terminal?
     TERMINAL_STATUSES.include?(status)
   end
 
   def display_status
     DISPLAY_STATUSES.fetch(status, status)
+  end
+
+  def direction_label
+    DISPLAY_DIRECTIONS.fetch(direction, direction)
   end
 
   def accepted_by_agent_name

@@ -80,6 +80,19 @@ describe ContactMergeAction do
       end
     end
 
+    context 'when mergee contact has calls' do
+      let!(:call) do
+        conversation = create(:conversation, account: account, contact: mergee_contact)
+        create(:call, account: account, conversation: conversation, contact: mergee_contact, inbox: conversation.inbox)
+      end
+
+      it 'moves the calls to base contact' do
+        contact_merge
+
+        expect(call.reload.contact_id).to eq(base_contact.id)
+      end
+    end
+
     context 'when contacts belong to a different account' do
       it 'throws an exception' do
         new_account = create(:account)

@@ -39,7 +39,8 @@
       "NO_AGENT": "沒有客服接聽這通電話",
       "NO_CONTACT_ANSWER": "對方未接聽",
       "FAILED": "這通電話無法接通",
-      "YESTERDAY": "昨天"
+      "YESTERDAY": "昨天",
+      "DELETED_CONTACT": "已刪除的聯絡人"
     }
   }
 }

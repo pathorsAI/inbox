@@ -19,6 +19,7 @@ Metrics/ClassLength:
     - 'app/listeners/action_cable_listener.rb'
     - 'app/models/message.rb'
     - 'app/models/conversation.rb'
+    - 'app/models/contact.rb'
     - 'config/initializers/rack_attack.rb'
 
 Metrics/MethodLength:

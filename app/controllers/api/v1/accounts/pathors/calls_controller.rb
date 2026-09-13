@@ -36,7 +36,7 @@ class Api::V1::Accounts::Pathors::CallsController < Api::V1::Accounts::BaseContr
   def update
     return render_error('Invalid recording_url') if invalid_recording_url?
 
-    stale_status? ? apply_recording_url : apply_update
+    stale_status? ? apply_post_call_artifacts : apply_update
 
     render_call(@call)
   end
@@ -118,18 +118,20 @@ class Api::V1::Accounts::Pathors::CallsController < Api::V1::Accounts::BaseContr
     status.present? && @call.terminal? && Call::TERMINAL_STATUSES.exclude?(status)
   end
 
-  # The recording is uploaded only after the platform finalizes the call, so it
-  # necessarily arrives later than the terminal status. It is therefore the one
-  # field a stale-status webhook may still carry that is worth keeping — the
-  # guard exists to block status regressions, not to block the recording.
-  def apply_recording_url
-    return if update_params[:recording_url].blank?
+  # The recording and its transcript are produced only after the platform
+  # finalizes the call, so they necessarily arrive later than the terminal
+  # status. They are therefore the fields a stale-status webhook may still
+  # carry that are worth keeping — the guard exists to block status
+  # regressions, not to block the artifacts of a finished call.
+  def apply_post_call_artifacts
+    attributes = update_params.slice(:recording_url, :transcript).to_h.compact_blank
+    return if attributes.blank?
 
-    persist(recording_url: update_params[:recording_url])
+    persist(attributes)
   end
 
   def apply_update
-    attributes = update_params.slice(:duration_seconds, :end_reason, :ended_at, :recording_url).to_h
+    attributes = update_params.slice(:duration_seconds, :end_reason, :ended_at, :recording_url, :transcript).to_h
     status = normalized_status(update_params[:status])
     attributes[:status] = status if status.present?
 
@@ -206,6 +208,6 @@ class Api::V1::Accounts::Pathors::CallsController < Api::V1::Accounts::BaseContr
   end
 
   def update_params
-    params.permit(:status, :duration_seconds, :end_reason, :ended_at, :recording_url)
+    params.permit(:status, :duration_seconds, :end_reason, :ended_at, :recording_url, :transcript)
   end
 end

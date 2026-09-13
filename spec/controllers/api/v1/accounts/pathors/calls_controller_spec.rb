@@ -258,6 +258,18 @@ RSpec.describe 'Pathors Calls API', type: :request do
         expect(call.reload.recording_url).to eq('https://cdn.pathors.example/recordings/abc.mp3')
       end
 
+      it 'accepts a late transcript written back after the call completed' do
+        call.update!(status: 'completed')
+
+        patch "/api/v1/accounts/#{account.id}/pathors/calls/#{call.id}",
+              params: { transcript: 'Agent: hello. Caller: hi.' },
+              headers: admin.create_new_auth_token, as: :json
+
+        expect(response).to have_http_status(:success)
+        expect(call.reload.transcript).to eq('Agent: hello. Caller: hi.')
+        expect(response.parsed_body['transcript']).to eq('Agent: hello. Caller: hi.')
+      end
+
       it 'keeps the recording_url from a webhook whose status would regress' do
         call.update!(status: 'completed')
 
