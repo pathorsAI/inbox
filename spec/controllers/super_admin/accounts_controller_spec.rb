@@ -27,6 +27,18 @@ RSpec.describe 'Super Admin accounts API', type: :request do
 
   describe 'GET /super_admin/accounts/{account_id}' do
     context 'when it is an authenticated user' do
+      it 'lists the regular features without the premium block', if: ChatwootApp.enterprise? do
+        sign_in(super_admin, scope: :super_admin)
+
+        get "/super_admin/accounts/#{account.id}"
+
+        expect(response).to have_http_status(:success)
+        expect(response.body).to include('Voice Channel', 'Tickets')
+        expect(response.body).not_to include('Disable Branding')
+        expect(response.body).not_to include('Custom Roles')
+        expect(response.body).not_to include('Advanced Assignment')
+      end
+
       it 'shows effective Captain model routing', if: ChatwootApp.enterprise? do
         account.update!(captain_models: { 'editor' => 'gpt-4.1', 'conversation_completion' => 'gpt-5.2' })
         sign_in(super_admin, scope: :super_admin)
@@ -68,6 +80,19 @@ RSpec.describe 'Super Admin accounts API', type: :request do
 
   describe 'GET /super_admin/accounts/{account_id}/edit' do
     context 'when it is an authenticated user' do
+      it 'renders no toggle for premium features', if: ChatwootApp.enterprise? do
+        sign_in(super_admin, scope: :super_admin)
+
+        get "/super_admin/accounts/#{account.id}/edit"
+
+        expect(response).to have_http_status(:success)
+        expect(response.body).to include('enabled_features[feature_channel_voice]')
+        expect(response.body).to include('enabled_features[feature_tickets]')
+        SuperAdmin::AccountFeaturesHelper.account_premium_features.each do |feature|
+          expect(response.body).not_to include("enabled_features[feature_#{feature}]")
+        end
+      end
+
       it 'renders separate Captain model selectors for customer and internal AI features', if: ChatwootApp.enterprise? do
         allow(ChatwootApp).to receive(:self_hosted_paid?).and_return(true)
         InstallationConfig.find_or_initialize_by(name: 'CAPTAIN_OPEN_AI_MODEL').update!(value: 'gpt-5.1')
@@ -115,6 +140,23 @@ RSpec.describe 'Super Admin accounts API', type: :request do
 
   describe 'PATCH /super_admin/accounts/{account_id}' do
     context 'when it is an authenticated user' do
+      it 'ignores premium feature flags and keeps the regular ones' do
+        sign_in(super_admin, scope: :super_admin)
+
+        patch "/super_admin/accounts/#{account.id}",
+              params: {
+                account: { name: account.name, locale: account.locale, status: account.status },
+                enabled_features: { feature_channel_voice: 'true', feature_tickets: 'true', feature_saml: 'true', feature_sla: 'true' }
+              }
+
+        expect(response).to have_http_status(:redirect)
+        account.reload
+        expect(account.feature_enabled?('channel_voice')).to be true
+        expect(account.feature_enabled?('tickets')).to be true
+        expect(account.feature_enabled?('saml')).to be false
+        expect(account.feature_enabled?('sla')).to be false
+      end
+
       it 'updates Captain model overrides without changing unrelated settings' do
         account.update!(
           captain_models: { 'editor' => 'gpt-4.1' },

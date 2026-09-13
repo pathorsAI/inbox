@@ -310,14 +310,6 @@ const navigateToAssignmentPolicyEdit = () => {
   });
 };
 
-const navigateToBilling = () => {
-  const accountId = route.params.accountId;
-  router.push({
-    name: 'billing_settings_index',
-    params: { accountId },
-  });
-};
-
 const confirmDeletePolicy = () => {
   showDeleteConfirmModal.value = true;
 };
@@ -615,22 +607,9 @@ onMounted(() => {
                       </span>
                     </li>
                   </ul>
-
-                  <div class="w-full h-px bg-n-weak my-4" />
-
-                  <!-- Upgrade prompt when advanced_assignment is not enabled -->
-                  <div v-if="!hasAdvancedAssignment">
-                    <p class="text-body-main text-n-slate-11 mb-1">
-                      {{ $t('INBOX_MGMT.ASSIGNMENT.UPGRADE_PROMPT') }}
-                    </p>
-                    <NextButton
-                      :label="$t('INBOX_MGMT.ASSIGNMENT.UPGRADE_TO_BUSINESS')"
-                      icon="i-lucide-arrow-right"
-                      trailing-icon
-                      link
-                      @click="navigateToBilling"
-                    />
-                  </div>
+                  <!-- Pathors fork: no upgrade prompt here. `advanced_assignment`
+                       is a premium Chatwoot feature this installation never
+                       enables, so the nudge would only be a dead end. -->
                 </div>
               </div>
             </div>

@@ -1,6 +1,11 @@
 module SuperAdmin::FeaturesHelper
+  # Pathors fork: entries flagged `enterprise` describe Chatwoot's paid Edition.
+  # This installation resells the Community Edition, so those cards (and the
+  # upgrade prompts that came with them) are never listed.
   def self.available_features
-    YAML.load(ERB.new(Rails.root.join('app/helpers/super_admin/features.yml').read).result).with_indifferent_access
+    features = YAML.load(ERB.new(Rails.root.join('app/helpers/super_admin/features.yml').read).result).with_indifferent_access
+
+    features.reject { |_feature, attrs| attrs[:enterprise] }
   end
 
   def self.plan_details

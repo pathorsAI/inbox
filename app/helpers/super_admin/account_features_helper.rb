@@ -26,27 +26,30 @@ module SuperAdmin::AccountFeaturesHelper
     features.except(*deprecated_features)
   end
 
+  # Pathors fork: premium features are Chatwoot's paid Enterprise product. This
+  # installation resells the Community Edition, so they are never listed and
+  # never toggleable — SuperAdmin::AccountsController drops them from updates.
+  def self.filter_premium_features(features)
+    features.except(*account_premium_features)
+  end
+
   def self.sort_and_transform_features(features, display_names)
     features.sort_by { |key, _| display_names[key] || key }
             .to_h
             .transform_keys { |key| [key, display_names[key]] }
   end
 
+  # Returns a [regular, premium] pair to keep the shape callers destructure.
+  # Premium is always empty here — see filter_premium_features.
   def self.partition_features(features)
     filtered = filter_internal_features(features)
     filtered = filter_deprecated_features(filtered)
-    display_names = feature_display_names
+    filtered = filter_premium_features(filtered)
 
-    regular, premium = filtered.partition { |key, _value| account_premium_features.exclude?(key) }
-
-    [
-      sort_and_transform_features(regular, display_names),
-      sort_and_transform_features(premium, display_names)
-    ]
+    [sort_and_transform_features(filtered, feature_display_names), {}]
   end
 
   def self.filtered_features(features)
-    regular, premium = partition_features(features)
-    regular.merge(premium)
+    partition_features(features).first
   end
 end

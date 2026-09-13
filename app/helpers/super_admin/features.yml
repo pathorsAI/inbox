@@ -34,25 +34,23 @@ disable_branding:
   enabled: <%= (ChatwootHub.pricing_plan != 'community') %>
   icon: 'icon-sailbot-fill'
   enterprise: true
+
+# ------- Product Features ------- #
+# Pathors fork: `voice_calls` is our own Community Edition voice channel backed
+# by the Pathors platform, not the Enterprise add-on — it moved out of the
+# premium block and is always on. `captain` was removed: it is gated by premium
+# feature flags this installation never enables, so the card only advertised
+# something nobody here can turn on.
 voice_calls:
   name: 'Voice Calls'
   description: 'Enable voice calling capabilities for your agents and customers.'
-  enabled: <%= (ChatwootHub.pricing_plan != 'community') %>
+  enabled: true
   icon: 'icon-voice-line'
-  enterprise: true
-
-# ------- Product Features ------- #
 help_center:
   name: 'Help Center'
   description: 'Allow agents to create help center articles and publish them in a portal.'
   enabled: true
   icon: 'icon-book-2-line'
-captain:
-  name: 'Captain'
-  description: 'Enable AI-powered conversations with your customers.'
-  enabled: true
-  icon: 'icon-captain'
-  config_key: 'captain'
 
 # ------- Communication Channels ------- #
 live_chat:

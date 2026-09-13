@@ -40,7 +40,7 @@ class SuperAdmin::AccountsController < SuperAdmin::ApplicationController
     permitted_params.extract!(:suspension_category, :suspension_reason)
     permitted_params[:limits] = permitted_params[:limits].to_h.compact if permitted_params.key?(:limits)
     permitted_params[:captain_models] = permitted_params[:captain_models].to_h.compact_blank.presence if permitted_params.key?(:captain_models)
-    permitted_params[:selected_feature_flags] = params[:enabled_features].keys.map(&:to_sym) if params[:enabled_features].present?
+    permitted_params[:selected_feature_flags] = selected_feature_flags if params[:enabled_features].present?
     permitted_params
   end
 
@@ -76,6 +76,15 @@ class SuperAdmin::AccountsController < SuperAdmin::ApplicationController
   end
 
   private
+
+  # Pathors fork: premium feature flags belong to Chatwoot's paid Enterprise
+  # product. They are never rendered (see SuperAdmin::AccountFeaturesHelper) and
+  # are dropped here so a hand-crafted request cannot switch them on either.
+  def selected_feature_flags
+    premium_flags = SuperAdmin::AccountFeaturesHelper.account_premium_features.map { |name| "feature_#{name}" }
+
+    (params[:enabled_features].keys - premium_flags).map(&:to_sym)
+  end
 
   def validate_suspension_metadata
     return unless suspension_metadata_required?
