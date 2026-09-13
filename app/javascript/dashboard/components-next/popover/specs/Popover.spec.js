@@ -29,6 +29,7 @@ describe('Popover', () => {
           ),
       },
       global: {
+        renderStubDefaultSlot: true,
         stubs: { teleport: true },
       },
       attachTo: document.body,
@@ -41,7 +42,8 @@ describe('Popover', () => {
     await flushPromises();
   };
 
-  const desktopPopover = () => wrapper.find('.fixed[data-popover-content]');
+  const desktopPopover = () =>
+    wrapper.find('[data-popover-content][role="dialog"]');
   const mobileBackdrop = () => wrapper.find('[data-popover-backdrop]');
 
   beforeEach(() => {
@@ -130,7 +132,11 @@ describe('Popover', () => {
   describe('escape key', () => {
     const pressEscape = target =>
       (target || document).dispatchEvent(
-        new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })
+        new KeyboardEvent('keydown', {
+          key: 'Escape',
+          bubbles: true,
+          cancelable: true,
+        })
       );
 
     it('closes on Escape while open', async () => {
@@ -175,7 +181,9 @@ describe('Popover', () => {
     it('closes when clicking outside', async () => {
       mountPopover();
       await openPopover();
-      document.body.click();
+      document.body.dispatchEvent(
+        new PointerEvent('pointerdown', { bubbles: true })
+      );
       await flushPromises();
       expect(desktopPopover().exists()).toBe(false);
       expect(wrapper.emitted('hide')).toHaveLength(1);
@@ -184,7 +192,9 @@ describe('Popover', () => {
     it('stays open when clicking inside the content', async () => {
       mountPopover();
       await openPopover();
-      desktopPopover().element.click();
+      desktopPopover().element.dispatchEvent(
+        new PointerEvent('pointerdown', { bubbles: true })
+      );
       await flushPromises();
       expect(desktopPopover().exists()).toBe(true);
       expect(wrapper.emitted('hide')).toBeUndefined();

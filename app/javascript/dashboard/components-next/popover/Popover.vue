@@ -1,13 +1,20 @@
 <script setup>
-import { ref, computed, watch, nextTick } from 'vue';
+import { computed, ref } from 'vue';
+import {
+  ConfigProvider,
+  PopoverContent,
+  PopoverPortal,
+  PopoverRoot,
+  PopoverTrigger,
+} from 'reka-ui';
 import { vOnClickOutside } from '@vueuse/components';
 import {
-  useBreakpoints,
   breakpointsTailwind,
+  unrefElement,
+  useBreakpoints,
   useEventListener,
 } from '@vueuse/core';
-import { useDropdownPosition } from 'dashboard/composables/useDropdownPosition';
-import { useKeyboardEvents } from 'dashboard/composables/useKeyboardEvents';
+import { useMapGetter } from 'dashboard/composables/store';
 import TeleportWithDirection from 'dashboard/components-next/TeleportWithDirection.vue';
 
 const props = defineProps({
@@ -34,39 +41,36 @@ const emit = defineEmits(['show', 'hide']);
 
 const isActive = ref(false);
 const triggerRef = ref(null);
-const popoverRef = ref(null);
+const contentRef = ref(null);
 const mobileContentRef = ref(null);
+
+const isRTL = useMapGetter('accounts/isRTL');
+// reka positions and mirrors `ltr:`/`rtl:` utilities off this, so the teleported
+// content keeps the app's reading direction.
+const direction = computed(() => (isRTL.value ? 'rtl' : 'ltr'));
 
 const breakpoints = useBreakpoints(breakpointsTailwind);
 const belowMd = breakpoints.smaller('md');
 const isMobile = computed(() => !props.disableMobileView && belowMd.value);
-const showPopover = computed(() => isActive.value && !isMobile.value);
-
-const { fixedPosition, updatePosition } = useDropdownPosition(
-  triggerRef,
-  popoverRef,
-  showPopover,
-  { align: props.align }
-);
 
 const SCROLL_CLOSE_THRESHOLD = 24;
 const triggerTopAtOpen = ref(0);
 
-const show = async () => {
-  isActive.value = true;
-  triggerTopAtOpen.value = triggerRef.value?.getBoundingClientRect().top ?? 0;
-  if (!isMobile.value) {
-    await nextTick();
-    updatePosition();
+const setOpen = value => {
+  if (value === isActive.value) return;
+  isActive.value = value;
+  if (value) {
+    triggerTopAtOpen.value =
+      unrefElement(triggerRef)?.getBoundingClientRect().top ?? 0;
+    emit('show');
+  } else {
+    emit('hide');
   }
-  emit('show');
 };
 
-const hide = () => {
-  if (!isActive.value) return;
-  isActive.value = false;
-  emit('hide');
-};
+const show = () => setOpen(true);
+const hide = () => setOpen(false);
+const toggle = () => setOpen(!isActive.value);
 
 // The teleported popover tracks its trigger while ancestors scroll; allow
 // small drift (trackpad inertia), but close once the trigger moves further.
@@ -74,32 +78,15 @@ useEventListener(
   window,
   'scroll',
   event => {
-    if (!props.closeOnScroll || !showPopover.value) return;
-    if (popoverRef.value?.contains(event.target)) return;
-    const top = triggerRef.value?.getBoundingClientRect().top ?? 0;
+    if (!props.closeOnScroll || !isActive.value || isMobile.value) return;
+    if (contentRef.value?.contains(event.target)) return;
+    const top = unrefElement(triggerRef)?.getBoundingClientRect().top ?? 0;
     if (Math.abs(top - triggerTopAtOpen.value) > SCROLL_CLOSE_THRESHOLD) {
       hide();
     }
   },
   { capture: true, passive: true }
 );
-
-const toggle = async () => {
-  if (isActive.value) hide();
-  else await show();
-};
-
-// Recalculate position when switching from mobile to desktop while open
-watch(isMobile, async mobile => {
-  if (!isActive.value || mobile) return;
-  await nextTick();
-  updatePosition();
-});
-
-const handleClickOutside = event => {
-  if (triggerRef.value?.contains(event.target)) return;
-  hide();
-};
 
 // Selectors for teleported elements that should not trigger close
 const clickOutsideIgnore = [
@@ -112,36 +99,64 @@ const clickOutsideIgnore = [
 // was pressed in; closing the popover out from under it would discard the work in progress.
 const isNestedOverlay = event => {
   const overlay = event.target?.closest?.(clickOutsideIgnore.join(','));
-  return Boolean(
-    overlay &&
-      overlay !== popoverRef.value &&
-      overlay !== mobileContentRef.value
+  if (!overlay) return false;
+  // Our own content wraps the panel we render, so anything else is a nested overlay.
+  return !(
+    overlay.contains(contentRef.value) ||
+    overlay.contains(mobileContentRef.value)
   );
 };
 
-useKeyboardEvents({
-  Escape: {
-    action: event => {
-      if (isActive.value && !isNestedOverlay(event)) hide();
-    },
-    allowOnFocusedInput: true,
-  },
-});
+const keepOpenForNestedOverlay = event => {
+  if (isNestedOverlay(event)) event.preventDefault();
+};
+
+const handleClickOutside = event => {
+  if (unrefElement(triggerRef)?.contains(event.target)) return;
+  hide();
+};
 
 defineExpose({ show, hide, toggle });
 </script>
 
 <template>
-  <span ref="triggerRef" class="inline-flex" @click="toggle">
-    <slot :is-open="isActive" />
-  </span>
+  <ConfigProvider :dir="direction">
+    <PopoverRoot :open="isActive" @update:open="setOpen">
+      <PopoverTrigger ref="triggerRef" as="span" class="inline-flex">
+        <slot :is-open="isActive" />
+      </PopoverTrigger>
 
+      <PopoverPortal v-if="!isMobile">
+        <PopoverContent
+          data-popover-content
+          :align="align"
+          :side-offset="8"
+          :collision-padding="16"
+          class="flex flex-col max-h-[var(--reka-popover-content-available-height)] bg-n-alpha-3 backdrop-blur-[100px] shadow-xl rounded-xl z-[9999] duration-fast ease-out-soft data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 motion-reduce:animate-none"
+          @escape-key-down="keepOpenForNestedOverlay"
+          @pointer-down-outside="
+            keepOpenForNestedOverlay($event.detail.originalEvent)
+          "
+          @focus-outside="$event.preventDefault()"
+        >
+          <div
+            ref="contentRef"
+            class="flex-1 min-h-0 overflow-y-auto overscroll-contain rounded-xl"
+            :class="{ 'border border-n-strong': showContentBorder }"
+          >
+            <slot name="content" :hide="hide" />
+          </div>
+        </PopoverContent>
+      </PopoverPortal>
+    </PopoverRoot>
+  </ConfigProvider>
+
+  <!-- Mobile: centered modal with backdrop -->
   <TeleportWithDirection to="body">
-    <!-- Mobile: centered modal with backdrop -->
     <div
       v-if="isActive && isMobile"
       data-popover-backdrop
-      class="fixed inset-0 z-[9999] flex items-start pt-[clamp(3rem,15vh,12rem)] justify-center bg-n-alpha-black1"
+      class="fixed inset-0 z-[9999] flex items-start pt-[clamp(3rem,15vh,12rem)] justify-center bg-n-alpha-black1 duration-fast ease-out-soft animate-in fade-in-0 motion-reduce:animate-none"
     >
       <div
         ref="mobileContentRef"
@@ -150,31 +165,13 @@ defineExpose({ show, hide, toggle });
           { ignore: clickOutsideIgnore },
         ]"
         data-popover-content
-        class="relative flex flex-col w-full max-w-lg max-h-[calc(100vh-4rem)] mx-4 bg-n-alpha-3 backdrop-blur-[100px] shadow-xl rounded-xl"
+        class="relative flex flex-col w-full max-w-lg max-h-[calc(100vh-4rem)] mx-4 bg-n-alpha-3 backdrop-blur-[100px] shadow-xl rounded-xl duration-fast ease-out-soft animate-in fade-in-0 zoom-in-95 motion-reduce:animate-none"
       >
         <div
           class="flex-1 min-h-0 overflow-y-auto overscroll-contain rounded-xl"
         >
           <slot name="content" :hide="hide" />
         </div>
-      </div>
-    </div>
-
-    <!-- Desktop: fixed popover -->
-    <div
-      v-else-if="showPopover"
-      ref="popoverRef"
-      v-on-click-outside="[handleClickOutside, { ignore: clickOutsideIgnore }]"
-      data-popover-content
-      :class="fixedPosition.class"
-      :style="fixedPosition.style"
-      class="flex flex-col bg-n-alpha-3 backdrop-blur-[100px] shadow-xl rounded-xl"
-    >
-      <div
-        class="flex-1 min-h-0 overflow-y-auto overscroll-contain rounded-xl"
-        :class="{ 'border border-n-strong': showContentBorder }"
-      >
-        <slot name="content" :hide="hide" />
       </div>
     </div>
   </TeleportWithDirection>

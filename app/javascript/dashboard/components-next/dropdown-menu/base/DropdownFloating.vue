@@ -1,5 +1,6 @@
 <script setup>
 import { ref } from 'vue';
+import { FocusScope } from 'reka-ui';
 import { useDropdownPosition } from 'dashboard/composables/useDropdownPosition';
 import TeleportWithDirection from 'dashboard/components-next/TeleportWithDirection.vue';
 
@@ -25,9 +26,9 @@ const { fixedPosition } = useDropdownPosition(trigger, menuRef, true, {
       :class="fixedPosition.class"
       :style="fixedPosition.style"
     >
-      <div ref="menuRef" class="[&>*]:!static">
+      <FocusScope ref="menuRef" as="div" class="[&>*]:!static">
         <slot />
-      </div>
+      </FocusScope>
     </div>
   </TeleportWithDirection>
 </template>

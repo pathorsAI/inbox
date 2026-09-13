@@ -118,7 +118,7 @@ defineExpose({ open, close });
   <TeleportWithDirection to="body">
     <dialog
       ref="dialogRef"
-      class="w-full transition-all duration-300 ease-in-out shadow-xl rounded-xl"
+      class="w-full transition-all duration-300 ease-in-out shadow-xl rounded-xl open:animate-in open:fade-in-0 open:duration-base open:ease-out-soft backdrop:animate-in backdrop:fade-in-0 backdrop:duration-base backdrop:ease-out-soft motion-reduce:open:animate-none motion-reduce:backdrop:animate-none"
       :class="[
         maxWidthClass,
         positionClass,
@@ -129,7 +129,7 @@ defineExpose({ open, close });
       <OnClickOutside @trigger="handleClickOutside">
         <form
           ref="dialogContentRef"
-          class="flex flex-col w-full h-auto gap-6 p-6 overflow-visible text-start align-middle transition-all duration-300 ease-in-out transform bg-n-alpha-3 backdrop-blur-[100px] shadow-xl rounded-xl"
+          class="flex flex-col w-full h-auto gap-6 p-6 overflow-visible text-start align-middle transition-all duration-300 ease-in-out transform bg-n-alpha-3 backdrop-blur-[100px] shadow-xl rounded-xl animate-in fade-in-0 zoom-in-95 duration-base ease-out-soft motion-reduce:animate-none"
           @submit.prevent="confirm"
           @click.stop
         >

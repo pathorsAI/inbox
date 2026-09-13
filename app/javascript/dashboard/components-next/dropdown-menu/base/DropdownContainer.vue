@@ -1,12 +1,16 @@
 <script setup>
 import { ref } from 'vue';
-import { useToggle } from '@vueuse/core';
+import { FocusScope } from 'reka-ui';
 import { vOnClickOutside } from '@vueuse/components';
 import DropdownFloating from './DropdownFloating.vue';
 import { provideDropdownContext, useDropdownTeleport } from './provider.js';
 
 const emit = defineEmits(['close']);
-const [isOpen, toggle] = useToggle(false);
+
+const isOpen = ref(false);
+const toggle = value => {
+  isOpen.value = value ?? !isOpen.value;
+};
 
 const teleport = useDropdownTeleport();
 const containerRef = ref(null);
@@ -43,9 +47,9 @@ provideDropdownContext({
       <DropdownFloating v-if="teleport" :trigger="getTrigger">
         <slot />
       </DropdownFloating>
-      <div v-else class="absolute">
+      <FocusScope v-else as="div" class="absolute">
         <slot />
-      </div>
+      </FocusScope>
     </template>
   </div>
 </template>

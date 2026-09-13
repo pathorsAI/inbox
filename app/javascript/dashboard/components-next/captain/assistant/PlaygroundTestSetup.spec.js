@@ -62,7 +62,12 @@ const mountSetup = (overrides = {}) =>
   shallowMount(PlaygroundTestSetup, {
     props: { session: buildSession(overrides) },
     global: {
-      stubs: { Accordion: false },
+      stubs: {
+        Accordion: false,
+        CollapsibleRoot: false,
+        CollapsibleTrigger: false,
+        Primitive: false,
+      },
     },
   });
 

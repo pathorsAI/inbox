@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { RovingFocusGroup, RovingFocusItem } from 'reka-ui';
 
 import Icon from 'dashboard/components-next/icon/Icon.vue';
 import EmojiIcon from 'dashboard/components-next/emoji-icon-picker/EmojiIcon.vue';
@@ -137,7 +138,7 @@ onMounted(() => {
 
 <template>
   <div
-    class="bg-n-alpha-3 backdrop-blur-[100px] border-0 outline outline-1 outline-n-container absolute rounded-xl z-50 flex flex-col min-w-[136px] shadow-lg pt-2 overflow-hidden"
+    class="bg-n-alpha-3 backdrop-blur-[100px] border-0 outline outline-1 outline-n-container absolute rounded-xl z-50 flex flex-col min-w-[136px] shadow-lg pt-2 overflow-hidden animate-in fade-in-0 zoom-in-95 slide-in-from-top-1 duration-fast ease-out-soft motion-reduce:animate-none"
   >
     <div v-if="showSearch" class="relative shrink-0 px-2 mb-2">
       <span
@@ -154,7 +155,13 @@ onMounted(() => {
         @input="handleSearchInput"
       />
     </div>
-    <div class="flex flex-col gap-2 overflow-y-auto min-h-0 px-2 pb-2">
+    <RovingFocusGroup
+      as="div"
+      orientation="vertical"
+      loop
+      role="menu"
+      class="flex flex-col gap-2 overflow-y-auto min-h-0 px-2 pb-2"
+    >
       <template v-if="hasSections">
         <div
           v-for="(section, sectionIndex) in filteredMenuSections"
@@ -179,10 +186,77 @@ onMounted(() => {
           >
             {{ section.emptyState }}
           </div>
-          <button
+          <RovingFocusItem
             v-for="(item, itemIndex) in section.items"
             :key="item.value || itemIndex"
+            as-child
+            :focusable="!item.disabled"
+          >
+            <button
+              type="button"
+              role="menuitem"
+              class="inline-flex items-center justify-start w-full h-8 min-w-0 gap-2 px-2 py-1.5 transition-all duration-200 ease-in-out border-0 rounded-lg z-60 hover:bg-n-alpha-1 dark:hover:bg-n-alpha-2 disabled:cursor-not-allowed disabled:pointer-events-none disabled:opacity-50"
+              :class="{
+                'bg-n-alpha-1 dark:bg-n-solid-active': item.isSelected,
+                'text-n-ruby-11': item.action === 'delete',
+                'text-n-slate-12': item.action !== 'delete',
+              }"
+              :disabled="item.disabled"
+              @click="handleAction(item)"
+            >
+              <slot name="thumbnail" :item="item">
+                <Avatar
+                  v-if="item.thumbnail"
+                  :name="item.thumbnail.name"
+                  :src="item.thumbnail.src"
+                  :size="thumbnailSize"
+                  :rounded-full="roundedThumbnail"
+                />
+              </slot>
+              <slot name="icon" :item="item">
+                <Icon
+                  v-if="item.icon"
+                  :icon="item.icon"
+                  class="flex-shrink-0 size-3.5"
+                />
+              </slot>
+              <EmojiIcon
+                v-if="item.emoji"
+                :value="item.emoji"
+                :color="item.iconColor"
+                class="flex-shrink-0 size-4"
+              />
+              <slot name="label" :item="item">
+                <span
+                  v-if="item.label"
+                  class="min-w-0 text-sm font-420 truncate"
+                  :class="labelClass"
+                >
+                  {{ item.label }}
+                </span>
+              </slot>
+              <slot name="trailing-icon" :item="item" />
+            </button>
+          </RovingFocusItem>
+          <div
+            v-if="sectionIndex < filteredMenuSections.length - 1"
+            class="h-px bg-n-alpha-2 mx-2 my-1"
+          />
+        </div>
+      </template>
+      <template v-else>
+        <div v-if="isLoading" class="flex items-center justify-center py-2">
+          <Spinner :size="24" />
+        </div>
+        <RovingFocusItem
+          v-for="(item, index) in filteredMenuItems"
+          :key="index"
+          as-child
+          :focusable="!item.disabled"
+        >
+          <button
             type="button"
+            role="menuitem"
             class="inline-flex items-center justify-start w-full h-8 min-w-0 gap-2 px-2 py-1.5 transition-all duration-200 ease-in-out border-0 rounded-lg z-60 hover:bg-n-alpha-1 dark:hover:bg-n-alpha-2 disabled:cursor-not-allowed disabled:pointer-events-none disabled:opacity-50"
             :class="{
               'bg-n-alpha-1 dark:bg-n-solid-active': item.isSelected,
@@ -225,62 +299,7 @@ onMounted(() => {
             </slot>
             <slot name="trailing-icon" :item="item" />
           </button>
-          <div
-            v-if="sectionIndex < filteredMenuSections.length - 1"
-            class="h-px bg-n-alpha-2 mx-2 my-1"
-          />
-        </div>
-      </template>
-      <template v-else>
-        <div v-if="isLoading" class="flex items-center justify-center py-2">
-          <Spinner :size="24" />
-        </div>
-        <button
-          v-for="(item, index) in filteredMenuItems"
-          :key="index"
-          type="button"
-          class="inline-flex items-center justify-start w-full h-8 min-w-0 gap-2 px-2 py-1.5 transition-all duration-200 ease-in-out border-0 rounded-lg z-60 hover:bg-n-alpha-1 dark:hover:bg-n-alpha-2 disabled:cursor-not-allowed disabled:pointer-events-none disabled:opacity-50"
-          :class="{
-            'bg-n-alpha-1 dark:bg-n-solid-active': item.isSelected,
-            'text-n-ruby-11': item.action === 'delete',
-            'text-n-slate-12': item.action !== 'delete',
-          }"
-          :disabled="item.disabled"
-          @click="handleAction(item)"
-        >
-          <slot name="thumbnail" :item="item">
-            <Avatar
-              v-if="item.thumbnail"
-              :name="item.thumbnail.name"
-              :src="item.thumbnail.src"
-              :size="thumbnailSize"
-              :rounded-full="roundedThumbnail"
-            />
-          </slot>
-          <slot name="icon" :item="item">
-            <Icon
-              v-if="item.icon"
-              :icon="item.icon"
-              class="flex-shrink-0 size-3.5"
-            />
-          </slot>
-          <EmojiIcon
-            v-if="item.emoji"
-            :value="item.emoji"
-            :color="item.iconColor"
-            class="flex-shrink-0 size-4"
-          />
-          <slot name="label" :item="item">
-            <span
-              v-if="item.label"
-              class="min-w-0 text-sm font-420 truncate"
-              :class="labelClass"
-            >
-              {{ item.label }}
-            </span>
-          </slot>
-          <slot name="trailing-icon" :item="item" />
-        </button>
+        </RovingFocusItem>
       </template>
       <div
         v-if="shouldShowEmptyState"
@@ -294,7 +313,7 @@ onMounted(() => {
               : t(emptyStateMessage)
         }}
       </div>
-    </div>
+    </RovingFocusGroup>
     <div v-if="$slots.footer" class="shrink-0">
       <slot name="footer" />
     </div>

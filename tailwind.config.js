@@ -2,6 +2,71 @@ const { slateDark } = require('@radix-ui/colors');
 import { colors } from './theme/colors';
 import { icons } from './theme/icons';
 const defaultTheme = require('tailwindcss/defaultTheme');
+const plugin = require('tailwindcss/plugin');
+
+const enterExitAnimations = plugin(({ addUtilities, matchUtilities }) => {
+  addUtilities({
+    '@keyframes enter': {
+      from: {
+        opacity: 'var(--tw-enter-opacity, 1)',
+        transform:
+          'translate3d(var(--tw-enter-translate-x, 0), var(--tw-enter-translate-y, 0), 0) scale3d(var(--tw-enter-scale, 1), var(--tw-enter-scale, 1), var(--tw-enter-scale, 1))',
+      },
+    },
+    '@keyframes exit': {
+      to: {
+        opacity: 'var(--tw-exit-opacity, 1)',
+        transform:
+          'translate3d(var(--tw-exit-translate-x, 0), var(--tw-exit-translate-y, 0), 0) scale3d(var(--tw-exit-scale, 1), var(--tw-exit-scale, 1), var(--tw-exit-scale, 1))',
+      },
+    },
+    '.animate-in': {
+      animationName: 'enter',
+      animationDuration: '150ms',
+      animationTimingFunction: 'cubic-bezier(0.2, 0, 0, 1)',
+      animationFillMode: 'both',
+    },
+    '.animate-out': {
+      animationName: 'exit',
+      animationDuration: '150ms',
+      animationTimingFunction: 'cubic-bezier(0.2, 0, 0, 1)',
+      animationFillMode: 'both',
+    },
+  });
+  const percent = value => `${Number(value) / 100}`;
+  const rem = value => `${Number(value) / 4}rem`;
+  matchUtilities(
+    {
+      'fade-in': value => ({ '--tw-enter-opacity': percent(value) }),
+      'fade-out': value => ({ '--tw-exit-opacity': percent(value) }),
+      'zoom-in': value => ({ '--tw-enter-scale': percent(value) }),
+      'zoom-out': value => ({ '--tw-exit-scale': percent(value) }),
+    },
+    { values: { 0: '0', 50: '50', 90: '90', 95: '95', 100: '100' } }
+  );
+  matchUtilities(
+    {
+      'slide-in-from-top': value => ({
+        '--tw-enter-translate-y': `-${rem(value)}`,
+      }),
+      'slide-in-from-bottom': value => ({
+        '--tw-enter-translate-y': rem(value),
+      }),
+      'slide-in-from-left': value => ({
+        '--tw-enter-translate-x': `-${rem(value)}`,
+      }),
+      'slide-in-from-right': value => ({
+        '--tw-enter-translate-x': rem(value),
+      }),
+      'slide-out-to-top': value => ({
+        '--tw-exit-translate-y': `-${rem(value)}`,
+      }),
+      'slide-out-to-bottom': value => ({ '--tw-exit-translate-y': rem(value) }),
+    },
+    { values: { 1: '1', 2: '2', 4: '4' } }
+  );
+});
+
 const {
   iconsPlugin,
   getIconCollections,
@@ -39,6 +104,13 @@ const tailwindConfig = {
   ],
   theme: {
     extend: {
+      transitionDuration: {
+        fast: '150ms',
+        base: '220ms',
+      },
+      transitionTimingFunction: {
+        'out-soft': 'cubic-bezier(0.2, 0, 0, 1)',
+      },
       fontFamily: {
         sans: defaultSansFonts,
         inter: ['Inter', ...defaultSansFonts],
@@ -265,6 +337,12 @@ const tailwindConfig = {
   plugins: [
     // eslint-disable-next-line
     require('@tailwindcss/typography'),
+    // Enter/exit animation utilities in the tailwindcss-animate vocabulary
+    // (animate-in, fade-in-0, zoom-in-95, slide-in-from-top-1 …). Kept inline
+    // instead of the package: it also registers duration-*/ease-* for
+    // animations, which makes the arbitrary values already used in @apply
+    // (duration-[0.25s]) ambiguous and breaks the build.
+    enterExitAnimations,
     iconsPlugin({
       collections: {
         woot: { icons },
