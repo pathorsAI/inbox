@@ -9,7 +9,7 @@ const OPTIONS = [
   { value: 4, label: 'API', icon: '🔌', iconColor: '#000' },
 ];
 
-// A findable dropdown stub that exposes the `focus()` the component calls on open.
+// A findable dropdown stub that renders the trigger slot the component passes in.
 const ComboBoxDropdownStub = {
   name: 'ComboBoxDropdown',
   props: [
@@ -20,9 +20,8 @@ const ComboBoxDropdownStub = {
     'emptyState',
     'loading',
   ],
-  emits: ['select', 'update:searchValue'],
-  methods: { focus() {} },
-  template: '<div class="combo-dropdown" />',
+  emits: ['select', 'update:searchValue', 'update:open'],
+  template: '<div class="combo-dropdown"><slot /></div>',
 };
 
 // Renders a real <button> so clicks reach the parent handlers; `data-icon`
@@ -46,7 +45,6 @@ const mountSelect = (props = {}, slots = {}) =>
         Spinner: true,
         Icon: true,
         EmojiIcon: true,
-        OnClickOutside: { template: '<div><slot /></div>' },
       },
     },
   });

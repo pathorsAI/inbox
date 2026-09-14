@@ -1,6 +1,5 @@
 <script setup>
-import { ref, computed, nextTick } from 'vue';
-import { OnClickOutside } from '@vueuse/components';
+import { ref, computed } from 'vue';
 import Button from 'dashboard/components-next/button/Button.vue';
 import ComboBoxDropdown from 'dashboard/components-next/combobox/ComboBoxDropdown.vue';
 import EmojiIcon from 'dashboard/components-next/emoji-icon-picker/EmojiIcon.vue';
@@ -63,7 +62,6 @@ const selectedIds = defineModel({ type: Array, default: () => [] });
 const isOpen = ref(false);
 const searchQuery = ref('');
 const dragIndex = ref(null);
-const dropdownRef = ref(null);
 
 const optionsByValue = computed(
   () => new Map(props.options.map(option => [option.value, option]))
@@ -100,7 +98,6 @@ const toggleDropdown = () => {
   isOpen.value = !isOpen.value;
   if (isOpen.value) {
     onSearch('');
-    nextTick(() => dropdownRef.value?.focus());
   }
 };
 
@@ -154,137 +151,130 @@ const onDragEnd = () => {
       </div>
     </div>
 
-    <OnClickOutside @trigger="isOpen = false">
+    <div
+      class="flex flex-col gap-1 p-1 border rounded-xl border-n-weak bg-n-background"
+      :class="{ 'opacity-50 pointer-events-none': disabled }"
+    >
       <div
-        class="flex flex-col gap-1 p-1 border rounded-xl border-n-weak bg-n-background"
-        :class="{ 'opacity-50 pointer-events-none': disabled }"
+        v-if="loading && selectedIds.length && !isOpen"
+        class="flex flex-col gap-1 overflow-y-auto max-h-[216px]"
+        aria-busy="true"
       >
         <div
-          v-if="loading && selectedIds.length && !isOpen"
-          class="flex flex-col gap-1 overflow-y-auto max-h-[216px]"
-          aria-busy="true"
+          v-for="n in selectedIds.length"
+          :key="n"
+          class="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-n-alpha-2"
         >
-          <div
-            v-for="n in selectedIds.length"
-            :key="n"
-            class="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-n-alpha-2"
-          >
-            <span
-              class="flex-shrink-0 opacity-40 i-lucide-grip-vertical size-4 text-n-slate-9"
-            />
-            <div class="flex-shrink-0 rounded-md size-6 bg-n-alpha-3" />
-            <div class="flex-grow min-w-0">
-              <p class="mb-0 text-sm">
-                <span
-                  class="inline-block w-32 h-2.5 align-middle rounded bg-n-alpha-3 animate-pulse"
-                />
-              </p>
-              <p class="mb-0 text-xs">
-                <span
-                  class="inline-block w-20 h-2 align-middle rounded bg-n-alpha-3 animate-pulse"
-                />
-              </p>
-            </div>
-            <span class="flex-shrink-0 size-6" />
-          </div>
-        </div>
-
-        <div
-          v-else-if="selectedRows.length"
-          class="flex flex-col gap-1 overflow-y-auto max-h-[216px]"
-        >
-          <div
-            v-for="(row, index) in selectedRows"
-            :key="row.value"
-            draggable="true"
-            class="flex items-center gap-2 px-2 py-1.5 transition-colors rounded-lg cursor-grab group/row"
-            :class="
-              index === dragIndex
-                ? 'opacity-40 bg-n-alpha-3 ring-1 ring-inset ring-n-brand'
-                : 'bg-n-alpha-2 hover:bg-n-alpha-3'
-            "
-            @dragstart="onDragStart(index)"
-            @dragover.prevent="onDragOver(index)"
-            @dragend="onDragEnd"
-          >
-            <span
-              class="flex-shrink-0 transition-colors i-lucide-grip-vertical size-4 text-n-slate-9 group-hover/row:text-n-slate-11"
-            />
-            <div
-              class="flex items-center justify-center flex-shrink-0 text-sm rounded-md size-6 bg-n-alpha-3 text-n-slate-11"
-            >
-              <EmojiIcon
-                v-if="row.icon"
-                :value="row.icon"
-                :color="row.iconColor"
-                class="shrink-0 size-4"
+          <span
+            class="flex-shrink-0 opacity-40 i-lucide-grip-vertical size-4 text-n-slate-9"
+          />
+          <div class="flex-shrink-0 rounded-md size-6 bg-n-alpha-3" />
+          <div class="flex-grow min-w-0">
+            <p class="mb-0 text-sm">
+              <span
+                class="inline-block w-32 h-2.5 align-middle rounded bg-n-alpha-3 animate-pulse"
               />
-              <span v-else class="size-4" :class="fallbackIcon" />
-            </div>
-            <div class="flex-grow min-w-0">
-              <p class="mb-0 text-sm truncate text-n-slate-12">
-                {{ row.label }}
-              </p>
-              <p
-                v-if="row.subtitle"
-                class="mb-0 text-xs truncate text-n-slate-10"
-              >
-                {{ row.subtitle }}
-              </p>
-            </div>
-            <Button
-              type="button"
-              ghost
-              slate
-              xs
-              no-animation
-              icon="i-lucide-x"
-              class="flex-shrink-0"
-              @click="removeItem(row.value)"
-            />
+            </p>
+            <p class="mb-0 text-xs">
+              <span
+                class="inline-block w-20 h-2 align-middle rounded bg-n-alpha-3 animate-pulse"
+              />
+            </p>
           </div>
+          <span class="flex-shrink-0 size-6" />
         </div>
+      </div>
 
-        <div v-if="canAddMore" class="relative">
+      <div
+        v-else-if="selectedRows.length"
+        class="flex flex-col gap-1 overflow-y-auto max-h-[216px]"
+      >
+        <div
+          v-for="(row, index) in selectedRows"
+          :key="row.value"
+          draggable="true"
+          class="flex items-center gap-2 px-2 py-1.5 transition-colors rounded-lg cursor-grab group/row"
+          :class="
+            index === dragIndex
+              ? 'opacity-40 bg-n-alpha-3 ring-1 ring-inset ring-n-brand'
+              : 'bg-n-alpha-2 hover:bg-n-alpha-3'
+          "
+          @dragstart="onDragStart(index)"
+          @dragover.prevent="onDragOver(index)"
+          @dragend="onDragEnd"
+        >
+          <span
+            class="flex-shrink-0 transition-colors i-lucide-grip-vertical size-4 text-n-slate-9 group-hover/row:text-n-slate-11"
+          />
+          <div
+            class="flex items-center justify-center flex-shrink-0 text-sm rounded-md size-6 bg-n-alpha-3 text-n-slate-11"
+          >
+            <EmojiIcon
+              v-if="row.icon"
+              :value="row.icon"
+              :color="row.iconColor"
+              class="shrink-0 size-4"
+            />
+            <span v-else class="size-4" :class="fallbackIcon" />
+          </div>
+          <div class="flex-grow min-w-0">
+            <p class="mb-0 text-sm truncate text-n-slate-12">
+              {{ row.label }}
+            </p>
+            <p
+              v-if="row.subtitle"
+              class="mb-0 text-xs truncate text-n-slate-10"
+            >
+              {{ row.subtitle }}
+            </p>
+          </div>
           <Button
             type="button"
             ghost
             slate
-            sm
+            xs
             no-animation
-            justify="start"
-            :label="addLabel"
-            :disabled="loading && !isOpen"
-            class="w-full"
-            @click="toggleDropdown"
-          >
-            <template #icon>
-              <Spinner
-                v-if="loading && !isOpen"
-                :size="16"
-                class="text-n-slate-11"
-              />
-              <Icon
-                v-else
-                icon="i-lucide-search"
-                class="flex-shrink-0 size-4"
-              />
-            </template>
-          </Button>
-          <ComboBoxDropdown
-            ref="dropdownRef"
-            :open="isOpen"
-            :options="dropdownOptions"
-            :search-value="searchQuery"
-            :search-placeholder="searchPlaceholder"
-            :empty-state="emptyState"
-            :loading="loading"
-            @update:search-value="onSearch"
-            @select="onSelect"
+            icon="i-lucide-x"
+            class="flex-shrink-0"
+            @click="removeItem(row.value)"
           />
         </div>
       </div>
-    </OnClickOutside>
+
+      <ComboBoxDropdown
+        v-if="canAddMore"
+        v-model:open="isOpen"
+        :options="dropdownOptions"
+        :search-value="searchQuery"
+        :search-placeholder="searchPlaceholder"
+        :empty-state="emptyState"
+        :loading="loading"
+        @update:search-value="onSearch"
+        @select="onSelect"
+      >
+        <Button
+          type="button"
+          ghost
+          slate
+          sm
+          no-animation
+          justify="start"
+          :label="addLabel"
+          :disabled="loading && !isOpen"
+          class="w-full"
+          @click="toggleDropdown"
+        >
+          <template #icon>
+            <Spinner
+              v-if="loading && !isOpen"
+              :size="16"
+              class="text-n-slate-11"
+            />
+            <Icon v-else icon="i-lucide-search" class="flex-shrink-0 size-4" />
+          </template>
+        </Button>
+      </ComboBoxDropdown>
+    </div>
 
     <p
       v-if="selectedIds.length && $slots.note"
