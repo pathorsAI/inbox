@@ -147,7 +147,12 @@ jobs:
             bundle exec rspec --profile=10 --format progress --format json --out tmp/rspec_results.json $TESTS
           fi
         env:
-          NODE_OPTIONS: --openssl-legacy-provider
+          # --max-old-space-size: the test env has vite autoBuild on, so the first
+          # spec that renders a page builds the whole frontend in-process. On the
+          # 2-vCPU / 7GB runner a private repo gets, Node's default heap (~2GB)
+          # is not enough and every controller spec 500s with
+          # "Vite Ruby can't find entrypoints/... in the manifests".
+          NODE_OPTIONS: --openssl-legacy-provider --max-old-space-size=4096
 
       - name: Upload test results
         uses: actions/upload-artifact@v4
