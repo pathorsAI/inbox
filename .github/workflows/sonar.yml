@@ -58,10 +58,17 @@ jobs:
           # both.
           fetch-depth: 0
 
+      # Node is only here to run the npm scanner and the two `node -e`
+      # scripts below; nothing installs this repo's dependencies. setup-node v5
+      # sees `packageManager: pnpm@…` in package.json and, with its default
+      # `package-manager-cache: true`, tries to run pnpm to compute a cache
+      # key — which is not on the runner, and the job dies before the scan
+      # starts. Turn that off explicitly.
       - name: Setup Node.js
         uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
         with:
           node-version: '20'
+          package-manager-cache: false
 
       # The scanner would otherwise provision its own JRE on every run:
       # SONAR_USER_HOME is per-job (see the scan step), so its cache is always
