@@ -1,0 +1,322 @@
+name: Sonar
+
+# CI-based SonarQube analysis against the self-hosted instance
+# (https://sonar.pathors.com — pathorsAI/pathors#2250), same shape as the
+# pathors monorepo's sonar.yml minus the per-app matrix: this repo is one
+# deployable unit, project key `pathorsAI_inbox`. Exclusions and the project
+# key live in ./sonar-project.properties, which the scanner picks up with no
+# extra flag. PR analysis on the Community Build is provided by the
+# community-branch-plugin, which accepts the same sonar.pullrequest.*
+# properties SonarCloud did. Ticket: pathorsAI/pathors#2829.
+#
+# Runs on the org-level self-hosted `gke` runners (pathors-tw, see
+# pathorsAI/pathors infra/k8s/gha-runner/). Those pods have no Docker and a
+# 5Gi memory limit — the -Xmx below and sonar.javascript.node.maxspace in the
+# properties file are sized for that, not for a GitHub-hosted VM.
+
+# The comment step below writes to the PR; everything else only reads.
+permissions:
+  contents: read
+  pull-requests: write
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches: [develop]
+
+# One analysis per ref. Superseded pushes carry no information once a newer
+# commit exists, and each cancelled run still consumes a Sonar analysis slot.
+concurrency:
+  group: sonar-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Single source of truth for the scanner version AND the warm-cache key it
+  # shares with the pathors monorepo's jobs on the same runners. Keep the two
+  # repos on the same version or each will re-warm past the other.
+  SCANNER_VERSION: '5.0.0'
+
+jobs:
+  sonar:
+    # A fork PR cannot read SONAR_TOKEN (GitHub withholds secrets from fork
+    # runs), so the scan is skipped there instead of failing. Same-repo PRs
+    # and pushes to develop are analysed. If this check is ever made required,
+    # remember a skipped run counts as passing.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: [self-hosted, gke]
+    # Whole-of-Chatwoot scan (Ruby + JS/Vue, ~5k files) on a 2-CPU pod. The
+    # pathors apps finish in under a minute each; this one is measured in
+    # minutes. Tighten once a few runs have shown the real number.
+    timeout-minutes: 45
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          # Sonar reads git blame to attribute issues to authors and to work
+          # out what counts as new code. A shallow clone silently degrades
+          # both.
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version: '20'
+
+      # The scanner would otherwise provision its own JRE on every run:
+      # SONAR_USER_HOME is per-job (see the scan step), so its cache is always
+      # empty. This action installs into the runner's tool cache, which lives
+      # on the runner's PVC and persists across jobs. 21 matches what the
+      # bootstrapper would fetch itself.
+      - name: Setup Java
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      # The engine jar and analyzer plugins are the other ~15s of a cold run.
+      # The pathors monorepo's sonar.yml keeps a warm, content-addressed copy
+      # of them per runner under ~/.cache/pathors-sonar/<version>-entries and
+      # publishes into it by atomic rename, so it is always safe to READ.
+      # Hardlink it into this job's private scanner home. This job never
+      # writes the warm copy back — the monorepo's jobs own it, and a second
+      # writer is how you get the half-file races that layout was built to
+      # avoid. A miss just means this run downloads; nothing breaks.
+      - name: Seed scanner cache
+        env:
+          SONAR_USER_HOME: ${{ runner.temp }}/sonar-inbox
+        run: |
+          WARM="$HOME/.cache/pathors-sonar/$SCANNER_VERSION-entries"
+          if [ ! -d "$WARM" ]; then
+            echo "warm cache miss ($WARM) — this job will download."
+            exit 0
+          fi
+          mkdir -p "$SONAR_USER_HOME/cache"
+          if cp -al "$WARM/." "$SONAR_USER_HOME/cache/" 2>/dev/null; then
+            LINKED=hardlinked
+          else
+            cp -a "$WARM/." "$SONAR_USER_HOME/cache/"
+            LINKED="copied (cross-device)"
+          fi
+          echo "warm cache hit: $(find "$WARM" -maxdepth 1 -mindepth 1 -type d | wc -l) entries, $LINKED"
+
+      # The npm scanner, not SonarSource/sonarqube-scan-action: that action
+      # shells out to `unzip`, which the self-hosted runners do not have. This
+      # package extracts in pure JS.
+      - name: SonarQube scan
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          # 3g JVM + the 2048MB node analyzer cap in sonar-project.properties
+          # is what fits under the runner pod's 5Gi limit with headroom.
+          SONAR_SCANNER_JAVA_OPTS: -Xmx3g
+          # Per-job scanner home, and it must stay per-job: the runner's $HOME
+          # is a PVC that survives across jobs, and the scanner's cache is not
+          # safe for concurrent use.
+          SONAR_USER_HOME: ${{ runner.temp }}/sonar-inbox
+          # Every one of these MUST stay an env var and never be interpolated
+          # into the script below. `${{ }}` is substituted as raw text before
+          # bash parses the script, and a branch name is attacker-influenced
+          # input — on a self-hosted runner that holds our secrets
+          # (githubactions:S7630).
+          EVENT_NAME: ${{ github.event_name }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          # An array, not a string: quoting survives into the argv, so a
+          # branch name containing spaces stays one argument.
+          ARGS=(-Dsonar.host.url=https://sonar.pathors.com)
+
+          # Use the JDK from the tool cache rather than letting the
+          # bootstrapper fetch its own. Both flags are required: skipping
+          # provisioning without naming an executable leaves it with no JVM.
+          ARGS+=("-Dsonar.scanner.skipJreProvisioning=true")
+          ARGS+=("-Dsonar.scanner.javaExePath=$JAVA_HOME/bin/java")
+
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            ARGS+=("-Dsonar.pullrequest.key=$PR_NUMBER")
+            ARGS+=("-Dsonar.pullrequest.branch=$PR_HEAD_REF")
+            ARGS+=("-Dsonar.pullrequest.base=$PR_BASE_REF")
+          else
+            ARGS+=("-Dsonar.branch.name=$REF_NAME")
+          fi
+
+          npx --yes "sonarqube-scanner@$SCANNER_VERSION" "${ARGS[@]}"
+
+      # The scanner prints "QUALITY GATE STATUS: FAILED" and nothing else —
+      # not which condition tripped, not what the threshold was. Ask the API
+      # here instead, so the failing log explains itself.
+      - name: Explain the Quality Gate failure
+        if: failure()
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          PROJECT_KEY: pathorsAI_inbox
+          EVENT_NAME: ${{ github.event_name }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            SCOPE="pullRequest=$PR_NUMBER"
+          else
+            SCOPE="branch=$REF_NAME"
+          fi
+          API=https://sonar.pathors.com/api
+
+          # Diagnostics must never turn a green run red or mask the real
+          # error, so every request is best-effort and the step always exits 0.
+          curl -sS -u "$SONAR_TOKEN:" \
+            "$API/qualitygates/project_status?projectKey=$PROJECT_KEY&$SCOPE" \
+            > "$RUNNER_TEMP/gate.json" || true
+          curl -sS -u "$SONAR_TOKEN:" \
+            "$API/measures/component?component=$PROJECT_KEY&$SCOPE&metricKeys=alert_status,new_lines,ncloc" \
+            > "$RUNNER_TEMP/measures.json" || true
+          curl -sS -u "$SONAR_TOKEN:" \
+            "$API/new_code_periods/show?project=$PROJECT_KEY" \
+            > "$RUNNER_TEMP/ncd.json" || true
+
+          node -e '
+            const read = (name) => {
+              try {
+                const path = `${process.env.RUNNER_TEMP}/${name}`;
+                return JSON.parse(require("fs").readFileSync(path, "utf8"));
+              } catch { return null; }
+            };
+            const gate = read("gate.json");
+            const measures = read("measures.json");
+
+            const status = gate?.projectStatus;
+            if (!status) {
+              console.log("Could not read the Quality Gate:",
+                JSON.stringify(gate ?? "no response"));
+            } else {
+              console.log(`Quality Gate: ${status.status}`);
+              for (const c of status.conditions ?? []) {
+                const mark = c.status === "OK" ? "  ok  " : "  FAIL";
+                console.log(
+                  `${mark} ${c.metricKey} = ${c.actualValue}` +
+                  ` (must be ${c.comparator === "GT" ? "<=" : ">="} ${c.errorThreshold})`,
+                );
+              }
+              if (!(status.conditions ?? []).length) {
+                console.log(
+                  "  No conditions were evaluated. The gate is entirely new-code" +
+                  " metrics, so this means the analysis produced no new code" +
+                  " period — check the New Code Definition printed below," +
+                  " not the code.",
+                );
+              }
+            }
+
+            const ncd = read("ncd.json")?.newCodePeriod;
+            if (ncd) {
+              console.log(
+                `new code definition: ${ncd.type}` +
+                (ncd.value ? `=${ncd.value}` : "") +
+                (ncd.inherited ? " (inherited from global setting)" : ""),
+              );
+            }
+
+            const m = Object.fromEntries(
+              (measures?.component?.measures ?? []).map((x) => [x.metric, x.value]),
+            );
+            console.log(
+              `measures: alert_status=${m.alert_status ?? "(absent)"}` +
+              ` new_lines=${m.new_lines ?? "(absent)"} ncloc=${m.ncloc ?? "?"}`,
+            );
+          '
+
+      # Leave the scan result on the PR itself, so nobody has to open the
+      # Sonar UI to learn how the gate went. Sticky: the same comment is
+      # updated in place on every push, keyed by the hidden marker. Best-effort
+      # by design (continue-on-error + `|| true`): a comment that could not be
+      # posted must never turn a green scan red. Pure node for the GitHub
+      # side — the self-hosted runners are not guaranteed to have the gh CLI.
+      - name: Comment the result on the PR
+        if: always() && github.event_name == 'pull_request'
+        continue-on-error: true
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+          PROJECT_KEY: pathorsAI_inbox
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          API=https://sonar.pathors.com/api
+          curl -sS -u "$SONAR_TOKEN:" \
+            "$API/qualitygates/project_status?projectKey=$PROJECT_KEY&pullRequest=$PR_NUMBER" \
+            > "$RUNNER_TEMP/gate.json" || true
+          curl -sS -u "$SONAR_TOKEN:" \
+            "$API/issues/search?componentKeys=$PROJECT_KEY&pullRequest=$PR_NUMBER&resolved=false&ps=10" \
+            > "$RUNNER_TEMP/issues.json" || true
+
+          node -e '
+            const fs = require("fs");
+            const read = (n) => {
+              try { return JSON.parse(fs.readFileSync(`${process.env.RUNNER_TEMP}/${n}`, "utf8")); }
+              catch { return null; }
+            };
+            const key = process.env.PROJECT_KEY;
+            const pr = process.env.PR_NUMBER;
+            const url = `https://sonar.pathors.com/dashboard?id=${encodeURIComponent(key)}&pullRequest=${pr}`;
+
+            const status = read("gate.json")?.projectStatus;
+            if (!status) process.exit(0); // nothing worth posting
+
+            const icon = status.status === "OK" ? "✅" : "❌";
+            const verdict = status.status === "OK" ? "passed" : status.status;
+            const lines = [
+              `<!-- sonar-scan-report:${key} -->`,
+              `### ${icon} SonarQube Quality Gate ${verdict} — [${key}](${url})`,
+              "",
+            ];
+
+            const conds = (status.conditions ?? []).filter((c) => c.status !== "OK");
+            if (conds.length) {
+              lines.push("| failed condition | value | threshold |", "|---|---|---|");
+              for (const c of conds) {
+                lines.push(`| ${c.metricKey} | ${c.actualValue} | ${c.comparator === "GT" ? "≤" : "≥"} ${c.errorThreshold} |`);
+              }
+              lines.push("");
+            }
+
+            const issues = read("issues.json");
+            if (issues?.total != null) {
+              const n = issues.total;
+              lines.push(`**${n} open issue${n === 1 ? "" : "s"} on this PR**${n ? ":" : "."}`);
+              for (const i of issues.issues ?? []) {
+                const file = (i.component ?? "").split(":").pop();
+                const loc = i.line ? `${file}:${i.line}` : file;
+                lines.push(`- **${i.severity}** \`${i.rule}\` — ${i.message} (\`${loc}\`)`);
+              }
+              const shown = (issues.issues ?? []).length;
+              if (n > shown) lines.push(`- …and ${n - shown} more on the [dashboard](${url}).`);
+            } else {
+              lines.push(`Details on the [dashboard](${url}).`);
+            }
+            fs.writeFileSync(`${process.env.RUNNER_TEMP}/comment.md`, lines.join("\n") + "\n");
+          ' || exit 0
+
+          [ -f "$RUNNER_TEMP/comment.md" ] || exit 0
+          MARKER="<!-- sonar-scan-report:$PROJECT_KEY -->"
+          node -e '
+            const fs = require("fs");
+            const [repo, pr, marker, file] = process.argv.slice(1);
+            const token = process.env.GH_TOKEN;
+            const body = fs.readFileSync(file, "utf8");
+            const api = `https://api.github.com/repos/${repo}`;
+            const headers = {
+              authorization: `Bearer ${token}`,
+              accept: "application/vnd.github+json",
+              "user-agent": "inbox-sonar",
+              "content-type": "application/json",
+            };
+            (async () => {
+              const list = await fetch(`${api}/issues/${pr}/comments?per_page=100`, { headers });
+              const existing = ((await list.json()) ?? []).find((c) => (c.body ?? "").startsWith(marker));
+              const res = existing
+                ? await fetch(`${api}/issues/comments/${existing.id}`, { method: "PATCH", headers, body: JSON.stringify({ body }) })
+                : await fetch(`${api}/issues/${pr}/comments`, { method: "POST", headers, body: JSON.stringify({ body }) });
+              console.log(`comment ${existing ? "updated" : "created"}: HTTP ${res.status}`);
+            })().catch((e) => console.log("comment skipped:", e.message));
+          ' "$REPO" "$PR_NUMBER" "$MARKER" "$RUNNER_TEMP/comment.md" || true
