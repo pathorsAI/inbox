@@ -50,6 +50,10 @@ jobs:
         run: bundle exec rake assets:precompile
         env:
           RAILS_ENV: production
+          # Private repos get the 2-vCPU / 7GB standard runner (public ones get
+          # 4 vCPU / 16GB), and Node sizes its default heap from system memory,
+          # so the Vite build that fit in ~2GB of headroom upstream OOMs here.
+          NODE_OPTIONS: --max-old-space-size=4096
 
       - name: Size Check
         run: pnpm run size
