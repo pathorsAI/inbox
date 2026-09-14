@@ -56,8 +56,18 @@ const isMobile = computed(() => !props.disableMobileView && belowMd.value);
 const SCROLL_CLOSE_THRESHOLD = 24;
 const triggerTopAtOpen = ref(0);
 
+// Dialog.vue opens with showModal(), which puts the dialog in the browser's
+// top layer and makes everything outside it inert. Content portalled to
+// <body> would land underneath and be unclickable, so when the trigger sits in
+// an open dialog the content is portalled into that dialog instead.
+const portalTarget = ref('body');
+
 const setOpen = value => {
   if (value === isActive.value) return;
+  if (value) {
+    portalTarget.value =
+      unrefElement(triggerRef)?.closest('dialog[open]') ?? 'body';
+  }
   isActive.value = value;
   if (value) {
     triggerTopAtOpen.value =
@@ -126,7 +136,7 @@ defineExpose({ show, hide, toggle });
         <slot :is-open="isActive" />
       </PopoverTrigger>
 
-      <PopoverPortal v-if="!isMobile">
+      <PopoverPortal v-if="!isMobile" :to="portalTarget">
         <PopoverContent
           data-popover-content
           :align="align"

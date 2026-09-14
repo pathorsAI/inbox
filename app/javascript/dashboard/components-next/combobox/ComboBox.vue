@@ -1,6 +1,5 @@
 <script setup>
-import { ref, computed, watch, nextTick } from 'vue';
-import { OnClickOutside } from '@vueuse/components';
+import { ref, computed, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import Button from 'dashboard/components-next/button/Button.vue';
@@ -33,8 +32,6 @@ const { t } = useI18n();
 const selectedValue = ref(props.modelValue);
 const open = ref(false);
 const search = ref('');
-const dropdownRef = ref(null);
-const comboboxRef = ref(null);
 
 const filteredOptions = computed(() => {
   // For API search, don't filter options locally
@@ -76,7 +73,6 @@ const toggleDropdown = () => {
   if (open.value) {
     search.value = '';
     emit('open');
-    nextTick(() => dropdownRef.value?.focus());
   }
 };
 
@@ -90,7 +86,6 @@ watch(
 
 <template>
   <div
-    ref="comboboxRef"
     class="relative w-full min-w-0"
     :class="{
       'cursor-not-allowed': disabled,
@@ -98,7 +93,16 @@ watch(
     }"
     @click.prevent
   >
-    <OnClickOutside @trigger="open = false">
+    <ComboBoxDropdown
+      v-model:open="open"
+      v-model:search-value="search"
+      :options="filteredOptions"
+      :search-placeholder="searchPlaceholder"
+      :empty-state="emptyState"
+      :selected-values="selectedValue"
+      @search="emit('search', $event)"
+      @select="selectOption"
+    >
       <Button
         variant="outline"
         :color="hasError && !open ? 'ruby' : open ? 'blue' : 'slate'"
@@ -115,29 +119,17 @@ watch(
         :icon="open ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'"
         @click="toggleDropdown"
       />
+    </ComboBoxDropdown>
 
-      <ComboBoxDropdown
-        ref="dropdownRef"
-        v-model:search-value="search"
-        :open="open"
-        :options="filteredOptions"
-        :search-placeholder="searchPlaceholder"
-        :empty-state="emptyState"
-        :selected-values="selectedValue"
-        @search="emit('search', $event)"
-        @select="selectOption"
-      />
-
-      <p
-        v-if="message"
-        class="mt-2 mb-0 text-xs truncate transition-all duration-500 ease-in-out"
-        :class="{
-          'text-n-ruby-9': hasError,
-          'text-n-slate-11': !hasError,
-        }"
-      >
-        {{ message }}
-      </p>
-    </OnClickOutside>
+    <p
+      v-if="message"
+      class="mt-2 mb-0 text-xs truncate transition-all duration-500 ease-in-out"
+      :class="{
+        'text-n-ruby-9': hasError,
+        'text-n-slate-11': !hasError,
+      }"
+    >
+      {{ message }}
+    </p>
   </div>
 </template>

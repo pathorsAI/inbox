@@ -1,6 +1,5 @@
 <script setup>
-import { ref, computed, watch, nextTick } from 'vue';
-import { OnClickOutside } from '@vueuse/components';
+import { ref, computed, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import ComboBoxDropdown from 'dashboard/components-next/combobox/ComboBoxDropdown.vue';
@@ -49,8 +48,6 @@ const { t } = useI18n();
 const selectedValues = ref(props.modelValue);
 const open = ref(false);
 const search = ref('');
-const dropdownRef = ref(null);
-const comboboxRef = ref(null);
 
 const filteredOptions = computed(() => {
   const searchTerm = search.value.toLowerCase();
@@ -93,7 +90,6 @@ const toggleDropdown = () => {
   open.value = !open.value;
   if (open.value) {
     search.value = '';
-    nextTick(() => dropdownRef.value?.focus());
   }
 };
 
@@ -113,7 +109,6 @@ defineExpose({
 
 <template>
   <div
-    ref="comboboxRef"
     class="relative w-full min-w-0"
     :class="{
       'cursor-not-allowed': disabled,
@@ -121,7 +116,17 @@ defineExpose({
     }"
     @click.prevent
   >
-    <OnClickOutside @trigger="open = false">
+    <ComboBoxDropdown
+      v-model:open="open"
+      :options="filteredOptions"
+      :search-value="search"
+      :search-placeholder="searchPlaceholder"
+      :empty-state="emptyState"
+      multiple
+      :selected-values="selectedValues"
+      @update:search-value="search = $event"
+      @select="toggleOption"
+    >
       <div
         class="flex flex-wrap w-full gap-2 px-3 py-2.5 border rounded-lg cursor-pointer bg-n-alpha-black2 min-h-[42px] transition-all duration-500 ease-in-out"
         :class="{
@@ -154,30 +159,17 @@ defineExpose({
           {{ selectPlaceholder }}
         </span>
       </div>
+    </ComboBoxDropdown>
 
-      <ComboBoxDropdown
-        ref="dropdownRef"
-        :open="open"
-        :options="filteredOptions"
-        :search-value="search"
-        :search-placeholder="searchPlaceholder"
-        :empty-state="emptyState"
-        multiple
-        :selected-values="selectedValues"
-        @update:search-value="search = $event"
-        @select="toggleOption"
-      />
-
-      <p
-        v-if="message"
-        class="mt-2 mb-0 text-xs truncate transition-all duration-500 ease-in-out"
-        :class="{
-          'text-n-ruby-9': hasError,
-          'text-n-slate-11': !hasError,
-        }"
-      >
-        {{ message }}
-      </p>
-    </OnClickOutside>
+    <p
+      v-if="message"
+      class="mt-2 mb-0 text-xs truncate transition-all duration-500 ease-in-out"
+      :class="{
+        'text-n-ruby-9': hasError,
+        'text-n-slate-11': !hasError,
+      }"
+    >
+      {{ message }}
+    </p>
   </div>
 </template>

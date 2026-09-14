@@ -102,7 +102,20 @@ const handleDialogClose = e => e.target === dialogRef.value && close();
 
 // Only close on click-outside if this dialog is the topmost one.
 // If another dialog (e.g. ProseMirror prompt) is open on top, ignore.
-const handleClickOutside = () => {
+// Combobox lists and popovers opened from inside the dialog are portalled
+// into the <dialog> element (they would be inert under the top layer
+// otherwise), so they sit outside the content wrapper but inside the dialog;
+// only a click on the dialog element itself is the backdrop.
+const handleClickOutside = event => {
+  const target = event?.target;
+  if (
+    target &&
+    target !== dialogRef.value &&
+    dialogRef.value?.contains(target)
+  ) {
+    return;
+  }
+
   const dialogs = document.querySelectorAll('dialog[open]');
   if (dialogs[dialogs.length - 1] === dialogRef.value) close();
 };
