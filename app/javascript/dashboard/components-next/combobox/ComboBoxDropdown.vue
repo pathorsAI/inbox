@@ -1,5 +1,6 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
+import { unrefElement } from '@vueuse/core';
 import { useI18n } from 'vue-i18n';
 import {
   ComboboxAnchor,
@@ -59,6 +60,18 @@ const searchValue = defineModel('searchValue', {
   default: '',
 });
 
+const anchorRef = ref(null);
+// Dialog.vue opens with showModal(), which puts the dialog in the browser's
+// top layer and makes everything outside it inert. Content portalled to
+// <body> would land underneath and be unclickable, so when the anchor sits in
+// an open dialog the content is portalled into that dialog instead.
+const portalTarget = ref('body');
+watch(open, isOpen => {
+  if (!isOpen) return;
+  portalTarget.value =
+    unrefElement(anchorRef)?.closest('dialog[open]') ?? 'body';
+});
+
 const isRTL = useMapGetter('accounts/isRTL');
 // reka positions and mirrors `ltr:`/`rtl:` utilities off this, so the portalled
 // content keeps the app's reading direction.
@@ -97,11 +110,11 @@ const onSearchInput = value => {
       :reset-search-term-on-select="false"
       class="w-full min-w-0"
     >
-      <ComboboxAnchor as-child>
+      <ComboboxAnchor ref="anchorRef" as-child>
         <slot />
       </ComboboxAnchor>
 
-      <ComboboxPortal>
+      <ComboboxPortal :to="portalTarget">
         <ComboboxContent
           position="popper"
           :side-offset="4"
