@@ -1,3 +1,8 @@
+> **Pathors Inbox** — this is the `pathorsAI/inbox` white-label build of Chatwoot,
+> detached from the upstream fork network. What differs from stock Chatwoot, how
+> upstream is synced, CI and the deploy chain are in [PATHORS.md](./PATHORS.md).
+> Everything below is upstream's README, kept as-is to ease syncs.
+
 <img src="./.github/screenshots/header.png#gh-light-mode-only" width="100%" alt="Header light mode"/>
 <img src="./.github/screenshots/header-dark.png#gh-dark-mode-only" width="100%" alt="Header dark mode"/>
 

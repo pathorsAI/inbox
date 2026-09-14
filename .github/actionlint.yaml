@@ -1,0 +1,10 @@
+# actionlint config. Custom labels of the org-level self-hosted runners
+# (pathorsAI/pathors infra/k8s/gha-runner/) must be declared here or the
+# runner-label check reports them as unknown.
+self-hosted-runner:
+  labels:
+    # 3 container runners on pathors-tw. No Docker daemon — only sonar.yml
+    # may target them. Docker jobs stay on GitHub-hosted runners until the
+    # `docker`-labelled machines are registered at org level (pathors#2829).
+    - gke
+    - docker

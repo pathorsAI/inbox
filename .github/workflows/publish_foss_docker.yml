@@ -28,10 +28,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # amd64 only. GKE (the only consumer of this image) is amd64, and a
+          # private repo has no GitHub-hosted arm runner — `ubuntu-22.04-arm`
+          # would queue forever. Re-add arm64 only with a runner that exists.
           - platform: linux/amd64
             runner: ubuntu-latest
-          - platform: linux/arm64
-            runner: ubuntu-22.04-arm
     runs-on: ${{ matrix.runner }}
     env:
       GIT_REF: ${{ github.head_ref || github.ref_name }}
