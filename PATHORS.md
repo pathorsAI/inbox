@@ -48,6 +48,14 @@ authoritative list.
 | `run_foss_spec.yml`, `frontend-fe.yml`, `size-limit.yml`, `run_mfa_spec.yml` | GitHub-hosted | upstream's suites, unchanged |
 | `claude.yml`, `claude-code-review.yml` | GitHub-hosted | `@claude` and automatic PR review |
 
+**Private repos get the smaller GitHub-hosted runner** — 2 vCPU / 7 GB instead of
+the 4 vCPU / 16 GB a public repo gets. Node sizes its default heap from system
+memory, so the Vite build (both `assets:precompile` and the in-process
+`autoBuild` that the first page-rendering spec triggers in the test env) OOMs at
+~2 GB unless `NODE_OPTIONS=--max-old-space-size=4096` is set. The three workflows
+that build the frontend carry that flag; a new one must too, or every controller
+spec 500s with "Vite Ruby can't find entrypoints/… in the manifests".
+
 arm64 was dropped from both Docker workflows on purpose: the only consumer
 (GKE) is amd64, and a private repository has no GitHub-hosted arm runner —
 `ubuntu-22.04-arm` would queue forever.
