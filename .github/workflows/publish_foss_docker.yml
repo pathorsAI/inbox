@@ -150,3 +150,43 @@ jobs:
           fi
           
           docker buildx imagetools inspect $TAG
+
+  # Tell pathorsAI/pathors the image moved, so its chatwoot-digest-writeback
+  # runs now instead of whenever GitHub gets round to the cron (best-effort on a
+  # busy repo: measured 2–5h between scheduled runs, pathorsAI/pathors#2868).
+  #
+  # Only develop: `develop-ce` is the one tag the writeback deploys. The
+  # writeback re-resolves the digest from the tag itself and does not trust
+  # this payload — the payload is for the run log.
+  #
+  # The token is minted from the Pathors CD GitHub App (org-owned, contents:
+  # write on pathors, ruleset bypass actor) and scoped to the pathors repo
+  # only. repository_dispatch needs contents: write and nothing more, which is
+  # why it is used instead of workflow_dispatch (actions: write).
+  notify-pathors:
+    if: github.event_name == 'push' && github.ref_name == 'develop'
+    needs:
+      - merge
+    runs-on: ubuntu-latest
+    steps:
+      - name: Mint a token for pathorsAI/pathors
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.CD_APP_ID }}
+          private-key: ${{ secrets.CD_APP_PRIVATE_KEY }}
+          owner: pathorsAI
+          repositories: pathors
+
+      - name: Dispatch pathors-inbox-published
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          TAG: ${{ env.DOCKER_REPO }}:develop-ce
+          SOURCE_SHA: ${{ github.sha }}
+        run: |
+          gh api -X POST /repos/pathorsAI/pathors/dispatches \
+            -f event_type=pathors-inbox-published \
+            -F 'client_payload[tag]'="$TAG" \
+            -F 'client_payload[source_sha]'="$SOURCE_SHA" \
+            -F 'client_payload[run_url]'="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          echo "dispatched pathors-inbox-published for $TAG ($SOURCE_SHA)"

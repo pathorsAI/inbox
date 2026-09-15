@@ -75,9 +75,13 @@ Nothing here deploys. The chain is:
 
 1. merge to `develop` → `publish_foss_docker.yml` pushes the image and moves the
    `develop-ce` tag
-2. `pathorsAI/pathors` `.github/workflows/chatwoot-digest-writeback.yml` polls
-   that tag every 15 minutes and, when it moves, writes the new digest into
-   `infra/k8s/chatwoot/20-chatwoot.yaml` + `30-migrate-job.yaml` on `main`
+2. the `notify-pathors` job of that workflow sends a `repository_dispatch`
+   (`pathors-inbox-published`) to `pathorsAI/pathors`, whose
+   `.github/workflows/chatwoot-digest-writeback.yml` re-resolves the tag and
+   writes the new digest into `infra/k8s/chatwoot/20-chatwoot.yaml` +
+   `30-migrate-job.yaml` on `main`. The writeback also keeps a `*/15` cron as a
+   fallback, but GitHub runs that best-effort (2–5 h apart in practice) — the
+   dispatch is what makes a merge land promptly
 3. ArgoCD (`pathors-tw`) auto-syncs the Deployment
 
 So a merge is live within ~20 minutes, with no human step — **except** DB
