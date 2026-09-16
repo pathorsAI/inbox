@@ -8,6 +8,8 @@
     "NO_RESULTS": "找不到符合搜尋條件的收件匣",
     "RECONNECTION_REQUIRED": "您的收件匣已斷開連線。在您重新授權之前，將無法接收新訊息。",
     "CLICK_TO_RECONNECT": "點此重新連線。",
+    "EMAIL_RECONNECTION_REQUIRED": "郵件伺服器拒絕了此收件匣的 IMAP 登入資訊，收件匣已中斷連線。更新登入資訊之前不會收到新郵件。",
+    "OPEN_CONFIGURATION": "開啟設定",
     "WHATSAPP_REGISTRATION_INCOMPLETE": "您的 WhatsApp Business 註冊尚未完成。請在重新連線前至 Meta Business Manager 確認您的顯示名稱狀態。",
     "COMPLETE_REGISTRATION": "完成註冊",
     "LIST": {
@@ -50,8 +52,8 @@
         "PICK_NAME": "為您的收件匣選擇一個名稱",
         "PICK_A_VALUE": "選擇一個值",
         "CREATE_INBOX": "建立收件匣",
-        "RESTRICTED_WARNING": "Facebook inbox creation is temporarily unavailable due to an API-level issue on Meta’s side, not a problem with Chatwoot. We’re working closely with Meta to resolve it as quickly as possible.",
-        "STATUS_LINK": "View status updates"
+        "RESTRICTED_WARNING": "由於 Meta 端的 API 層級問題，目前暫時無法建立 Facebook 收件匣，這不是 Chatwoot 的問題。我們正與 Meta 密切合作，盡快解決。",
+        "STATUS_LINK": "查看狀態更新"
       },
       "INSTAGRAM": {
         "CONTINUE_WITH_INSTAGRAM": "繼續使用 Instagram",
@@ -61,9 +63,9 @@
         "ERROR_AUTH": "連結 Instagram 時發生錯誤，請重試",
         "NEW_INBOX_SUGGESTION": "此 Instagram 帳號先前連結至其他收件匣，現已遷移至此處。所有新訊息將顯示在此。舊收件匣將無法再為此帳號收發訊息。",
         "DUPLICATE_INBOX_BANNER": "此 Instagram 帳號已遷移至新的 Instagram 頻道收件匣。您將無法再從此收件匣收發 Instagram 訊息。",
-        "RESTRICTED_WARNING": "Instagram inbox creation is temporarily unavailable due to an API-level issue on Meta’s side, not a problem with Chatwoot. We’re working closely with Meta to resolve it as quickly as possible.",
-        "SETTINGS_RESTRICTED_WARNING": "Instagram messaging is currently affected by an API-level issue on Meta’s side, not a problem with Chatwoot. Some messages or actions may be delayed or unavailable. We’re working closely with Meta to resolve it as quickly as possible.",
-        "STATUS_LINK": "View status updates"
+        "RESTRICTED_WARNING": "由於 Meta 端的 API 層級問題，目前暫時無法建立 Instagram 收件匣，這不是 Chatwoot 的問題。我們正與 Meta 密切合作，盡快解決。",
+        "SETTINGS_RESTRICTED_WARNING": "Instagram 訊息目前受到 Meta 端 API 層級問題的影響，這不是 Chatwoot 的問題。部分訊息或操作可能延遲或無法使用。我們正與 Meta 密切合作，盡快解決。",
+        "STATUS_LINK": "查看狀態更新"
       },
       "TIKTOK": {
         "CONTINUE_WITH_TIKTOK": "繼續使用 TikTok",
@@ -71,7 +73,7 @@
         "HELP": "若要將您的 TikTok 個人檔案新增為頻道，請點擊「繼續使用 TikTok」來驗證您的 TikTok 個人檔案。",
         "ERROR_MESSAGE": "連結 TikTok 時發生錯誤，請重試",
         "ERROR_AUTH": "連結 TikTok 時發生錯誤，請重試",
-        "NORTH_AMERICA_WARNING": "TikTok connections for North American accounts are temporarily unavailable while we wait for an update from the TikTok team."
+        "NORTH_AMERICA_WARNING": "北美地區帳號的 TikTok 連接功能暫時無法使用，我們正在等待 TikTok 團隊的更新。"
       },
       "TWITTER": {
         "HELP": "若要將您的 Twitter 個人檔案新增為頻道，請點擊「使用 Twitter 登入」來驗證您的 Twitter 個人檔案。",
@@ -140,7 +142,6 @@
       },
       "TWILIO": {
         "TITLE": "Twilio SMS/WhatsApp 頻道",
-        "DESC": "整合 Twilio，透過 SMS 或 WhatsApp 為客戶提供支援服務。",
         "ACCOUNT_SID": {
           "LABEL": "帳戶 SID",
           "PLACEHOLDER": "請輸入您的 Twilio 帳戶 SID",
@@ -182,13 +183,13 @@
           "PLACEHOLDER": "請輸入發送訊息的電話號碼。",
           "ERROR": "請提供以 `+` 開頭且不含空格的有效電話號碼。"
         },
-        "API_CALLBACK": {
-          "TITLE": "回呼 URL",
-          "SUBTITLE": "您需要在 Twilio 中使用此處的 URL 設定訊息回呼 URL。"
-        },
         "SUBMIT_BUTTON": "建立 Twilio 頻道",
         "API": {
           "ERROR_MESSAGE": "無法驗證 Twilio 憑證，請重試"
+        },
+        "API_CALLBACK": {
+          "TITLE": "回呼 URL",
+          "SUBTITLE": "您需要在 Twilio 中使用此處的 URL 設定訊息回呼 URL。"
         }
       },
       "SMS": {
@@ -252,14 +253,14 @@
           "TWILIO": "Twilio",
           "WHATSAPP_CLOUD": "WhatsApp Cloud",
           "WHATSAPP_CLOUD_DESC": "透過 Meta 快速設定",
-          "WHATSAPP_CLOUD_MANUAL_SETUP_DESC": "Manual setup with Cloud API credentials",
+          "WHATSAPP_CLOUD_MANUAL_SETUP_DESC": "使用 Cloud API 憑證手動設定",
           "TWILIO_DESC": "透過 Twilio 憑證連接",
           "360_DIALOG": "360Dialog"
         },
         "SELECT_PROVIDER": {
           "TITLE": "選擇您的 API 供應商",
           "DESCRIPTION": "選擇您的 WhatsApp 供應商。您可以透過 Meta 直接連接（無需額外設定），或使用 Twilio 帳戶憑證連接。",
-          "RESTRICTION_DESCRIPTION": "Choose your WhatsApp provider. You can connect WhatsApp Cloud manually using your Cloud API credentials, or connect through Twilio using your account credentials."
+          "RESTRICTION_DESCRIPTION": "選擇您的 WhatsApp 服務供應商。您可以使用 Cloud API 憑證手動連接 WhatsApp Cloud，或透過 Twilio 帳號憑證連接。"
         },
         "INBOX_NAME": {
           "LABEL": "收件匣名稱",
@@ -298,10 +299,106 @@
           "WEBHOOK_URL": "Webhook URL",
           "WEBHOOK_VERIFICATION_TOKEN": "Webhook 驗證 Token"
         },
+        "MANUAL_SETUP": {
+          "HEADER": {
+            "TITLE": "手動連接 WhatsApp",
+            "DESCRIPTION": "依照以下步驟準備您的 Meta 帳號，並將號碼連接到 Chatwoot。"
+          },
+          "APP": {
+            "TITLE": "建立或選擇 Meta 應用程式",
+            "DESCRIPTION": "您的 WhatsApp 號碼必須屬於一個已啟用 WhatsApp 用途的 Meta 應用程式。",
+            "ITEM_1": "開啟 {metaDevelopers}，以管理員帳號登入。",
+            "META_DEVELOPERS": "Meta 開發者平台",
+            "ITEM_2": "建立新的應用程式，或選擇您已用於此 WhatsApp 號碼的應用程式。",
+            "ITEM_3": "選擇「透過 WhatsApp 與顧客聯繫」的選項。",
+            "ITEM_4": "選擇擁有（或將擁有）此 WhatsApp 號碼的商家資產組合。",
+            "VIDEO_TITLE": "影片：建立 Meta 應用程式",
+            "VIDEO_DESCRIPTION": "這段短片示範在 Meta 開發者平台建立新應用程式的入口。"
+          },
+          "NUMBER": {
+            "TITLE": "新增電話號碼並取得 ID",
+            "DESCRIPTION": "在 Meta 應用程式中新增並驗證正式環境的號碼，然後複製「API 設定」頁面顯示的兩個識別碼。",
+            "ITEM_1": "在 Meta 應用程式中開啟 WhatsApp 用途，選擇「API 設定」。",
+            "ITEM_2": "在「傳送與接收訊息」區塊開啟「寄件者」選單。",
+            "ITEM_3": "選擇既有的正式號碼，或選擇「新增電話號碼」。",
+            "ITEM_4": "填寫 Meta 要求的 WhatsApp 商家檔案。",
+            "ITEM_5": "使用簡訊或語音來電收到的驗證碼驗證電話號碼。",
+            "ITEM_6": "複製「API 設定」頁面顯示的電話號碼 ID 與 WhatsApp 商業帳號 ID。",
+            "VIDEO_TITLE": "影片：新增電話號碼並找到 ID",
+            "VIDEO_DESCRIPTION": "這段影片示範如何新增或選擇正式號碼，並從 Meta 複製識別碼。"
+          },
+          "TOKEN": {
+            "TITLE": "產生永久存取權杖",
+            "DESCRIPTION": "建立一個可存取您的應用程式與 WhatsApp 商業帳號的 Meta 系統用戶。",
+            "ITEM_1": "開啟 Meta 商家設定，前往「用戶 → 系統用戶」。",
+            "ITEM_2": "建立管理員系統用戶，或選擇既有的系統用戶。",
+            "ITEM_3": "將您的 Meta 應用程式與 WhatsApp 商業帳號指派給該系統用戶。",
+            "ITEM_4": "授予所指派 WhatsApp 資產的完整控制權。",
+            "ITEM_5": "為您的 Meta 應用程式產生權杖，到期時間設為「永不」。",
+            "ITEM_6": "勾選 whatsapp_business_management 與 whatsapp_business_messaging，然後複製權杖。",
+            "VIDEO_TITLE": "影片：產生永久存取權杖",
+            "VIDEO_DESCRIPTION": "這段影片示範如何選擇 Meta 應用程式、選擇永不到期的權杖，並授予所需的 WhatsApp 權限。",
+            "WARNING": "Meta 只會顯示權杖一次。關閉視窗前請先複製。"
+          },
+          "DETAILS": {
+            "WABA_LABEL": "WhatsApp 商業帳號 ID",
+            "WABA_PLACEHOLDER": "輸入 WABA ID",
+            "PHONE_ID_LABEL": "電話號碼 ID",
+            "PHONE_ID_PLACEHOLDER": "輸入電話號碼 ID",
+            "TOKEN_LABEL": "永久存取權杖",
+            "TOKEN_PLACEHOLDER": "貼上存取權杖"
+          },
+          "REVIEW": {
+            "TITLE": "建立您的 WhatsApp 收件匣",
+            "DESCRIPTION": "確認號碼資訊，並為收件匣命名。",
+            "VERIFIED": "您的 Meta 號碼與存取權杖有效。",
+            "BUSINESS_NAME": "商家名稱",
+            "PHONE_NUMBER": "電話號碼",
+            "PHONE_ID": "電話號碼 ID",
+            "WABA_ID": "WhatsApp 商業帳號 ID",
+            "INBOX_NAME": "收件匣名稱",
+            "INBOX_NAME_HELP": "這個名稱是依您已驗證的 Meta 商家名稱產生的，可以修改。"
+          },
+          "VERIFY": {
+            "TITLE": "驗證連線",
+            "DESCRIPTION": "Chatwoot 正在檢查號碼存取權並設定您的 Meta Webhook。",
+            "NUMBER_ACCESS": "號碼存取權",
+            "TEMPLATE_ACCESS": "範本存取權",
+            "CALLBACK": "Webhook 回呼",
+            "SUBSCRIPTION": "Webhook 訂閱",
+            "WEBHOOK_URL": "Webhook URL",
+            "COPY": "複製",
+            "COPY_SUCCESS": "已複製 Webhook URL",
+            "COMPLETE": "已驗證",
+            "PENDING": "等待中",
+            "SUCCESS": "您的 WhatsApp 號碼已連接完成，可以開始指派客服人員。",
+            "RETRY_SUCCESS": "已重新完成 Webhook 設定。",
+            "RETRY_ERROR": "無法重試 Webhook 設定，請再試一次。"
+          },
+          "ACTIONS": {
+            "BACK": "上一步",
+            "OPEN_META_APPS": "開啟 Meta 應用程式",
+            "APP_READY": "我的 Meta 應用程式已準備好",
+            "NEXT": "下一步",
+            "OPEN_BUSINESS_SETTINGS": "開啟 Meta 商家設定",
+            "SHOW_TOKEN": "顯示權杖",
+            "HIDE_TOKEN": "隱藏權杖",
+            "VERIFY_DETAILS": "驗證資訊",
+            "CONNECT": "建立收件匣",
+            "RETRY_WEBHOOK": "重試 Webhook 設定",
+            "CONTINUE": "繼續新增客服人員"
+          },
+          "ERRORS": {
+            "IDS_REQUIRED": "請輸入電話號碼 ID 與 WhatsApp 商業帳號 ID。",
+            "REQUIRED": "請輸入電話號碼 ID、WhatsApp 商業帳號 ID 與永久存取權杖。",
+            "INVALID_TOKEN": "此存取權杖無效或已過期。請重新產生永久權杖後再試一次。",
+            "GENERIC": "無法完成 WhatsApp 設定。請檢查輸入的資訊後再試一次。"
+          }
+        },
         "SUBMIT_BUTTON": "建立 WhatsApp 頻道",
         "EMBEDDED_SIGNUP": {
           "TITLE": "透過 Meta 快速設定",
-          "DESC": "Use Quick setup with Meta to connect a new number or an existing number from the WhatsApp Business app. You will be redirected to Meta to log into your WhatsApp Business account. Having admin access will help make the setup smooth and easy.",
+          "DESC": "使用 Meta 快速設定來連接新號碼，或連接 WhatsApp Business 應用程式中既有的號碼。系統會將您導向 Meta 登入 WhatsApp 商業帳號。擁有管理員權限可讓設定過程更順利。",
           "BENEFITS": {
             "TITLE": "Embedded Signup 的優點：",
             "EASY_SETUP": "無需手動設定",
@@ -309,19 +406,20 @@
             "AUTO_CONFIG": "自動設定 Webhook 和電話號碼"
           },
           "LEARN_MORE": {
-            "TEXT": "To learn more about quick setup, pricing, and limitations, visit {link}.",
+            "TEXT": "如需了解快速設定、費用與限制，請參閱 {link}。",
             "LINK_TEXT": "此連結"
           },
           "SUBMIT_BUTTON": "連接 WhatsApp Business",
           "AUTH_PROCESSING": "正在透過 Meta 進行驗證",
           "WAITING_FOR_BUSINESS_INFO": "請在 Meta 視窗中完成商業設定...",
           "PROCESSING": "正在設定您的 WhatsApp Business 帳號",
-          "ENABLING_CALLING": "Enabling WhatsApp Calling on your number…",
+          "ENABLING_CALLING": "正在為您的號碼啟用 WhatsApp 通話…",
           "LOADING_SDK": "正在載入 Facebook SDK...",
           "CANCELLED": "WhatsApp 註冊已取消",
           "SUCCESS_TITLE": "WhatsApp Business 帳號已連接！",
           "WAITING_FOR_AUTH": "正在等待驗證...",
           "INVALID_BUSINESS_DATA": "從 Facebook 收到的商業資料無效。請重試。",
+          "UNSUPPORTED_COMPLETION": "Meta 設定流程結束時沒有可連接的 WhatsApp 電話號碼。請重新執行設定並新增電話號碼。",
           "SIGNUP_ERROR": "註冊時發生錯誤",
           "AUTH_NOT_COMPLETED": "驗證未完成。請重新開始流程。",
           "SUCCESS_FALLBACK": "WhatsApp Business 帳號已成功設定",
@@ -330,17 +428,21 @@
           "ACCESS_REQUEST": {
             "TITLE": "透過 Meta 快速設定",
             "DESCRIPTION": "Connect a new number or an existing number from the WhatsApp Business app without manual configuration. To request this option, tell our team what your business does, how you’ll use WhatsApp, and which Chatwoot account needs access.",
-            "FOOTNOTE": "We’ll review your request and let you know if this option can be enabled. You can also continue with manual setup below.",
-            "BUTTON": "Request access"
+            "BUTTON": "申請存取權",
+            "FORM_DESCRIPTION": "告訴我們您的業務內容以及打算如何使用 WhatsApp。提交使用情境後，即可為您的帳號啟用快速設定。",
+            "USE_CASE_LABEL": "業務使用情境",
+            "USE_CASE_PLACEHOLDER": "例如：我們販售家居用品，使用 WhatsApp 回答商品問題並協助顧客處理訂單。",
+            "SUBMIT": "提交",
+            "ERROR": "無法啟用存取權，請再試一次。"
           },
-          "RESTRICTED_WARNING": "WhatsApp Embedded Signup is temporarily unavailable due to an API-level issue on Meta’s side, not a problem with Chatwoot. You can use manual setup for eligible Cloud API numbers. We’re working closely with Meta to resolve it as quickly as possible.",
-          "STATUS_LINK": "View status updates",
-          "CALLING_ENABLE_FAILED": "Your WhatsApp inbox is ready, but voice calling couldn't be turned on — this number isn't enrolled in the WhatsApp Business Calling API yet. Reach out to Meta or your WhatsApp Business Solution Provider to onboard it, then turn calling on from the inbox's Calls settings."
+          "RESTRICTED_WARNING": "由於 Meta 端的 API 層級問題，WhatsApp 內嵌註冊暫時無法使用，這不是 Chatwoot 的問題。符合條件的 Cloud API 號碼可以改用手動設定。我們正與 Meta 密切合作，盡快解決。",
+          "STATUS_LINK": "查看狀態更新",
+          "CALLING_ENABLE_FAILED": "您的 WhatsApp 收件匣已就緒，但無法開啟語音通話，因為此號碼尚未加入 WhatsApp Business Calling API。請聯絡 Meta 或您的 WhatsApp 商業解決方案供應商完成申請，再從收件匣的「通話」設定開啟。"
         },
         "API": {
           "ERROR_MESSAGE": "無法儲存 WhatsApp 頻道",
-          "MANUAL_RESTRICTION_WARNING": "WhatsApp Embedded Signup is temporarily unavailable due to an API-level issue on Meta’s side, not a problem with Chatwoot. Manual setup works only for numbers already connected to WhatsApp Cloud API. Numbers using WhatsApp Business app coexistence are not supported in this flow yet. We’re working closely with Meta to resolve the issue as quickly as possible. Thanks for your patience.",
-          "STATUS_LINK": "View status updates"
+          "MANUAL_RESTRICTION_WARNING": "由於 Meta 端的 API 層級問題，WhatsApp 內嵌註冊暫時無法使用，這不是 Chatwoot 的問題。手動設定僅適用於已連接 WhatsApp Cloud API 的號碼；使用 WhatsApp Business 應用程式共存模式的號碼目前不支援此流程。我們正與 Meta 密切合作，盡快解決，感謝您的耐心等候。",
+          "STATUS_LINK": "查看狀態更新"
         }
       },
       "VOICE": {
@@ -524,8 +626,8 @@
             "DESCRIPTION": "透過 WhatsApp 為客戶提供支援"
           },
           "WHATSAPP_CALL": {
-            "TITLE": "WhatsApp Call",
-            "DESCRIPTION": "Take voice calls on your WhatsApp number"
+            "TITLE": "WhatsApp 通話",
+            "DESCRIPTION": "透過您的 WhatsApp 號碼接聽語音通話"
           },
           "EMAIL": {
             "TITLE": "Email",
@@ -553,7 +655,8 @@
           },
           "TIKTOK": {
             "TITLE": "TikTok",
-            "DESCRIPTION": "連結您的 TikTok 帳號"
+            "DESCRIPTION": "連結您的 TikTok 帳號",
+            "ACCESS_REQUEST_DESCRIPTION": "請聯絡我們的支援團隊申請 TikTok 存取權"
           },
           "VOICE": {
             "TITLE": "語音",
@@ -580,14 +683,14 @@
         "DESCRIPTION": "從下方列表中選擇一個電子郵件供應商。如果列表中沒有您的供應商，可以選擇其他供應商選項，並提供 IMAP 和 SMTP 憑證。"
       },
       "MICROSOFT": {
-        "TITLE": "Microsoft Email",
+        "TITLE": "Microsoft 電子郵件",
         "DESCRIPTION": "點擊「使用 Microsoft 登入」按鈕開始。您將被導向至電子郵件登入頁面。接受所需權限後，將返回收件匣建立步驟。",
         "EMAIL_PLACEHOLDER": "輸入電子郵件地址",
         "SIGN_IN": "使用 Microsoft 登入",
         "ERROR_MESSAGE": "連結 Microsoft 時發生錯誤，請重試"
       },
       "GOOGLE": {
-        "TITLE": "Google Email",
+        "TITLE": "Google 電子郵件",
         "DESCRIPTION": "點擊「使用 Google 登入」按鈕開始。您將被導向至電子郵件登入頁面。接受所需權限後，將返回收件匣建立步驟。",
         "SIGN_IN": "使用 Google 登入",
         "EMAIL_PLACEHOLDER": "輸入電子郵件地址",
@@ -600,6 +703,7 @@
       "ERROR_FB_AUTH": "發生錯誤，請重新整理頁面...",
       "ERROR_FB_UNAUTHORIZED": "您未獲授權執行此操作。",
       "ERROR_FB_UNAUTHORIZED_HELP": "請確認您擁有 Facebook 粉絲專頁的完整控制權限。您可以在<a href=\" https://www.facebook.com/help/187316341316631\">此處</a>了解更多 Facebook 角色的相關資訊。",
+      "ERROR_CHANNEL_CREATION": "無法建立收件匣，請再試一次。",
       "CREATING_CHANNEL": "正在建立您的收件匣...",
       "TITLE": "設定收件匣詳情",
       "DESC": ""
@@ -615,6 +719,9 @@
       "MORE_SETTINGS": "更多設定",
       "WEBSITE_SUCCESS": "您已成功建立網站頻道。複製下方顯示的程式碼，並貼到您的網站上。下次客戶使用即時聊天時，對話將自動出現在您的收件匣中。",
       "WHATSAPP_QR_INSTRUCTION": "掃描上方 QR Code 以快速測試您的 WhatsApp 收件匣",
+      "SMS_QR_INSTRUCTION": "掃描上方 QR code 即可快速測試您的簡訊收件匣",
+      "SMS_QR_ALT": "用於測試簡訊收件匣的 QR code",
+      "TWILIO_CALLBACK_FALLBACK": "Webhook 會自動設定。若收不到來訊，請在 Twilio 中使用此回呼 URL。",
       "MESSENGER_QR_INSTRUCTION": "掃描上方 QR Code 以快速測試您的 Facebook Messenger 收件匣",
       "TELEGRAM_QR_INSTRUCTION": "掃描上方 QR Code 以快速測試您的 Telegram 收件匣"
     },
@@ -704,124 +811,251 @@
     },
     "VOICE_CONFIGURATION": {
       "ENABLE_VOICE": {
-        "LABEL": "Enable Voice Calling",
-        "DESCRIPTION": "Enable voice calling on this inbox. Agents will be able to make and receive phone calls."
+        "LABEL": "啟用語音通話",
+        "DESCRIPTION": "在此收件匣啟用語音通話，客服人員將可以撥打與接聽電話。"
       },
       "CREDENTIALS": {
-        "DESCRIPTION": "Voice calling requires Twilio API Key credentials. These are used to generate tokens for agent voice connections."
+        "DESCRIPTION": "語音通話需要 Twilio API Key 憑證，用來為客服人員的語音連線產生 Token。"
       },
       "INBOUND": {
-        "LABEL": "Allow incoming calls",
-        "DESCRIPTION": "Let customers call this number. When turned off, incoming calls are declined automatically — agents aren't notified and no conversation is created. Agents can still place outgoing calls."
+        "LABEL": "允許來電",
+        "DESCRIPTION": "讓顧客可以撥打這個號碼。關閉後來電會自動拒接，客服人員不會收到通知，也不會建立對話。客服人員仍然可以撥出電話。"
+      },
+      "RECORDING": {
+        "LABEL": "錄音",
+        "DESCRIPTION": "錄下通話並將錄音附加到對話中。在不允許錄音的地區請關閉此功能。"
+      },
+      "TRANSCRIPTION": {
+        "LABEL": "轉錄錄音",
+        "DESCRIPTION": "將每段錄音轉成文字。此功能使用 Captain，且帳號需已啟用音訊轉錄。"
       }
     },
     "WHATSAPP_CALLING": {
       "ENABLE": {
-        "LABEL": "Enable WhatsApp Calling",
-        "DESCRIPTION": "Allow agents to receive and place WhatsApp Cloud calls on this inbox. Customers can call this business number directly from WhatsApp."
+        "LABEL": "啟用 WhatsApp 通話",
+        "DESCRIPTION": "允許客服人員在此收件匣接聽與撥打 WhatsApp Cloud 通話。顧客可以直接從 WhatsApp 撥打這個商家號碼。"
       },
-      "ENABLE_FAILED": "Voice calling couldn't be turned on for this number — it isn't enrolled in the WhatsApp Business Calling API yet. Reach out to Meta or your WhatsApp Business Solution Provider to onboard it, then try again.",
+      "ENABLE_FAILED": "無法為此號碼開啟語音通話，因為它尚未加入 WhatsApp Business Calling API。請聯絡 Meta 或您的 WhatsApp 商業解決方案供應商完成申請後再試一次。",
       "PHONE_NUMBER": {
-        "LABEL": "Business phone number",
-        "HELP_TEXT": "WhatsApp number that customers will call."
+        "LABEL": "商家電話號碼",
+        "HELP_TEXT": "顧客將撥打的 WhatsApp 號碼。"
       },
       "HOW_IT_WORKS": {
-        "LABEL": "How it works",
-        "DESCRIPTION": "Calls are placed peer-to-peer between the agent's browser and Meta — no extra credentials are required. Make sure the agent's browser has microphone permission for this site."
+        "LABEL": "運作方式",
+        "DESCRIPTION": "通話在客服人員的瀏覽器與 Meta 之間點對點建立，不需要額外憑證。請確認客服人員的瀏覽器已允許此網站使用麥克風。"
       },
       "PERMISSION_REQUEST_BODY": {
-        "LABEL": "Call permission request message",
-        "HELP_TEXT": "Shown to the contact when they haven't yet consented to receive calls. Leave blank to use the default.",
-        "PLACEHOLDER": "We would like to call you regarding your conversation."
+        "LABEL": "通話許可請求訊息",
+        "HELP_TEXT": "當聯絡人尚未同意接聽來電時顯示給對方。留空則使用預設訊息。",
+        "PLACEHOLDER": "我們想針對您的對話與您通話。"
       }
     },
     "CHANNEL_PREFERENCES": "頻道偏好設定",
     "WIDGET_FEATURES": "小工具功能",
+    "TWILIO_HEALTH": {
+      "TITLE": "管理您的 Twilio 號碼",
+      "DESCRIPTION": "檢視支撐此收件匣的 Twilio 帳號、寄件者與 Webhook。任何 Chatwoot 無法接收的部分都會在這裡標示",
+      "GO_TO_SETTINGS": "前往 Twilio 主控台",
+      "NO_DATA": "無法取得健康狀態資料",
+      "LOADING": "正在從 Twilio 取得健康狀態資料…",
+      "ERROR_TITLE": "無法連線到 Twilio",
+      "STATUS": {
+        "HEALTHY": "所有檢查都通過",
+        "MISCONFIGURED": "需要處理"
+      },
+      "FIELDS": {
+        "ACCOUNT_NAME": {
+          "LABEL": "Twilio 帳號",
+          "TOOLTIP": "這組登入資訊所屬的 Twilio 帳號"
+        },
+        "ACCOUNT_STATUS": {
+          "LABEL": "帳號狀態",
+          "TOOLTIP": "已停權或已關閉的 Twilio 帳號無法傳送或接收任何內容"
+        },
+        "ACCOUNT_TYPE": {
+          "LABEL": "帳號類型",
+          "TOOLTIP": "試用帳號只能傳訊或撥打給您已在 Twilio 驗證過的電話號碼"
+        },
+        "SENDER": {
+          "LABEL": "寄件者",
+          "TOOLTIP": "承載此收件匣的電話號碼或 Messaging Service"
+        },
+        "CAPABILITIES": {
+          "LABEL": "號碼功能",
+          "TOOLTIP": "Twilio 在此號碼上啟用的功能。此收件匣需要但號碼沒有的功能永遠無法運作"
+        },
+        "VOICE_CALLING": {
+          "LABEL": "語音通話",
+          "TOOLTIP": "此收件匣是否已開啟通話功能"
+        }
+      },
+      "VALUES": {
+        "ACCOUNT_STATUSES": {
+          "ACTIVE": "使用中",
+          "SUSPENDED": "已停權",
+          "CLOSED": "已關閉"
+        },
+        "ACCOUNT_TYPES": {
+          "TRIAL": "試用",
+          "FULL": "正式"
+        },
+        "CAPABILITIES": {
+          "SMS": "簡訊",
+          "VOICE": "語音"
+        },
+        "SENDER_TYPES": {
+          "PHONE_NUMBER": "電話號碼",
+          "MESSAGING_SERVICE": "Messaging Service"
+        },
+        "ENABLED": "已啟用",
+        "DISABLED": "已停用"
+      },
+      "WEBHOOKS": {
+        "TITLE": "Webhook",
+        "DESCRIPTION": "有訊息或來電時，Twilio 會呼叫這些 URL。更改安裝網址後請重新註冊",
+        "REGISTER_ALL": "註冊 Webhook",
+        "MESSAGING": "訊息 Webhook",
+        "VOICE": "語音 Webhook",
+        "VOICE_STATUS": "語音狀態回呼",
+        "VOICE_APP": "撥出通話（TwiML 應用程式）"
+      },
+      "WEBHOOK": {
+        "CONFIGURED_SUCCESS": "Webhook 設定完成",
+        "NOT_SET": "未設定",
+        "EXPECTED": "應為",
+        "CURRENT": "目前設為",
+        "REASONS": {
+          "NOT_SET": "尚未設定 Webhook",
+          "URL_MISMATCH": "Webhook URL 不一致",
+          "WRONG_HTTP_METHOD": "Webhook 使用了錯誤的 HTTP 方法",
+          "OVERRIDDEN_BY_NUMBER": "Messaging Service 交由號碼處理",
+          "OVERRIDDEN_BY_APPLICATION": "被 TwiML 應用程式覆寫",
+          "OVERRIDDEN_BY_TRUNK": "被 SIP trunk 覆寫",
+          "MISSING_TWIML_APP": "尚未建立 TwiML 應用程式"
+        },
+        "HINTS": {
+          "NOT_SET": "Twilio 在這個寄件者上沒有任何 Webhook，所以沒有東西會送到 Chatwoot。",
+          "URL_MISMATCH": "Twilio 呼叫的是另一個 URL，所以流量送到了別處。",
+          "WRONG_HTTP_METHOD": "URL 正確，但 Twilio 是用 {method} 而不是 POST 呼叫，而 Chatwoot 只回應 POST。",
+          "OVERRIDDEN_BY_NUMBER": "此 Messaging Service 開啟了「使用號碼上的 Webhook」，所以 Twilio 會忽略服務層的 Webhook。",
+          "OVERRIDDEN_BY_APPLICATION": "此號碼綁定了一個 TwiML 應用程式，Twilio 會使用該應用程式的 URL 而不是號碼上的設定。請在 Twilio 主控台解除綁定。",
+          "OVERRIDDEN_BY_TRUNK": "此號碼綁定了 SIP trunk，Twilio 會把來電轉到 trunk 並完全忽略語音 Webhook。請在 Twilio 主控台解除綁定。",
+          "MISSING_TWIML_APP": "Chatwoot 沒有為此號碼建立 TwiML 應用程式，因此無法撥出通話。"
+        }
+      }
+    },
     "ACCOUNT_HEALTH": {
       "TITLE": "管理您的 WhatsApp 帳號",
-      "DESCRIPTION": "Review your WhatsApp phone number health, messaging capacity, and linked Meta business details.",
+      "DESCRIPTION": "檢視您的 WhatsApp 電話號碼健康狀態、訊息傳送容量，以及連結的 Meta 商家資訊。",
       "GO_TO_SETTINGS": "前往 Meta Business Manager",
       "NO_DATA": "無法取得健康狀態資料",
       "ERRORS": {
         "AUTHORIZATION": {
-          "EMBEDDED_TITLE": "WhatsApp connection needs to be refreshed",
-          "EMBEDDED_DESCRIPTION": "Meta could not validate the connection for this inbox. Go to Configuration to reconfigure it using Embedded Signup.",
-          "MANUAL_TITLE": "WhatsApp access token needs attention",
-          "MANUAL_DESCRIPTION": "Meta could not validate the access token for this inbox. Go to Configuration to verify or replace it."
+          "EMBEDDED_TITLE": "WhatsApp 連線需要重新整理",
+          "EMBEDDED_DESCRIPTION": "Meta 無法驗證此收件匣的連線。請前往「設定」使用內嵌註冊重新設定。",
+          "MANUAL_TITLE": "WhatsApp 存取權杖需要處理",
+          "MANUAL_DESCRIPTION": "Meta 無法驗證此收件匣的存取權杖。請前往「設定」檢查或更換權杖。"
         },
-        "GENERIC_TITLE": "WhatsApp health data is unavailable",
-        "GENERIC_DESCRIPTION": "Meta could not return the current health details. Review the error below and try again later.",
+        "GENERIC_TITLE": "無法取得 WhatsApp 健康狀態資料",
+        "GENERIC_DESCRIPTION": "Meta 無法回傳目前的健康狀態。請查看下方錯誤，稍後再試。",
         "GO_TO_CONFIGURATION": "Go to Configuration"
       },
       "SECTIONS": {
+        "BUSINESS_PROFILE": "商家檔案",
         "PHONE_NUMBER": "電話號碼",
-        "HEALTH_AND_CAPACITY": "Health and capacity",
-        "BUSINESS_ACCOUNT": "Business account"
+        "HEALTH_AND_CAPACITY": "健康狀態與容量",
+        "BUSINESS_ACCOUNT": "商業帳號"
       },
       "FIELDS": {
+        "PROFILE_DESCRIPTION": {
+          "LABEL": "簡介",
+          "TOOLTIP": "顯示在 WhatsApp 商家檔案中給顧客看的簡介"
+        },
+        "PROFILE_ADDRESS": {
+          "LABEL": "地址",
+          "TOOLTIP": "顯示在 WhatsApp 商家檔案中的商家地址"
+        },
+        "PROFILE_EMAIL": {
+          "LABEL": "電子郵件",
+          "TOOLTIP": "顯示在 WhatsApp 商家檔案中的聯絡信箱"
+        },
+        "PROFILE_WEBSITES": {
+          "LABEL": "網站",
+          "TOOLTIP": "顯示在 WhatsApp 商家檔案中的網站連結"
+        },
         "DISPLAY_PHONE_NUMBER": {
           "LABEL": "顯示電話號碼",
           "TOOLTIP": "顯示給客戶的電話號碼"
         },
         "VERIFIED_NAME": {
-          "LABEL": "WhatsApp display name",
-          "TOOLTIP": "Display name associated with this phone number on WhatsApp"
+          "LABEL": "WhatsApp 顯示名稱",
+          "TOOLTIP": "此電話號碼在 WhatsApp 上的顯示名稱"
         },
         "PHONE_NUMBER_ID": {
           "LABEL": "電話號碼 ID",
-          "TOOLTIP": "Meta identifier for this WhatsApp phone number"
+          "TOOLTIP": "Meta 給此 WhatsApp 電話號碼的識別碼"
         },
         "COEXISTENCE": {
           "LABEL": "Coexistence",
-          "TOOLTIP": "This number is connected to both the WhatsApp Business app and Cloud API"
+          "TOOLTIP": "此號碼同時連接 WhatsApp Business 應用程式與 Cloud API"
         },
         "DISPLAY_NAME_STATUS": {
           "LABEL": "顯示名稱狀態",
-          "TOOLTIP": "Review status of the WhatsApp display name"
+          "TOOLTIP": "Review status of the WhatsApp display name",
+          "DESCRIPTIONS": {
+            "APPROVED": "顯示名稱已核准，可顯示在 WhatsApp 聊天室頂端。若收件人已儲存聯絡人名稱，則會顯示該名稱。",
+            "AVAILABLE_WITHOUT_REVIEW": "顯示名稱已儲存到您的 WhatsApp 檔案，但在 Meta 審核並核准之前，收件人可能只會看到電話號碼。您的商家達到較高的訊息傳送上限後，Meta 才會開始審核。",
+            "PENDING_REVIEW": "Meta 正在審核顯示名稱。除非 Meta 要求補充資料，否則不需採取任何動作。",
+            "REJECTED": "Meta 未核准此顯示名稱。請參閱顯示名稱規範，然後修改名稱或在 Meta 提出申訴。",
+            "DECLINED": "Meta 未核准此顯示名稱。請參閱顯示名稱規範，然後修改名稱或在 Meta 提出申訴。",
+            "EXPIRED": "此電話號碼的憑證已過期，無法再註冊供 API 使用。",
+            "UNKNOWN": "Meta 未回傳顯示名稱的審核狀態。"
+          }
         },
         "LAST_ONBOARDED_TIME": {
-          "LABEL": "Last onboarded",
-          "TOOLTIP": "Most recent time Meta onboarded this phone number"
+          "LABEL": "最近上線時間",
+          "TOOLTIP": "Meta 最近一次為此電話號碼完成上線的時間"
         },
         "PHONE_NUMBER_STATUS": {
-          "LABEL": "Phone number status",
-          "TOOLTIP": "Current connection status of this phone number on WhatsApp"
+          "LABEL": "電話號碼狀態",
+          "TOOLTIP": "此電話號碼目前在 WhatsApp 上的連線狀態"
         },
         "QUALITY_RATING": {
           "LABEL": "品質評分",
-          "TOOLTIP": "Quality rating Meta assigns to this phone number based on recent messaging signals"
+          "TOOLTIP": "Meta 依近期訊息傳送訊號給此電話號碼的品質評等"
         },
         "MESSAGING_LIMIT_TIER": {
           "LABEL": "訊息限制等級",
-          "TOOLTIP": "Number of customers this phone number can initiate conversations with in 24 hours"
+          "TOOLTIP": "Number of customers this phone number can initiate conversations with in 24 hours",
+          "DESCRIPTION": "此上限由商家資產組合中所有 WhatsApp 電話號碼共用。"
         },
         "ACCOUNT_MODE": {
           "LABEL": "帳號模式",
-          "TOOLTIP": "Current operating mode of this WhatsApp phone number"
+          "TOOLTIP": "此 WhatsApp 電話號碼目前的運作模式"
         },
         "CODE_VERIFICATION_STATUS": {
-          "LABEL": "Code verification",
-          "TOOLTIP": "Verification-code status reported by Meta for this phone number"
+          "LABEL": "驗證碼驗證",
+          "TOOLTIP": "Meta 回報的此電話號碼驗證碼狀態"
         },
         "THROUGHPUT_LEVEL": {
           "LABEL": "Throughput",
-          "TOOLTIP": "Message throughput level assigned to this phone number"
+          "TOOLTIP": "此電話號碼獲得的訊息吞吐量等級"
         },
         "BUSINESS_ACCOUNT_NAME": {
-          "LABEL": "WhatsApp Business Account name",
-          "TOOLTIP": "Name of the WhatsApp Business Account linked to this phone number"
+          "LABEL": "WhatsApp 商業帳號名稱",
+          "TOOLTIP": "連結至此電話號碼的 WhatsApp 商業帳號名稱"
         },
         "BUSINESS_ACCOUNT_ID": {
-          "LABEL": "WhatsApp Business Account ID",
-          "TOOLTIP": "Meta identifier for the linked WhatsApp Business Account"
+          "LABEL": "WhatsApp 商業帳號 ID",
+          "TOOLTIP": "Meta 給所連結 WhatsApp 商業帳號的識別碼"
         },
         "BUSINESS_PORTFOLIO_NAME": {
-          "LABEL": "Business portfolio name",
-          "TOOLTIP": "Name of the Meta business portfolio that owns the WhatsApp Business Account"
+          "LABEL": "商家資產組合名稱",
+          "TOOLTIP": "擁有此 WhatsApp 商業帳號的 Meta 商家資產組合名稱"
         },
         "BUSINESS_PORTFOLIO_ID": {
-          "LABEL": "Business portfolio ID",
-          "TOOLTIP": "Meta identifier for the business portfolio that owns the WhatsApp Business Account"
+          "LABEL": "商家資產組合 ID",
+          "TOOLTIP": "Meta 給擁有此 WhatsApp 商業帳號的商家資產組合的識別碼"
         }
       },
       "VALUES": {
@@ -830,7 +1064,7 @@
           "TIER_250": "每 24 小時 250 位客戶",
           "TIER_1000": "每 24 小時 1K 位客戶",
           "TIER_1K": "每 24 小時 1K 位客戶",
-          "TIER_2K": "2K customers per 24h",
+          "TIER_2K": "每 24 小時 2K 位客戶",
           "TIER_10K": "每 24 小時 10K 位客戶",
           "TIER_100K": "每 24 小時 100K 位客戶",
           "TIER_UNLIMITED": "每 24 小時不限客戶數",
@@ -859,6 +1093,9 @@
           "LIVE": "正式環境"
         }
       },
+      "BUSINESS_PROFILE": {
+        "PREVIEW_LABEL": "WhatsApp 商家檔案"
+      },
       "WEBHOOK": {
         "TITLE": "Webhook 設定",
         "DESCRIPTION": "您的 WhatsApp Business 帳號需要設定 Webhook URL，才能接收客戶訊息",
@@ -868,10 +1105,10 @@
         "REGISTER_ERROR": "Webhook 註冊失敗，請再試一次。",
         "CONFIGURED_SUCCESS": "Webhook 設定成功",
         "URL_MISMATCH": "Webhook URL 不符",
-        "CONFIGURED_URL": "Configured URL",
-        "EXPECTED_URL": "Expected URL",
-        "COPY_URL": "Copy webhook URL",
-        "COPY_SUCCESS": "Webhook URL copied to clipboard"
+        "CONFIGURED_URL": "目前設定的 URL",
+        "EXPECTED_URL": "應設定的 URL",
+        "COPY_URL": "複製 Webhook URL",
+        "COPY_SUCCESS": "已複製 Webhook URL"
       }
     },
     "SETTINGS": "設定",
@@ -900,7 +1137,18 @@
         "SECRET_KEY": "密鑰",
         "VIEW_DOCS": "查看文件",
         "REQUIRE_LABEL": "要求所有對話進行身份驗證",
-        "REQUIRE_DESCRIPTION": "啟用後，使用者必須提供有效的身份 Token 才能開始對話。未提供有效 Token 的請求將被拒絕。"
+        "REQUIRE_DESCRIPTION": "啟用後，使用者必須提供有效的身份 Token 才能開始對話。未提供有效 Token 的請求將被拒絕。",
+        "ROTATE": {
+          "BUTTON": "更換密鑰",
+          "TITLE": "要更換密鑰嗎？",
+          "WARNING": "更換的當下，目前的密鑰立即失效。",
+          "WARNING_DETAIL": "沒有並行期間，也無法復原。",
+          "IMPACT": "您的伺服器必須改用新密鑰簽署使用者。仍用舊密鑰簽署的使用者會驗證失敗；若已設定必須通過身份驗證，他們將無法開始對話。",
+          "CONFIRM": "更換密鑰",
+          "CANCEL": "取消",
+          "SUCCESS": "密鑰已成功更換",
+          "ERROR": "無法更換密鑰，請再試一次"
+        }
       },
       "INBOX_AGENTS": "客服人員",
       "INBOX_AGENTS_SUB_TEXT": "新增或移除此收件匣中的客服人員",
@@ -914,7 +1162,7 @@
       "SENDER_NAME_SECTION_TEXT": "啟用/停用在郵件中顯示客服人員名稱，停用時將顯示企業名稱",
       "ENABLE_CONTINUITY_VIA_EMAIL": "透過電子郵件啟用對話延續",
       "ENABLE_CONTINUITY_VIA_EMAIL_SUB_TEXT": "若聯絡人有電子郵件地址，對話將透過電子郵件繼續。",
-      "ENABLE_CONTINUITY_VIA_EMAIL_DISABLED_TEXT": "This feature is available on a paid plan. Upgrade to enable conversation continuity via email.",
+      "ENABLE_CONTINUITY_VIA_EMAIL_DISABLED_TEXT": "此功能僅限付費方案。請升級以啟用透過電子郵件延續對話。",
       "NEWSLETTER_FILTER": "過濾電子報與自動發送的郵件",
       "NEWSLETTER_FILTER_SUB_TEXT": "電子報、退信、自動回覆、no-reply 通知信，以及頁尾帶有取消訂閱連結或註明請勿回覆的郵件，進入此收件匣時會直接標記為已解決並依類型貼上標籤。允許名單中的寄件者永遠不會被過濾。",
       "LOCK_TO_SINGLE_CONVERSATION": "對話路由",
@@ -942,29 +1190,29 @@
       "WHATSAPP_SECTION_UPDATE_TITLE": "更新 API Key",
       "WHATSAPP_SECTION_UPDATE_PLACEHOLDER": "在此輸入新的 API Key",
       "WHATSAPP_SECTION_UPDATE_BUTTON": "更新",
-      "WHATSAPP_BUSINESS_MANAGEMENT_TOKEN_ADD_TITLE": "Add Business Management Token",
-      "WHATSAPP_BUSINESS_MANAGEMENT_TOKEN_REPLACE_TITLE": "Replace Business Management Token",
-      "WHATSAPP_BUSINESS_MANAGEMENT_TOKEN_CONFIGURED": "Business management token configured",
-      "WHATSAPP_BUSINESS_MANAGEMENT_TOKEN_UPDATE_SUBHEADER": "Provide a token with access to this WhatsApp Business Account when Chatwoot cannot retrieve its message templates. Chatwoot uses this token only for template synchronization.",
-      "WHATSAPP_BUSINESS_MANAGEMENT_TOKEN_UPDATE_PLACEHOLDER": "Enter the business management token",
+      "WHATSAPP_BUSINESS_MANAGEMENT_TOKEN_ADD_TITLE": "新增商家管理權杖",
+      "WHATSAPP_BUSINESS_MANAGEMENT_TOKEN_REPLACE_TITLE": "更換商家管理權杖",
+      "WHATSAPP_BUSINESS_MANAGEMENT_TOKEN_CONFIGURED": "已設定商家管理權杖",
+      "WHATSAPP_BUSINESS_MANAGEMENT_TOKEN_UPDATE_SUBHEADER": "當 Chatwoot 無法取得訊息範本時，請提供一個可存取此 WhatsApp 商業帳號的權杖。Chatwoot 只會用這個權杖同步範本。",
+      "WHATSAPP_BUSINESS_MANAGEMENT_TOKEN_UPDATE_PLACEHOLDER": "輸入商家管理權杖",
       "WHATSAPP_BUSINESS_MANAGEMENT_TOKEN_ADD_BUTTON": "新增",
       "WHATSAPP_BUSINESS_MANAGEMENT_TOKEN_REPLACE_BUTTON": "Replace",
-      "WHATSAPP_BUSINESS_MANAGEMENT_TOKEN_UPDATE_SUCCESS": "WhatsApp business management token updated successfully.",
-      "WHATSAPP_BUSINESS_MANAGEMENT_TOKEN_UPDATE_ERROR": "Could not update the business management token. Verify its WhatsApp Business Management permission and account access, then try again.",
-      "WHATSAPP_BUSINESS_MANAGEMENT_TOKEN_GUIDE_LINK": "Learn how to generate a WhatsApp Business Management token",
-      "WHATSAPP_EMBEDDED_SIGNUP_TITLE": "WhatsApp Embedded Signup",
+      "WHATSAPP_BUSINESS_MANAGEMENT_TOKEN_UPDATE_SUCCESS": "WhatsApp 商家管理權杖已成功更新。",
+      "WHATSAPP_BUSINESS_MANAGEMENT_TOKEN_UPDATE_ERROR": "無法更新商家管理權杖。請確認它具有 WhatsApp Business Management 權限與帳號存取權後再試一次。",
+      "WHATSAPP_BUSINESS_MANAGEMENT_TOKEN_GUIDE_LINK": "了解如何產生 WhatsApp 商家管理權杖",
+      "WHATSAPP_EMBEDDED_SIGNUP_TITLE": "WhatsApp 內嵌註冊",
       "WHATSAPP_EMBEDDED_SIGNUP_SUBHEADER": "此收件匣透過 WhatsApp Embedded Signup 連接。",
       "WHATSAPP_EMBEDDED_SIGNUP_DESCRIPTION": "您可以重新設定此收件匣以更新 WhatsApp Business 設定。",
       "WHATSAPP_RECONFIGURE_BUTTON": "重新設定",
-      "WHATSAPP_MANUAL_TRANSFER_TITLE": "Switch to Manual Setup",
-      "WHATSAPP_MANUAL_TRANSFER_SUBHEADER": "This inbox was connected through WhatsApp embedded signup, which is no longer supported. Enter the WhatsApp Cloud API credentials from your own Meta app to switch this inbox to a manual setup. Configure the webhook in your Meta app using the verification token above before switching.",
-      "WHATSAPP_MANUAL_TRANSFER_PHONE_NUMBER_ID_LABEL": "Phone Number ID",
+      "WHATSAPP_MANUAL_TRANSFER_TITLE": "切換為手動設定",
+      "WHATSAPP_MANUAL_TRANSFER_SUBHEADER": "此收件匣是透過 WhatsApp 內嵌註冊連接的，該方式已不再支援。請輸入您自己 Meta 應用程式的 WhatsApp Cloud API 憑證，將此收件匣切換為手動設定。切換前請先使用上方的驗證 Token 在 Meta 應用程式中設定 Webhook。",
+      "WHATSAPP_MANUAL_TRANSFER_PHONE_NUMBER_ID_LABEL": "電話號碼 ID",
       "WHATSAPP_MANUAL_TRANSFER_BUSINESS_ACCOUNT_ID_LABEL": "商業帳戶 ID",
       "WHATSAPP_MANUAL_TRANSFER_API_KEY_LABEL": "API Key",
-      "WHATSAPP_MANUAL_TRANSFER_API_KEY_PLACEHOLDER": "Enter a permanent access token from your Meta app",
-      "WHATSAPP_MANUAL_TRANSFER_BUTTON": "Switch to Manual Setup",
-      "WHATSAPP_MANUAL_TRANSFER_SUCCESS": "Inbox switched to manual setup successfully.",
-      "WHATSAPP_MANUAL_TRANSFER_ERROR": "Could not switch to manual setup. Please verify the credentials and try again.",
+      "WHATSAPP_MANUAL_TRANSFER_API_KEY_PLACEHOLDER": "輸入您 Meta 應用程式的永久存取權杖",
+      "WHATSAPP_MANUAL_TRANSFER_BUTTON": "切換為手動設定",
+      "WHATSAPP_MANUAL_TRANSFER_SUCCESS": "收件匣已成功切換為手動設定。",
+      "WHATSAPP_MANUAL_TRANSFER_ERROR": "無法切換為手動設定。請確認憑證後再試一次。",
       "WHATSAPP_CONNECT_TITLE": "連接到 WhatsApp Business",
       "WHATSAPP_CONNECT_SUBHEADER": "升級至 WhatsApp Embedded Signup 以便於管理。",
       "WHATSAPP_CONNECT_DESCRIPTION": "將此收件匣連接到 WhatsApp Business，以獲得進階功能和更便捷的管理。",
@@ -984,71 +1232,71 @@
       "WHATSAPP_TEMPLATES_SYNC_SUCCESS": "範本同步已啟動。可能需要幾分鐘才能更新完成。",
       "WHATSAPP_MANUAL_MIGRATION": {
         "BANNER": {
-          "TITLE": "Manual setup recommended",
-          "DESCRIPTION": "This inbox connects through the shared Meta app used for embedded signup, which recent Meta restrictions have affected. To avoid similar issues in the future, we recommend reconnecting it with your own Meta app.",
-          "START": "Start manual migration",
-          "GUIDE": "View guide"
+          "TITLE": "建議改用手動設定",
+          "DESCRIPTION": "此收件匣透過內嵌註冊使用的共用 Meta 應用程式連接，近期受到 Meta 限制的影響。為避免日後再發生類似問題，建議改用您自己的 Meta 應用程式重新連接。",
+          "START": "開始手動遷移",
+          "GUIDE": "查看指南"
         },
         "DIALOG": {
-          "EYEBROW": "WhatsApp manual migration",
-          "TITLE": "Reconnect WhatsApp inbox",
+          "EYEBROW": "WhatsApp 手動遷移",
+          "TITLE": "重新連接 WhatsApp 收件匣",
           "CLOSE": "關閉",
-          "ACTION_REQUIRED_TITLE": "Reconnect with your own Meta app",
-          "ACTION_REQUIRED_DESCRIPTION": "Inboxes connected through your own Meta app are not affected by restrictions on the shared embedded signup app. This guided flow updates the WhatsApp API connection without creating a new inbox.",
-          "GUIDE_LINK": "Open the manual setup guide",
+          "ACTION_REQUIRED_TITLE": "改用您自己的 Meta 應用程式重新連接",
+          "ACTION_REQUIRED_DESCRIPTION": "透過您自己 Meta 應用程式連接的收件匣，不受共用內嵌註冊應用程式的限制影響。此引導流程只會更新 WhatsApp API 連線，不會建立新的收件匣。",
+          "GUIDE_LINK": "開啟手動設定指南",
           "PRESERVED_TITLE": "Preserved",
-          "PRESERVED_DESCRIPTION": "Conversations, contacts, collaborators, routing, business hours, and inbox settings.",
+          "PRESERVED_DESCRIPTION": "對話、聯絡人、協作人員、路由、營業時間與收件匣設定。",
           "UPDATED_TITLE": "Updated",
-          "UPDATED_DESCRIPTION": "WABA ID, phone number ID, access token, and webhook configuration.",
+          "UPDATED_DESCRIPTION": "WABA ID、電話號碼 ID、存取權杖與 Webhook 設定。",
           "WABA_ID": "WABA ID",
-          "WABA_PLACEHOLDER": "Enter WABA ID",
-          "WABA_HELP": "The WhatsApp Business Account that owns this phone number.",
-          "PHONE_NUMBER_ID": "Phone Number ID",
-          "PHONE_NUMBER_PLACEHOLDER": "Enter Phone Number ID",
-          "PHONE_NUMBER_HELP": "Meta's unique ID for the WhatsApp number connected to this inbox.",
+          "WABA_PLACEHOLDER": "輸入 WABA ID",
+          "WABA_HELP": "擁有此電話號碼的 WhatsApp 商業帳號。",
+          "PHONE_NUMBER_ID": "電話號碼 ID",
+          "PHONE_NUMBER_PLACEHOLDER": "輸入電話號碼 ID",
+          "PHONE_NUMBER_HELP": "Meta 給此收件匣所連接 WhatsApp 號碼的唯一 ID。",
           "DISPLAY_PHONE_NUMBER": "顯示電話號碼",
-          "DISPLAY_PHONE_NUMBER_PLACEHOLDER": "Enter display phone number",
-          "DISPLAY_PHONE_NUMBER_HELP": "The customer-facing WhatsApp number. This cannot be changed during migration.",
-          "ACCESS_TOKEN": "Permanent access token or system user token",
-          "ACCESS_TOKEN_PLACEHOLDER": "Paste access token",
-          "TOKEN_HELP_PREFIX": "The token must include",
+          "DISPLAY_PHONE_NUMBER_PLACEHOLDER": "輸入顯示用電話號碼",
+          "DISPLAY_PHONE_NUMBER_HELP": "顧客看到的 WhatsApp 號碼。遷移過程中無法更改。",
+          "ACCESS_TOKEN": "永久存取權杖或系統用戶權杖",
+          "ACCESS_TOKEN_PLACEHOLDER": "貼上存取權杖",
+          "TOKEN_HELP_PREFIX": "權杖必須包含",
           "TOKEN_HELP_MIDDLE": "新增",
-          "TOKEN_HELP_SUFFIX": "for template sync and template management.",
+          "TOKEN_HELP_SUFFIX": "權限，才能同步與管理範本。",
           "MESSAGING_PERMISSION": "whatsapp_business_messaging.",
           "MANAGEMENT_PERMISSION": "whatsapp_business_management",
-          "REVIEW_TITLE": "Review before reconnecting",
+          "REVIEW_TITLE": "重新連接前請確認",
           "INBOX": "收件匣",
           "PHONE_NUMBER": "電話號碼",
-          "NOT_ENTERED": "Not entered",
-          "VERIFY_NOTICE": "Chatwoot will verify these credentials with Meta before applying any changes. If verification fails, the current configuration is left untouched.",
+          "NOT_ENTERED": "尚未輸入",
+          "VERIFY_NOTICE": "Chatwoot 會先向 Meta 驗證這些憑證，再套用任何變更。若驗證失敗，目前的設定會保持不變。",
           "BACK": "返回",
           "CANCEL": "取消",
           "CONTINUE": "繼續",
-          "REVIEW_MIGRATION": "Review migration",
-          "RECONNECT": "Reconnect WhatsApp inbox"
+          "REVIEW_MIGRATION": "確認遷移內容",
+          "RECONNECT": "重新連接 WhatsApp 收件匣"
         },
         "STEPS": {
           "BEFORE_YOU_START": {
-            "TITLE": "Before you start",
-            "DESCRIPTION": "This reconnects the WhatsApp API details for this inbox. Conversations, collaborators, routing, business hours, CSAT, and bot settings will be preserved."
+            "TITLE": "開始之前",
+            "DESCRIPTION": "這會重新連接此收件匣的 WhatsApp API 資訊。對話、協作人員、路由、營業時間、CSAT 與機器人設定都會保留。"
           },
           "BUSINESS_DETAILS": {
-            "TITLE": "Business details",
-            "DESCRIPTION": "Enter the WhatsApp assets from the customer Meta Business account."
+            "TITLE": "商家資訊",
+            "DESCRIPTION": "輸入客戶 Meta 商業帳號中的 WhatsApp 資產。"
           },
           "ACCESS_TOKEN": {
-            "TITLE": "Access token",
-            "DESCRIPTION": "Paste a permanent access token or system user token with WhatsApp permissions."
+            "TITLE": "存取權杖",
+            "DESCRIPTION": "貼上具有 WhatsApp 權限的永久存取權杖或系統用戶權杖。"
           },
           "REVIEW_MIGRATION": {
-            "TITLE": "Review migration",
-            "DESCRIPTION": "Confirm the connection details before reconnecting this inbox. Chatwoot will verify the token, WABA, and phone number with Meta before applying changes."
+            "TITLE": "確認遷移內容",
+            "DESCRIPTION": "重新連接此收件匣前請確認連線資訊。Chatwoot 會先向 Meta 驗證權杖、WABA 與電話號碼，再套用變更。"
           }
         }
       },
       "WHATSAPP_CALLING_ENABLED": {
-        "LABEL": "Enable voice calling",
-        "DESCRIPTION": "Allow agents to start and receive WhatsApp voice calls on this inbox. Available only on embedded-signup WhatsApp Cloud channels with calling permission granted by Meta."
+        "LABEL": "啟用語音通話",
+        "DESCRIPTION": "允許客服人員在此收件匣撥打與接聽 WhatsApp 語音通話。僅適用於透過內嵌註冊連接、且已獲 Meta 授予通話權限的 WhatsApp Cloud 頻道。"
       },
       "UPDATE_PRE_CHAT_FORM_SETTINGS": "更新聊天前表單設定"
     },
