@@ -915,6 +915,8 @@
       "ENABLE_CONTINUITY_VIA_EMAIL": "透過電子郵件啟用對話延續",
       "ENABLE_CONTINUITY_VIA_EMAIL_SUB_TEXT": "若聯絡人有電子郵件地址，對話將透過電子郵件繼續。",
       "ENABLE_CONTINUITY_VIA_EMAIL_DISABLED_TEXT": "This feature is available on a paid plan. Upgrade to enable conversation continuity via email.",
+      "NEWSLETTER_FILTER": "過濾電子報與自動發送的郵件",
+      "NEWSLETTER_FILTER_SUB_TEXT": "電子報、退信、自動回覆、no-reply 通知信，以及頁尾帶有取消訂閱連結或註明請勿回覆的郵件，進入此收件匣時會直接標記為已解決並依類型貼上標籤。允許名單中的寄件者永遠不會被過濾。",
       "LOCK_TO_SINGLE_CONVERSATION": "對話路由",
       "LOCK_TO_SINGLE_CONVERSATION_SUB_TEXT": "設定現有聯絡人的對話建立方式",
       "INBOX_UPDATE_TITLE": "收件匣設定",
