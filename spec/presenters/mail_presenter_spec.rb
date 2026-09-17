@@ -115,6 +115,23 @@ RSpec.describe MailPresenter do
       )
     end
 
+    it 'lists every anchor of the html body as label then href' do
+      links = described_class.new(html_mail).body_links
+
+      expect(links).to include(a_string_matching(%r{\Aunsubscribe https://www\.test\.com/email_optout/qemail_unsubscribe\?}))
+    end
+
+    it 'keeps the whole plain text, footer included, as body text' do
+      expect(decorated_mail.body_text).to eq(decorated_mail.text_content[:full])
+    end
+
+    it 'falls back to the html body as text when the mail has no plain text part' do
+      body_text = described_class.new(create_inbound_email_from_fixture('only_html.eml').mail).body_text
+
+      expect(body_text).to be_present
+      expect(body_text).not_to include('<')
+    end
+
     describe '#in_reply_to' do
       context 'when "in_reply_to" is an array' do
         it 'returns the first value from the array' do

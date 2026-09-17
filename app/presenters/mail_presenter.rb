@@ -181,6 +181,17 @@ class MailPresenter < SimpleDelegator
     ].compact
   end
 
+  # Whole-message plain text, footer included, for the body heuristics in Email::SenderTriageService.
+  # The reply-trimmed variants are useless there because the footer is exactly what the trimmer drops.
+  def body_text
+    @body_text ||= text_content[:full].presence || ::HtmlParser.parse_reply(html_content[:full].to_s)
+  end
+
+  # Every anchor of the HTML body as "label href", so a marker can match the visible label or the URL.
+  def body_links
+    @body_links ||= Nokogiri::HTML(html_content[:full].to_s).css('a[href]').map { |anchor| "#{anchor.text.squish} #{anchor['href']}" }
+  end
+
   # Mail::Header#[] returns an array when a header appears more than once, which is common on
   # relayed bulk mail carrying both the sender's and the list manager's copy of a header.
   def header_value(name)

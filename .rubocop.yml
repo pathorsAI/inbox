@@ -20,6 +20,7 @@ Metrics/ClassLength:
     - 'app/models/message.rb'
     - 'app/models/conversation.rb'
     - 'app/models/contact.rb'
+    - 'app/presenters/mail_presenter.rb'
     - 'config/initializers/rack_attack.rb'
 
 Metrics/MethodLength:
