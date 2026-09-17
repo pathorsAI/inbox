@@ -9,10 +9,11 @@ name: Sonar
 # community-branch-plugin, which accepts the same sonar.pullrequest.*
 # properties SonarCloud did. Ticket: pathorsAI/pathors#2829.
 #
-# Runs on the org-level self-hosted `gke` runners (pathors-tw, see
-# pathorsAI/pathors infra/k8s/gha-runner/). Those pods have no Docker and a
-# 5Gi memory limit — the -Xmx below and sonar.javascript.node.maxspace in the
-# properties file are sized for that, not for a GitHub-hosted VM.
+# Runs on any org-level self-hosted runner. The smallest of them are the gke
+# pods (pathorsAI/pathors infra/k8s/gha-runner/, 5Gi memory limit, retiring
+# under pathorsAI/pathors#2845) — the -Xmx below and
+# sonar.javascript.node.maxspace in the properties file are sized for that
+# floor and are fine on the larger machines.
 
 # The comment step below writes to the PR; everything else only reads.
 permissions:
@@ -44,7 +45,7 @@ jobs:
     # and pushes to develop are analysed. If this check is ever made required,
     # remember a skipped run counts as passing.
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: [self-hosted, gke]
+    runs-on: self-hosted
     # Whole-of-Chatwoot scan (Ruby + JS/Vue, ~5k files) on a 2-CPU pod. The
     # pathors apps finish in under a minute each; this one is measured in
     # minutes. Tighten once a few runs have shown the real number.
