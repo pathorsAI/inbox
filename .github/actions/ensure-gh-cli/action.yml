@@ -1,0 +1,60 @@
+name: Ensure gh CLI
+description: 確保 runner 上有 gh CLI；self-hosted runner 沒有預裝（GitHub-hosted image 才有）。
+
+inputs:
+  version:
+    description: >
+      要安裝的 gh CLI 版本（不含 v 前綴）。刻意釘死而不是去查 latest —— 查 latest
+      得打 api.github.com，匿名呼叫會撞 rate limit，那是本 action 存在的原因。
+    required: false
+    default: "2.97.0"
+
+runs:
+  using: composite
+  steps:
+    - name: Install gh CLI if missing
+      shell: bash
+      env:
+        GH_VERSION: ${{ inputs.version }}
+      run: |
+        set -euo pipefail
+
+        if command -v gh >/dev/null 2>&1; then
+          echo "gh 已存在：$(gh --version | head -1)"
+          exit 0
+        fi
+
+        if [ -z "${GH_VERSION}" ]; then
+          echo "::error::gh CLI 版本是空的 —— 請檢查呼叫端傳入的 version input。"
+          exit 1
+        fi
+
+        TARBALL="gh_${GH_VERSION}_linux_amd64.tar.gz"
+        URL="https://github.com/cli/cli/releases/download/v${GH_VERSION}/${TARBALL}"
+        echo "安裝 gh v${GH_VERSION}（runner 上沒有預裝）"
+
+        # 先完整下載到檔案再解壓，而不是 `curl | tar -xz`。管線版本在 curl 失敗時
+        # 只會讓 tar 收到空輸入，然後報 "gzip: stdin: unexpected end of file" ——
+        # 那個訊息完全指不出真正的原因（下載 404 / 網路壞掉）。
+        #
+        # --proto '=https' 是必要的：這裡帶 -L 會跟隨重導向，沒有這個限制就可能被
+        # 導去 http，讓要放進 PATH 的執行檔走明文通道下載。
+        if ! curl -fsSL --proto '=https' --tlsv1.2 \
+               --retry 3 --retry-delay 2 --retry-all-errors \
+               -o "${RUNNER_TEMP}/${TARBALL}" "${URL}"; then
+          echo "::error::下載 gh CLI 失敗：${URL}"
+          echo "::error::確認該版本存在且該 runner 是 linux/amd64。"
+          exit 1
+        fi
+
+        tar -xzf "${RUNNER_TEMP}/${TARBALL}" -C "${RUNNER_TEMP}"
+        rm -f "${RUNNER_TEMP}/${TARBALL}"
+
+        BIN_DIR="${RUNNER_TEMP}/gh_${GH_VERSION}_linux_amd64/bin"
+        if [ ! -x "${BIN_DIR}/gh" ]; then
+          echo "::error::解壓後在 ${BIN_DIR} 找不到 gh 執行檔。"
+          exit 1
+        fi
+
+        echo "${BIN_DIR}" >> "${GITHUB_PATH}"
+        echo "已安裝：$("${BIN_DIR}/gh" --version | head -1)"

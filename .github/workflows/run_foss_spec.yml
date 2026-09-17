@@ -39,8 +39,12 @@ jobs:
           bundle exec bundle-audit update
           bundle exec bundle-audit check
 
+  # pnpm-only jobs run on the org's gke runners (pathorsAI/pathors
+  # infra/k8s/gha-runner). lint-backend / security-scan need the full bundle
+  # (pg gem → libpq headers) and backend-tests needs Docker services; those
+  # pods have neither, so they stay on GitHub-hosted runners.
   lint-frontend:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, gke]
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -55,7 +59,7 @@ jobs:
 
   # Frontend tests run in parallel with backend
   frontend-tests:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, gke]
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
