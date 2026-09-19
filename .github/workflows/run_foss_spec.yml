@@ -39,8 +39,10 @@ jobs:
           bundle exec bundle-audit update
           bundle exec bundle-audit check
 
-  # pnpm-only jobs run on the org's self-hosted runners (any of them: the
-  # gke pods, nchc-shared, and the GCE machines from pathorsAI/pathors#2845).
+  # pnpm-only jobs run on the org's self-hosted runners. That pool is
+  # nchc-shared-1/2 as of 2026-09-20 — the gke pods were retired under
+  # pathorsAI/pathors#3026, and the GCE machines from pathorsAI/pathors#2845
+  # have never registered successfully (pathorsAI/pathors#3012).
   # lint-backend / security-scan need the full bundle (pg gem → libpq headers)
   # and backend-tests needs Docker services; they stay on GitHub-hosted until
   # a runner with the `docker` label is visible to this repo.
