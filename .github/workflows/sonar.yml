@@ -9,11 +9,12 @@ name: Sonar
 # community-branch-plugin, which accepts the same sonar.pullrequest.*
 # properties SonarCloud did. Ticket: pathorsAI/pathors#2829.
 #
-# Runs on any org-level self-hosted runner. The smallest of them are the gke
-# pods (pathorsAI/pathors infra/k8s/gha-runner/, 5Gi memory limit, retiring
-# under pathorsAI/pathors#2845) — the -Xmx below and
-# sonar.javascript.node.maxspace in the properties file are sized for that
-# floor and are fine on the larger machines.
+# Runs on any org-level self-hosted runner. The -Xmx below and
+# sonar.javascript.node.maxspace in the properties file were sized for the
+# smallest runner at the time: the gke pods (5Gi memory limit), which were
+# retired under pathorsAI/pathors#3026. Nothing left in the org pool is that
+# small, so the values are now conservative rather than binding — raise them
+# only with a measurement, not on the grounds that the floor moved.
 
 # The comment step below writes to the PR; everything else only reads.
 permissions:
