@@ -635,6 +635,15 @@ zh_TW:
         description: 若該電子郵件地址有工單，登入連結已寄出。連結將在 15 分鐘後失效。
       access_mailer:
         subject: '%{portal_name} 的工單存取連結'
+      acknowledgement:
+        greeting: '%{name} 您好，'
+        greeting_anonymous: '您好，'
+        body: |-
+          感謝您聯絡 %{portal_name}。您的問題已建立為工單 #%{number}，我們會以電子郵件回覆您。若還有需要補充的內容，直接回覆這封信即可。
+
+          主旨：%{subject}
+
+          %{description}
       index:
         title: 我的工單
         subtitle:
