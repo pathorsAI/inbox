@@ -241,12 +241,18 @@ RSpec.describe 'Public Portal Tickets', type: :request do
       end
 
       it 'sends the acknowledgement to the customer so their reply threads onto the ticket' do
-        with_modified_env SMTP_ADDRESS: 'smtp.example.com' do
-          perform_enqueued_jobs(only: SendReplyJob) { post "/hc/#{portal.slug}/tickets", params: payload }
-        end
+        post "/hc/#{portal.slug}/tickets", params: payload
 
         conversation = Ticket.last.conversation
-        mail = ActionMailer::Base.deliveries.last
+        acknowledgement = conversation.messages.outgoing.last
+        expect(SendReplyJob).to have_been_enqueued.with(acknowledgement.id)
+        # Rendered here rather than through the delivery the job performs: with SMTP_ADDRESS unset
+        # the mailer initializer switches the test environment to :sendmail, and nothing reaches
+        # ActionMailer::Base.deliveries.
+        mail = with_modified_env SMTP_ADDRESS: 'smtp.example.com' do
+          ConversationReplyMailer.with(account: account).email_reply(acknowledgement).message
+        end
+
         expect(mail.to).to eq(['jane@example.com'])
         expect(mail.body.encoded).to include('It keeps failing.')
         expect(mail.message_id).to start_with("conversation/#{conversation.uuid}/messages/")
