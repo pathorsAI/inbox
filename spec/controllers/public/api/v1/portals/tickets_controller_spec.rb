@@ -120,7 +120,20 @@ RSpec.describe 'Public Portal Tickets', type: :request do
       expect(created_ticket.ticket_type).to eq('issue')
       expect(created_ticket.conversation.inbox_id).to eq(inbox.id)
       expect(created_ticket.conversation.contact.email).to eq('jane@example.com')
-      expect(created_ticket.conversation.messages.last.content).to eq("**Cannot log in**\n\nIt keeps failing.")
+      expect(created_ticket.conversation.messages.incoming.last.content).to eq("**Cannot log in**\n\nIt keeps failing.")
+    end
+
+    it 'answers the customer with an acknowledgement that quotes their request' do
+      post "/hc/#{portal.slug}/tickets", params: payload
+
+      conversation = Ticket.last.conversation
+      acknowledgement = conversation.messages.outgoing.last
+      expect(acknowledgement.content).to include("ticket ##{conversation.display_id}")
+      expect(acknowledgement.content).to include('Subject: Cannot log in')
+      expect(acknowledgement.content).to include('It keeps failing.')
+      # No sender, so reporting still sees a conversation nobody has answered.
+      expect(acknowledgement.sender).to be_nil
+      expect(conversation.first_reply_created_at).to be_nil
     end
 
     it 'strips line breaks out of the subject' do
@@ -140,7 +153,7 @@ RSpec.describe 'Public Portal Tickets', type: :request do
     it 'stores the uploaded files on the description message' do
       post "/hc/#{portal.slug}/tickets", params: payload.merge(attachments: [png, pdf])
 
-      attachments = Ticket.last.conversation.messages.last.attachments
+      attachments = Ticket.last.conversation.messages.incoming.last.attachments
       expect(attachments.count).to eq(2)
       expect(attachments.map(&:file_type)).to contain_exactly('image', 'file')
       expect(attachments.map { |attachment| attachment.file.filename.to_s }).to contain_exactly('sample.png', 'sample.pdf')
@@ -227,6 +240,18 @@ RSpec.describe 'Public Portal Tickets', type: :request do
         expect(created_ticket.conversation.contact_inbox.source_id).to eq('jane@example.com')
       end
 
+      it 'sends the acknowledgement to the customer so their reply threads onto the ticket' do
+        with_modified_env SMTP_ADDRESS: 'smtp.example.com' do
+          perform_enqueued_jobs(only: SendReplyJob) { post "/hc/#{portal.slug}/tickets", params: payload }
+        end
+
+        conversation = Ticket.last.conversation
+        mail = ActionMailer::Base.deliveries.last
+        expect(mail.to).to eq(['jane@example.com'])
+        expect(mail.body.encoded).to include('It keeps failing.')
+        expect(mail.message_id).to start_with("conversation/#{conversation.uuid}/messages/")
+      end
+
       it 'stores the subject as the mail subject the reply mailer sends on' do
         post "/hc/#{portal.slug}/tickets", params: payload
 
@@ -236,7 +261,7 @@ RSpec.describe 'Public Portal Tickets', type: :request do
       it 'puts the subject in the email meta and leaves the body unprefixed' do
         post "/hc/#{portal.slug}/tickets", params: payload
 
-        message = Ticket.last.conversation.messages.last
+        message = Ticket.last.conversation.messages.incoming.last
         expect(message.content_attributes['email']['subject']).to eq('Cannot log in')
         expect(message.content).to eq('It keeps failing.')
       end
