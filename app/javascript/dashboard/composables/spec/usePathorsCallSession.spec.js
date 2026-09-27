@@ -6,7 +6,7 @@ import {
 import PathorsCallsAPI from 'dashboard/api/pathorsCalls';
 
 vi.mock('dashboard/api/pathorsCalls', () => ({
-  default: { join: vi.fn() },
+  default: { join: vi.fn(), hangup: vi.fn() },
 }));
 
 const ROOM_EVENT = {
@@ -227,6 +227,133 @@ describe('usePathorsCallSession', () => {
     expect(error.value).toBe(PATHORS_JOIN_ERROR.MEDIA_DENIED);
     expect(isJoined.value).toBe(false);
     expect(rooms[0].disconnect).toHaveBeenCalled();
+  });
+
+  describe('hangup', () => {
+    const joinCall = async () => {
+      PathorsCallsAPI.join.mockResolvedValue(credentials);
+      const session = usePathorsCallSession();
+      await session.join({ accountId: 3, callId: 42 });
+      return session;
+    };
+
+    it('asks the backend to end the call and tears down locally', async () => {
+      PathorsCallsAPI.hangup.mockResolvedValue({ ok: true });
+      const { hangup, isJoined, isHangingUp, isActiveCall, error } =
+        await joinCall();
+
+      const ended = await hangup({ accountId: 3 });
+
+      expect(ended).toBe(true);
+      expect(PathorsCallsAPI.hangup).toHaveBeenCalledWith(42, 3);
+      expect(rooms[0].disconnect).toHaveBeenCalled();
+      expect(isJoined.value).toBe(false);
+      expect(isHangingUp.value).toBe(false);
+      expect(isActiveCall(42)).toBe(false);
+      expect(error.value).toBeNull();
+    });
+
+    it.each([404, 410])(
+      'treats a %i as an already-ended call and tears down',
+      async status => {
+        PathorsCallsAPI.hangup.mockImplementation(() => rejectWith(status));
+        const { hangup, isJoined, error } = await joinCall();
+
+        const ended = await hangup({ accountId: 3 });
+
+        expect(ended).toBe(true);
+        expect(rooms[0].disconnect).toHaveBeenCalled();
+        expect(isJoined.value).toBe(false);
+        expect(error.value).toBeNull();
+      }
+    );
+
+    it.each([409, 502])(
+      'keeps the agent in the call on a %i and reports the failure',
+      async status => {
+        PathorsCallsAPI.hangup.mockImplementation(() => rejectWith(status));
+        const { hangup, isJoined, isHangingUp, isActiveCall, error } =
+          await joinCall();
+
+        const ended = await hangup({ accountId: 3 });
+
+        expect(ended).toBe(false);
+        expect(rooms[0].disconnect).not.toHaveBeenCalled();
+        expect(isJoined.value).toBe(true);
+        expect(isActiveCall(42)).toBe(true);
+        expect(isHangingUp.value).toBe(false);
+        expect(error.value).toBe(PATHORS_JOIN_ERROR.HANGUP_FAILED);
+      }
+    );
+
+    it('keeps the agent in the call on a network error', async () => {
+      PathorsCallsAPI.hangup.mockRejectedValue(new Error('Network Error'));
+      const { hangup, isJoined, error } = await joinCall();
+
+      const ended = await hangup({ accountId: 3 });
+
+      expect(ended).toBe(false);
+      expect(isJoined.value).toBe(true);
+      expect(error.value).toBe(PATHORS_JOIN_ERROR.HANGUP_FAILED);
+    });
+
+    it('ignores a second click while the first hangup is in flight', async () => {
+      let resolveHangup;
+      PathorsCallsAPI.hangup.mockImplementation(
+        () =>
+          new Promise(resolve => {
+            resolveHangup = resolve;
+          })
+      );
+      const { hangup, isHangingUp } = await joinCall();
+
+      const first = hangup({ accountId: 3 });
+      expect(isHangingUp.value).toBe(true);
+      const second = await hangup({ accountId: 3 });
+
+      expect(second).toBe(false);
+      expect(PathorsCallsAPI.hangup).toHaveBeenCalledTimes(1);
+
+      resolveHangup({ ok: true });
+      await expect(first).resolves.toBe(true);
+      expect(isHangingUp.value).toBe(false);
+    });
+
+    it('is a no-op when not in a call', async () => {
+      const { hangup } = usePathorsCallSession();
+
+      const ended = await hangup({ accountId: 3 });
+
+      expect(ended).toBe(false);
+      expect(PathorsCallsAPI.hangup).not.toHaveBeenCalled();
+    });
+
+    it('does not touch a newer session when the room dropped mid-request', async () => {
+      let rejectHangup;
+      PathorsCallsAPI.hangup.mockImplementation(
+        () =>
+          new Promise((_, reject) => {
+            rejectHangup = reject;
+          })
+      );
+      const first = await joinCall();
+      const pending = first.hangup({ accountId: 3 });
+
+      // The backend tore the room down before answering, and the agent has
+      // already joined another call by the time the (failed) answer lands.
+      rooms[0].emit(ROOM_EVENT.Disconnected);
+      PathorsCallsAPI.join.mockResolvedValue(credentials);
+      await first.join({ accountId: 3, callId: 99 });
+      const failure = new Error('Request failed with status 502');
+      failure.response = { status: 502 };
+      rejectHangup(failure);
+
+      await expect(pending).resolves.toBe(true);
+      expect(first.isJoined.value).toBe(true);
+      expect(first.isActiveCall(99)).toBe(true);
+      expect(first.error.value).toBeNull();
+      expect(rooms[1].disconnect).not.toHaveBeenCalled();
+    });
   });
 
   describe('audio playback unlock', () => {

@@ -344,6 +344,12 @@ RSpec.describe 'Pathors Calls API', type: :request do
       }
     end
 
+    # Fixtures first: the factories draw from SecureRandom.uuid too.
+    def stub_request_id
+      call
+      allow(SecureRandom).to receive(:uuid).and_return('req-1')
+    end
+
     def stub_join(status: 200, body: nil)
       stub_request(:post, join_url).to_return(
         status: status,
@@ -387,22 +393,30 @@ RSpec.describe 'Pathors Calls API', type: :request do
         expect(response.parsed_body['serverUrl']).to eq('wss://livekit.example')
       end
 
-      it 'signs the exact raw request body with the agent bot secret' do
+      it 'signs the timestamp and exact raw request body with the agent bot secret' do
         stub_join
+        stub_request_id
 
-        post "/api/v1/accounts/#{account.id}/pathors/calls/#{call.id}/join",
-             headers: agent.create_new_auth_token, as: :json
+        freeze_time do
+          post "/api/v1/accounts/#{account.id}/pathors/calls/#{call.id}/join",
+               headers: agent.create_new_auth_token, as: :json
 
-        expected_body = {
-          sessionId: call.provider_call_id,
-          conversationId: conversation.display_id,
-          agent: { id: agent.id, name: agent.available_name }
-        }.to_json
-        expected_signature = "sha256=#{OpenSSL::HMAC.hexdigest('SHA256', agent_bot.secret, expected_body)}"
+          expected_body = {
+            sessionId: call.provider_call_id,
+            conversationId: conversation.display_id,
+            agent: { id: agent.id, name: agent.available_name },
+            requestId: 'req-1'
+          }.to_json
+          timestamp = Time.current.to_i.to_s
+          expected_signature = "sha256=#{OpenSSL::HMAC.hexdigest('SHA256', agent_bot.secret, "#{timestamp}.#{expected_body}")}"
 
-        expect(
-          a_request(:post, join_url).with(body: expected_body, headers: { 'X-Pathors-Signature' => expected_signature })
-        ).to have_been_made.once
+          expect(
+            a_request(:post, join_url).with(
+              body: expected_body,
+              headers: { 'X-Pathors-Timestamp' => timestamp, 'X-Pathors-Signature' => expected_signature }
+            )
+          ).to have_been_made.once
+        end
       end
 
       it 'records the answering agent and touches the message' do
@@ -530,16 +544,23 @@ RSpec.describe 'Pathors Calls API', type: :request do
 
         it 'signs with the bot bound to the call inbox rather than another project bot' do
           create(:agent_bot_inbox, inbox: conversation.inbox, agent_bot: inbox_bot)
+          stub_request_id
 
-          post "/api/v1/accounts/#{account.id}/pathors/calls/#{call.id}/join",
-               headers: agent.create_new_auth_token, as: :json
+          timestamp = nil
+          freeze_time do
+            timestamp = Time.current.to_i
+            post "/api/v1/accounts/#{account.id}/pathors/calls/#{call.id}/join",
+                 headers: agent.create_new_auth_token, as: :json
+          end
 
           expected_body = {
             sessionId: call.provider_call_id,
             conversationId: conversation.display_id,
-            agent: { id: agent.id, name: agent.available_name }
+            agent: { id: agent.id, name: agent.available_name },
+            requestId: 'req-1'
           }.to_json
-          expected_signature = "sha256=#{OpenSSL::HMAC.hexdigest('SHA256', inbox_bot.secret, expected_body)}"
+          signed_payload = "#{timestamp}.#{expected_body}"
+          expected_signature = "sha256=#{OpenSSL::HMAC.hexdigest('SHA256', inbox_bot.secret, signed_payload)}"
 
           expect(response).to have_http_status(:success)
           expect(
@@ -569,6 +590,168 @@ RSpec.describe 'Pathors Calls API', type: :request do
           expect(response).to have_http_status(:success)
           expect(a_request(:post, join_url)).to have_been_made.once
         end
+      end
+    end
+  end
+
+  describe 'POST /api/v1/accounts/{account.id}/pathors/calls/{id}/hangup' do
+    let(:hangup_url) { 'https://api.pathors.example/project/proj_42/integration/chatwoot/voice/hangup' }
+    let(:message) do
+      create(:message, account: account, conversation: conversation, inbox: conversation.inbox, content_type: 'voice_call')
+    end
+    let(:call) do
+      create(:call, :pathors, account: account, conversation: conversation, inbox: conversation.inbox,
+                              contact: conversation.contact, message: message, accepted_by_agent_id: agent.id)
+    end
+    let!(:agent_bot) do
+      create(:agent_bot, account: account,
+                         outgoing_url: 'https://api.pathors.example/project/proj_42/integration/chatwoot/callback')
+    end
+
+    # Fixtures first: the factories draw from SecureRandom.uuid too.
+    def stub_request_id
+      call
+      allow(SecureRandom).to receive(:uuid).and_return('req-1')
+    end
+
+    def stub_hangup(status: 200, body: { ok: true })
+      stub_request(:post, hangup_url).to_return(
+        status: status, body: body.to_json, headers: { 'Content-Type' => 'application/json' }
+      )
+    end
+
+    before do
+      create(:inbox_member, user: agent, inbox: conversation.inbox)
+    end
+
+    context 'when it is an unauthenticated user' do
+      it 'returns unauthorized without contacting pathors' do
+        stub_hangup
+
+        post "/api/v1/accounts/#{account.id}/pathors/calls/#{call.id}/hangup", as: :json
+
+        expect(response).to have_http_status(:unauthorized)
+        expect(a_request(:post, hangup_url)).not_to have_been_made
+      end
+    end
+
+    context 'when the agent has no access to the conversation' do
+      let(:outsider) { create(:user, account: account, role: :agent) }
+
+      it 'returns unauthorized without contacting pathors' do
+        stub_hangup
+
+        post "/api/v1/accounts/#{account.id}/pathors/calls/#{call.id}/hangup",
+             headers: outsider.create_new_auth_token, as: :json
+
+        expect(response).to have_http_status(:unauthorized)
+        expect(a_request(:post, hangup_url)).not_to have_been_made
+      end
+    end
+
+    context 'when it is an agent with conversation access' do
+      it 'relays the hangup with a timestamped signature' do
+        stub_hangup
+        stub_request_id
+
+        freeze_time do
+          post "/api/v1/accounts/#{account.id}/pathors/calls/#{call.id}/hangup",
+               headers: agent.create_new_auth_token, as: :json
+
+          expected_body = {
+            sessionId: call.provider_call_id,
+            conversationId: conversation.display_id,
+            agent: { id: agent.id, name: agent.available_name },
+            requestId: 'req-1'
+          }.to_json
+          timestamp = Time.current.to_i.to_s
+          expected_signature = "sha256=#{OpenSSL::HMAC.hexdigest('SHA256', agent_bot.secret, "#{timestamp}.#{expected_body}")}"
+
+          expect(response).to have_http_status(:success)
+          expect(response.parsed_body['ok']).to be(true)
+          expect(
+            a_request(:post, hangup_url).with(
+              body: expected_body,
+              headers: { 'X-Pathors-Timestamp' => timestamp, 'X-Pathors-Signature' => expected_signature }
+            )
+          ).to have_been_made.once
+        end
+      end
+
+      it 'leaves the call record and assignment untouched' do
+        stub_hangup
+
+        post "/api/v1/accounts/#{account.id}/pathors/calls/#{call.id}/hangup",
+             headers: agent.create_new_auth_token, as: :json
+
+        # The terminal status arrives through the update webhook once the voice
+        # agent has actually torn the room down.
+        expect(call.reload.status).to eq('in_progress')
+        expect(conversation.reload.assignee_id).to be_nil
+      end
+
+      it 'relays a 409 not_call_owner verbatim' do
+        stub_hangup(status: 409, body: { error: 'not_call_owner' })
+
+        post "/api/v1/accounts/#{account.id}/pathors/calls/#{call.id}/hangup",
+             headers: agent.create_new_auth_token, as: :json
+
+        expect(response).to have_http_status(:conflict)
+        expect(response.parsed_body['error']).to eq('not_call_owner')
+      end
+
+      it 'relays a 404 call_not_found verbatim' do
+        stub_hangup(status: 404, body: { error: 'call_not_found' })
+
+        post "/api/v1/accounts/#{account.id}/pathors/calls/#{call.id}/hangup",
+             headers: agent.create_new_auth_token, as: :json
+
+        expect(response).to have_http_status(:not_found)
+        expect(response.parsed_body['error']).to eq('call_not_found')
+      end
+
+      it 'reports a rejected signature as a server error' do
+        stub_hangup(status: 401, body: { error: 'unauthorized' })
+
+        post "/api/v1/accounts/#{account.id}/pathors/calls/#{call.id}/hangup",
+             headers: agent.create_new_auth_token, as: :json
+
+        expect(response).to have_http_status(:bad_gateway)
+        expect(response.parsed_body['error']).to eq('pathors_auth_failed')
+      end
+
+      it 'reports a failed termination as a bad gateway' do
+        stub_hangup(status: 500, body: { error: 'terminate_failed' })
+
+        post "/api/v1/accounts/#{account.id}/pathors/calls/#{call.id}/hangup",
+             headers: agent.create_new_auth_token, as: :json
+
+        expect(response).to have_http_status(:bad_gateway)
+        expect(response.parsed_body['error']).to eq('pathors_error')
+      end
+
+      it 'returns gone for a terminal call without contacting pathors' do
+        stub_hangup
+        call.update!(status: 'completed')
+
+        post "/api/v1/accounts/#{account.id}/pathors/calls/#{call.id}/hangup",
+             headers: agent.create_new_auth_token, as: :json
+
+        expect(response).to have_http_status(:gone)
+        expect(response.parsed_body['error']).to eq('call_ended')
+        expect(a_request(:post, hangup_url)).not_to have_been_made
+      end
+
+      it 'returns not found for a non-pathors call without contacting pathors' do
+        stub_hangup
+        twilio_call = create(:call, account: account, conversation: conversation, inbox: conversation.inbox,
+                                    contact: conversation.contact)
+
+        post "/api/v1/accounts/#{account.id}/pathors/calls/#{twilio_call.id}/hangup",
+             headers: agent.create_new_auth_token, as: :json
+
+        expect(response).to have_http_status(:not_found)
+        expect(a_request(:post, hangup_url)).not_to have_been_made
       end
     end
   end

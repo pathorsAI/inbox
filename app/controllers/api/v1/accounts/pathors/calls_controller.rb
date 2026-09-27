@@ -9,12 +9,13 @@ class Api::V1::Accounts::Pathors::CallsController < Api::V1::Accounts::BaseContr
   }.freeze
 
   # create/update are backend-to-backend webhooks: bots use the whitelisted bot
-  # token (see BOT_ACCESSIBLE_ENDPOINTS), agents their own token. `join` is a
-  # dashboard action authorized on conversation access (see #authorize_join).
+  # token (see BOT_ACCESSIBLE_ENDPOINTS), agents their own token. `join` and
+  # `hangup` are dashboard actions authorized on conversation access (see
+  # #authorize_call_access).
   before_action :fetch_conversation, only: [:create]
   before_action :fetch_call, only: [:update]
-  before_action :fetch_pathors_call, only: [:join]
-  before_action :authorize_join, only: [:join]
+  before_action :fetch_pathors_call, only: [:join, :hangup]
+  before_action :authorize_call_access, only: [:join, :hangup]
 
   def create
     direction = DIRECTIONS[create_params[:direction].to_s]
@@ -50,6 +51,18 @@ class Api::V1::Accounts::Pathors::CallsController < Api::V1::Accounts::BaseContr
     result = ::Pathors::CallJoinService.new(call: @call, user: Current.user).perform
     record_join if result.ok?
 
+    render json: result.body, status: result.status
+  end
+
+  # Ends the call for everyone, as opposed to the dashboard's "leave", which only
+  # drops the human out of the room and hands the caller back to the AI. The
+  # backend decides whether this agent holds the call (409 otherwise) and tells
+  # the voice agent to tear the room down; the terminal status then arrives
+  # through the usual update webhook, so nothing is written here.
+  def hangup
+    return render json: { error: 'call_ended' }, status: :gone if @call.terminal?
+
+    result = ::Pathors::CallHangupService.new(call: @call, user: Current.user).perform
     render json: result.body, status: result.status
   end
 
@@ -182,8 +195,9 @@ class Api::V1::Accounts::Pathors::CallsController < Api::V1::Accounts::BaseContr
   end
 
   # Same bar as opening the conversation in the dashboard: any agent with inbox
-  # or team access may answer, not just administrators.
-  def authorize_join
+  # or team access may answer, not just administrators. Hanging up uses the same
+  # bar here; the backend narrows it to the agent actually holding the call.
+  def authorize_call_access
     authorize @call.conversation, :show?
   end
 

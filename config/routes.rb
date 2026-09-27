@@ -399,6 +399,7 @@ Rails.application.routes.draw do
             resources :calls, only: [:create, :update] do
               member do
                 post :join
+                post :hangup
               end
             end
             resource :context, only: [:show]

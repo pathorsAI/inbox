@@ -76,6 +76,8 @@ const whatsappCallSession = useWhatsappCallSession();
 const {
   join: joinPathorsCall,
   leave: leavePathorsCall,
+  hangup: hangupPathorsCall,
+  isHangingUp: isHangingUpPathorsCall,
   isJoining: isJoiningPathorsCall,
   isJoined: isJoinedPathorsCall,
   error: pathorsCallError,
@@ -336,6 +338,18 @@ const handlePathorsJoin = async () => {
 
 const handlePathorsLeave = () => leavePathorsCall();
 
+const handlePathorsHangup = async () => {
+  if (isHangingUpPathorsCall.value) return;
+
+  const ended = await hangupPathorsCall({ accountId: accountId.value });
+  if (ended) return;
+
+  // Only a failure lands here (a call that is already over counts as ended),
+  // and the agent is still in the room; say so rather than leaving them
+  // guessing whether the caller heard a hang-up.
+  useAlert(t('CONVERSATION.VOICE_CALL.HANGUP_FAILED'));
+};
+
 const canCallBack = computed(
   () =>
     isMissedInbound.value &&
@@ -447,7 +461,8 @@ const handleCallBack = async () => {
         @click="handleJoinCall"
       />
 
-      <!-- Pathors: take the call over from the AI agent, then hang up -->
+      <!-- Pathors: take the call over from the AI agent, then either end the
+           call or leave it and hand the caller back to the AI -->
       <NextButton
         v-if="canJoinPathorsCall"
         type="button"
@@ -472,16 +487,28 @@ const handleCallBack = async () => {
         <div class="flex gap-2 items-center">
           <NextButton
             type="button"
-            :label="$t('CONVERSATION.VOICE_CALL.LEAVE_CALL')"
-            icon="i-ph-phone-x-bold"
+            :label="$t('CONVERSATION.VOICE_CALL.HANGUP_CALL')"
+            icon="i-ph-phone-disconnect-bold"
             ruby
             class="flex-1 !rounded-full"
-            @click="handlePathorsLeave"
+            :disabled="isHangingUpPathorsCall"
+            @click="handlePathorsHangup"
           />
           <span class="font-mono text-sm tabular-nums opacity-75">
             {{ pathorsCallDurationLabel }}
           </span>
         </div>
+        <!-- Leaving does not end the call: the AI picks the caller back up -->
+        <NextButton
+          type="button"
+          :label="$t('CONVERSATION.VOICE_CALL.LEAVE_CALL')"
+          icon="i-ph-sign-out-bold"
+          slate
+          faded
+          class="!rounded-full"
+          :disabled="isHangingUpPathorsCall"
+          @click="handlePathorsLeave"
+        />
       </div>
     </div>
   </BaseBubble>
