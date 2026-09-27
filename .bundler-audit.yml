@@ -28,3 +28,9 @@ ignore:
   # ruby_llm ~> 1.14, so the upgrade waits on ai-agents. Remove once the lock
   # resolves ruby_llm >= 2.0.
   - CVE-2026-67991
+  # rack-proxy response smuggling. The advisory text scopes it to 1.0.0–1.0.2
+  # (framing code introduced in 1.x), but the database entry only lists
+  # ">= 1.0.3" as patched, so 0.7.x is flagged too. We run 0.7.7, pulled in by
+  # vite_ruby for the Vite dev-server proxy only (not used in production).
+  # Remove once the lock resolves rack-proxy >= 1.0.3 (vite_ruby >= 3.11).
+  - GHSA-42qh-8mx8-7wqm

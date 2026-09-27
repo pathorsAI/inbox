@@ -9,6 +9,10 @@ import PathorsCallsAPI from 'dashboard/api/pathorsCalls';
  * participant token. Everything below is just: redeem the token, publish the
  * mic, play whatever comes back.
  *
+ * Getting out comes in two flavours: `leave` only drops this browser out of the
+ * room (the AI picks the caller back up), while `hangup` asks the backend to
+ * end the call for everyone.
+ *
  * State is module-level on purpose. Every voice_call bubble in the thread
  * instantiates this composable, and a browser can only be in one call at a
  * time — a per-instance ref would let two bubbles (or two threads) join in
@@ -20,13 +24,21 @@ export const PATHORS_JOIN_ERROR = {
   CALL_ENDED: 'call_ended',
   MEDIA_DENIED: 'media_denied',
   UNAVAILABLE: 'unavailable',
+  // Ending the call failed for a reason other than "it is already over"; the
+  // agent is still in the room and can keep talking or leave instead.
+  HANGUP_FAILED: 'hangup_failed',
 };
+
+// The relay's answers for a call that no longer exists (backend 404, or our own
+// 410 for a call already terminal) — the goal of hanging up is met either way.
+const CALL_OVER_STATUSES = new Set([404, 410]);
 
 const AUDIO_ELEMENT_CLASS = 'pathors-call-audio';
 const DURATION_TICK_MS = 1000;
 
 const isJoining = ref(false);
 const isJoined = ref(false);
+const isHangingUp = ref(false);
 const error = ref(null);
 const durationSeconds = ref(0);
 // Which call this tab is in, so a second bubble can tell "someone else's call
@@ -102,6 +114,7 @@ const resetSession = () => {
   room = null;
   isJoined.value = false;
   isJoining.value = false;
+  isHangingUp.value = false;
   activeCallId.value = null;
   durationSeconds.value = 0;
   isAudioBlocked.value = false;
@@ -115,6 +128,23 @@ const errorCodeFor = requestError => {
   if (status === 409) return PATHORS_JOIN_ERROR.ALREADY_CLAIMED;
   if (status === 404 || status === 410) return PATHORS_JOIN_ERROR.CALL_ENDED;
   return PATHORS_JOIN_ERROR.UNAVAILABLE;
+};
+
+// Local teardown shared by leave and hangup. Resets first so the UI flips back
+// immediately even if disconnect() hangs; the Disconnected handler is a no-op
+// once state is already clear.
+const teardown = async () => {
+  const activeRoom = room;
+  resetSession();
+  if (!activeRoom) return;
+  try {
+    await activeRoom.disconnect();
+  } catch (err) {
+    // The room is gone either way (the backend may already have deleted it);
+    // nothing to retry, but leave a trace for debugging.
+    // eslint-disable-next-line no-console
+    console.debug('[pathors-call] disconnect after teardown failed', err);
+  }
 };
 
 const connectToRoom = async credentials => {
@@ -208,17 +238,45 @@ export function usePathorsCallSession() {
     return true;
   };
 
-  const leave = async () => {
-    const activeRoom = room;
-    // Reset first so the UI flips back immediately even if disconnect() hangs;
-    // the Disconnected handler is a no-op once state is already clear.
-    resetSession();
-    if (!activeRoom) return;
+  const leave = () => teardown();
+
+  /**
+   * Ends the live call for everyone. On success the backend has the voice
+   * agent delete the room, so we tear down locally right away instead of
+   * waiting for the Disconnected event. Any failure other than "the call is
+   * already over" keeps the agent in the room: dropping them on, say, a 502
+   * would leave the caller with the AI while the agent believes it hung up.
+   * @param {{ accountId?: number|string }} params
+   * @returns {Promise<boolean>} true when this browser is out of the call
+   */
+  const hangup = async ({ accountId } = {}) => {
+    const callId = activeCallId.value;
+    if (!isJoined.value || !callId || isHangingUp.value) return false;
+
+    const sessionRoom = room;
+    isHangingUp.value = true;
+    error.value = null;
+
+    let callOver = true;
     try {
-      await activeRoom.disconnect();
-    } catch (_) {
-      /* noop — the room is gone either way */
+      await PathorsCallsAPI.hangup(callId, accountId);
+    } catch (requestError) {
+      callOver = CALL_OVER_STATUSES.has(requestError?.response?.status);
     }
+
+    // The room can drop while the request is in flight (the backend's teardown
+    // racing its own response, or the agent pressing leave); that session is
+    // already reset, and a newer one must not be touched.
+    if (room !== sessionRoom) return true;
+
+    if (callOver) {
+      await teardown();
+      return true;
+    }
+
+    isHangingUp.value = false;
+    error.value = PATHORS_JOIN_ERROR.HANGUP_FAILED;
+    return false;
   };
 
   /**
@@ -254,10 +312,12 @@ export function usePathorsCallSession() {
     // Alias kept for call sites that read better as a verb+noun.
     joinCall: join,
     leave,
+    hangup,
     enableAudio,
     isAudioBlocked: readonly(isAudioBlocked),
     isJoining: readonly(isJoining),
     isJoined: readonly(isJoined),
+    isHangingUp: readonly(isHangingUp),
     error: readonly(error),
     durationSeconds: readonly(durationSeconds),
     activeCallId: readonly(activeCallId),
