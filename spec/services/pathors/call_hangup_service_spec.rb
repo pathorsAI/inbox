@@ -15,6 +15,7 @@ describe Pathors::CallHangupService do
   let(:hangup_url) { 'https://api.pathors.example/project/proj_42/integration/chatwoot/voice/hangup' }
   let(:expected_body) do
     {
+      action: 'hangup',
       sessionId: call.provider_call_id,
       conversationId: conversation.display_id,
       agent: { id: agent.id, name: agent.available_name },

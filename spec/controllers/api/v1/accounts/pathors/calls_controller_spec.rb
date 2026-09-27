@@ -402,6 +402,7 @@ RSpec.describe 'Pathors Calls API', type: :request do
                headers: agent.create_new_auth_token, as: :json
 
           expected_body = {
+            action: 'join',
             sessionId: call.provider_call_id,
             conversationId: conversation.display_id,
             agent: { id: agent.id, name: agent.available_name },
@@ -554,6 +555,7 @@ RSpec.describe 'Pathors Calls API', type: :request do
           end
 
           expected_body = {
+            action: 'join',
             sessionId: call.provider_call_id,
             conversationId: conversation.display_id,
             agent: { id: agent.id, name: agent.available_name },
@@ -659,6 +661,7 @@ RSpec.describe 'Pathors Calls API', type: :request do
                headers: agent.create_new_auth_token, as: :json
 
           expected_body = {
+            action: 'hangup',
             sessionId: call.provider_call_id,
             conversationId: conversation.display_id,
             agent: { id: agent.id, name: agent.available_name },

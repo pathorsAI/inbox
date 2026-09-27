@@ -68,6 +68,10 @@ class Pathors::VoiceRelay
   # bytes we hash are the bytes that go on the wire.
   def request_body
     {
+      # The signature covers the body but not the path, so naming the endpoint
+      # here is what stops a join signed for one call being replayed as its
+      # hang-up (and vice versa); the backend rejects a mismatch.
+      action: action,
       sessionId: @call.provider_call_id,
       conversationId: @call.conversation.display_id,
       agent: { id: @user.id, name: @user.available_name },
