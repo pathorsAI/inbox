@@ -31,7 +31,7 @@ export const PATHORS_JOIN_ERROR = {
 
 // The relay's answers for a call that no longer exists (backend 404, or our own
 // 410 for a call already terminal) — the goal of hanging up is met either way.
-const CALL_OVER_STATUSES = [404, 410];
+const CALL_OVER_STATUSES = new Set([404, 410]);
 
 const AUDIO_ELEMENT_CLASS = 'pathors-call-audio';
 const DURATION_TICK_MS = 1000;
@@ -139,8 +139,11 @@ const teardown = async () => {
   if (!activeRoom) return;
   try {
     await activeRoom.disconnect();
-  } catch (_) {
-    /* noop — the room is gone either way */
+  } catch (err) {
+    // The room is gone either way (the backend may already have deleted it);
+    // nothing to retry, but leave a trace for debugging.
+    // eslint-disable-next-line no-console
+    console.debug('[pathors-call] disconnect after teardown failed', err);
   }
 };
 
@@ -258,7 +261,7 @@ export function usePathorsCallSession() {
     try {
       await PathorsCallsAPI.hangup(callId, accountId);
     } catch (requestError) {
-      callOver = CALL_OVER_STATUSES.includes(requestError?.response?.status);
+      callOver = CALL_OVER_STATUSES.has(requestError?.response?.status);
     }
 
     // The room can drop while the request is in flight (the backend's teardown

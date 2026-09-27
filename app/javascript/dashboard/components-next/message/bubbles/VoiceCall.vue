@@ -492,6 +492,7 @@ const handleCallBack = async () => {
             ruby
             class="flex-1 !rounded-full"
             :disabled="isHangingUpPathorsCall"
+            :is-loading="isHangingUpPathorsCall"
             @click="handlePathorsHangup"
           />
           <span class="font-mono text-sm tabular-nums opacity-75">

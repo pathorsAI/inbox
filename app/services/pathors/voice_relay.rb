@@ -14,7 +14,10 @@
 class Pathors::VoiceRelay
   REQUEST_TIMEOUT = 10
   # Statuses the Pathors contract defines as meaningful to the browser; anything
-  # else is an upstream malfunction and is collapsed into a 502.
+  # else is an upstream malfunction and is collapsed into a 502. The backend
+  # never answers 410 — the 410 the dashboard treats as "call already over"
+  # comes from the calls controller's own `terminal?` check. If the backend
+  # ever grows one, add it here or it will surface as a 502.
   RELAYED_STATUSES = [200, 404, 409].freeze
   NETWORK_ERRORS = [
     HTTParty::Error, Net::OpenTimeout, Net::ReadTimeout, Timeout::Error,
