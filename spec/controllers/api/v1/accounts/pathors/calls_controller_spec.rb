@@ -785,6 +785,16 @@ RSpec.describe 'Pathors Calls API', type: :request do
       end
     end
 
+    context 'when it is an agent' do
+      it 'returns unauthorized without posting a card' do
+        expect do
+          post handoff_url, params: handoff_payload, headers: agent.create_new_auth_token, as: :json
+        end.not_to change(Message, :count)
+
+        expect(response).to have_http_status(:unauthorized)
+      end
+    end
+
     context 'when it is an administrator' do
       it 'posts the handoff card as an activity message' do
         expect do
@@ -857,6 +867,25 @@ RSpec.describe 'Pathors Calls API', type: :request do
 
         expect(response).to have_http_status(:unprocessable_entity)
         expect(Message.where(content_type: 'pathors_handoff')).to be_empty
+      end
+
+      it 'rejects a variable value over the size cap' do
+        oversized = { notes: 'x' * Pathors::CallHandoffService::MAX_VARIABLE_VALUE_LENGTH }
+
+        post handoff_url, params: handoff_payload.merge(variables: oversized), headers: admin.create_new_auth_token, as: :json
+
+        expect(response).to have_http_status(:unprocessable_entity)
+        expect(Message.where(content_type: 'pathors_handoff')).to be_empty
+      end
+
+      it 'returns not found for a call from another provider' do
+        twilio_call = create(:call, account: account, conversation: conversation, inbox: conversation.inbox,
+                                    contact: conversation.contact)
+
+        post "/api/v1/accounts/#{account.id}/pathors/calls/#{twilio_call.id}/handoff",
+             params: handoff_payload, headers: admin.create_new_auth_token, as: :json
+
+        expect(response).to have_http_status(:not_found)
       end
 
       it 'returns not found for a call in another account' do

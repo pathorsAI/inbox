@@ -10,12 +10,15 @@ class Api::V1::Accounts::Pathors::CallsController < Api::V1::Accounts::BaseContr
 
   # create/update are backend-to-backend webhooks: bots use the whitelisted bot
   # token (see BOT_ACCESSIBLE_ENDPOINTS), agents their own token. `handoff` is
-  # one too, but called with the account admin's token only — it is not on the
-  # bot whitelist. `join` and `hangup` are dashboard actions authorized on
-  # conversation access (see #authorize_call_access).
+  # one too, but it writes into a conversation without checking inbox access and
+  # echoes an existing card back, so it requires an account administrator (the
+  # Pathors backend uses the admin's token; bot tokens are not whitelisted) and
+  # rejects anyone else with 401. `join` and `hangup` are dashboard actions
+  # authorized on conversation access (see #authorize_call_access).
   before_action :fetch_conversation, only: [:create]
-  before_action :fetch_call, only: [:update, :handoff]
-  before_action :fetch_pathors_call, only: [:join, :hangup]
+  before_action :check_admin_authorization?, only: [:handoff]
+  before_action :fetch_call, only: [:update]
+  before_action :fetch_pathors_call, only: [:join, :hangup, :handoff]
   before_action :authorize_call_access, only: [:join, :hangup]
 
   def create
@@ -201,8 +204,8 @@ class Api::V1::Accounts::Pathors::CallsController < Api::V1::Accounts::BaseContr
     @call = account_calls.find(params[:id])
   end
 
-  # A non-pathors call has no LiveKit room to join, so it is simply not found
-  # for this endpoint rather than a distinct error the UI has to phrase.
+  # A non-pathors call has no LiveKit room and no AI handoff, so it is simply
+  # not found for these endpoints rather than a distinct error to phrase.
   def fetch_pathors_call
     @call = account_calls.where(provider: :pathors).find(params[:id])
   end

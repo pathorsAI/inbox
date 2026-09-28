@@ -13,6 +13,9 @@ class Pathors::CallHandoffService
   MAX_TURNS = 500
   MAX_TURN_LENGTH = 4000
   MAX_VARIABLES = 100
+  # Per value, measured as JSON: the backend cuts each value to 1000 chars, this
+  # leaves room for escaping while keeping nested blobs out of the broadcast.
+  MAX_VARIABLE_VALUE_LENGTH = 4000
   # Message validates `content` at this length; the plain-text fallback is cut
   # to fit, the card itself reads the full payload from content_attributes.
   MAX_CONTENT_LENGTH = 150_000
@@ -108,7 +111,10 @@ class Pathors::CallHandoffService
     variables = payload[:variables]
     return 'variables must be an object' unless variables.is_a?(Hash)
 
-    "variables must have at most #{MAX_VARIABLES} keys" if variables.size > MAX_VARIABLES
+    return "variables must have at most #{MAX_VARIABLES} keys" if variables.size > MAX_VARIABLES
+    return if variables.values.all? { |value| value.to_json.length <= MAX_VARIABLE_VALUE_LENGTH }
+
+    "each variable value must be at most #{MAX_VARIABLE_VALUE_LENGTH} chars as JSON"
   end
 
   def transferred_at_error
