@@ -758,4 +758,147 @@ RSpec.describe 'Pathors Calls API', type: :request do
       end
     end
   end
+
+  describe 'POST /api/v1/accounts/{account.id}/pathors/calls/{id}/handoff' do
+    let(:call) do
+      create(:call, :pathors, account: account, conversation: conversation, inbox: conversation.inbox,
+                              contact: conversation.contact)
+    end
+    let(:handoff_url) { "/api/v1/accounts/#{account.id}/pathors/calls/#{call.id}/handoff" }
+    let(:handoff_payload) do
+      {
+        transcript: [
+          { role: 'assistant', content: 'How can I help?', timestamp: '2026-09-28T06:29:00Z' },
+          { role: 'user', content: 'I want to change my booking.' }
+        ],
+        variables: { customer_name: 'Chen', booking_id: 'HS-240918', extra_bed: true, callback_phone: nil },
+        transferred_at: '2026-09-28T06:32:00Z',
+        ai_duration_seconds: 192
+      }
+    end
+
+    context 'when it is an unauthenticated user' do
+      it 'returns unauthorized' do
+        post handoff_url, params: handoff_payload, as: :json
+
+        expect(response).to have_http_status(:unauthorized)
+      end
+    end
+
+    context 'when it is an agent' do
+      it 'returns unauthorized without posting a card' do
+        expect do
+          post handoff_url, params: handoff_payload, headers: agent.create_new_auth_token, as: :json
+        end.not_to change(Message, :count)
+
+        expect(response).to have_http_status(:unauthorized)
+      end
+    end
+
+    context 'when it is an administrator' do
+      it 'posts the handoff card as an activity message' do
+        expect do
+          post handoff_url, params: handoff_payload, headers: admin.create_new_auth_token, as: :json
+        end.to change(conversation.messages, :count).by(1)
+
+        expect(response).to have_http_status(:created)
+        message = conversation.messages.last
+        expect(response.parsed_body['id']).to eq(message.id)
+        expect(message.message_type).to eq('activity')
+        expect(message.content_type).to eq('pathors_handoff')
+        expect(message.sender).to be_nil
+        expect(message.content_attributes['data']).to eq(
+          'transcript' => [
+            { 'role' => 'assistant', 'content' => 'How can I help?', 'timestamp' => '2026-09-28T06:29:00Z' },
+            { 'role' => 'user', 'content' => 'I want to change my booking.' }
+          ],
+          'variables' => { 'customer_name' => 'Chen', 'booking_id' => 'HS-240918', 'extra_bed' => true, 'callback_phone' => nil },
+          'transferred_at' => '2026-09-28T06:32:00Z',
+          'ai_duration_seconds' => 192
+        )
+      end
+
+      it 'renders a plain-text fallback and links the card to the call' do
+        post handoff_url, params: handoff_payload, headers: admin.create_new_auth_token, as: :json
+
+        message = conversation.messages.last
+        expect(message.content).to eq(
+          "AI handoff summary\n\ncustomer_name: Chen\nbooking_id: HS-240918\nextra_bed: true\ncallback_phone: Not captured\n\n" \
+          "AI: How can I help?\nCaller: I want to change my booking."
+        )
+        expect(call.reload.handoff_message_id).to eq(message.id)
+      end
+
+      it 'returns the existing card on a repeated request instead of posting another' do
+        post handoff_url, params: handoff_payload, headers: admin.create_new_auth_token, as: :json
+        first_id = response.parsed_body['id']
+
+        expect do
+          post handoff_url, params: handoff_payload, headers: admin.create_new_auth_token, as: :json
+        end.not_to change(Message, :count)
+
+        expect(response).to have_http_status(:ok)
+        expect(response.parsed_body['id']).to eq(first_id)
+      end
+
+      it 'accepts an empty transcript and empty variables' do
+        post handoff_url, params: handoff_payload.merge(transcript: [], variables: {}, ai_duration_seconds: nil),
+                          headers: admin.create_new_auth_token, as: :json
+
+        expect(response).to have_http_status(:created)
+        expect(conversation.messages.last.content).to eq('AI handoff summary')
+      end
+
+      it 'rejects an unknown transcript role' do
+        post handoff_url, params: handoff_payload.merge(transcript: [{ role: 'system', content: 'hi' }]),
+                          headers: admin.create_new_auth_token, as: :json
+
+        expect(response).to have_http_status(:unprocessable_entity)
+      end
+
+      it 'rejects a missing transferred_at' do
+        post handoff_url, params: handoff_payload.except(:transferred_at), headers: admin.create_new_auth_token, as: :json
+
+        expect(response).to have_http_status(:unprocessable_entity)
+      end
+
+      it 'rejects a transcript that is not an array' do
+        post handoff_url, params: handoff_payload.merge(transcript: 'AI: hi'), headers: admin.create_new_auth_token, as: :json
+
+        expect(response).to have_http_status(:unprocessable_entity)
+        expect(Message.where(content_type: 'pathors_handoff')).to be_empty
+      end
+
+      it 'rejects a variable value over the size cap' do
+        oversized = { notes: 'x' * Pathors::CallHandoffService::MAX_VARIABLE_VALUE_LENGTH }
+
+        post handoff_url, params: handoff_payload.merge(variables: oversized), headers: admin.create_new_auth_token, as: :json
+
+        expect(response).to have_http_status(:unprocessable_entity)
+        expect(Message.where(content_type: 'pathors_handoff')).to be_empty
+      end
+
+      it 'returns not found for a call from another provider' do
+        twilio_call = create(:call, account: account, conversation: conversation, inbox: conversation.inbox,
+                                    contact: conversation.contact)
+
+        post "/api/v1/accounts/#{account.id}/pathors/calls/#{twilio_call.id}/handoff",
+             params: handoff_payload, headers: admin.create_new_auth_token, as: :json
+
+        expect(response).to have_http_status(:not_found)
+      end
+
+      it 'returns not found for a call in another account' do
+        other_account = create(:account)
+        other_conversation = create(:conversation, account: other_account)
+        other_call = create(:call, :pathors, account: other_account, conversation: other_conversation,
+                                             inbox: other_conversation.inbox, contact: other_conversation.contact)
+
+        post "/api/v1/accounts/#{account.id}/pathors/calls/#{other_call.id}/handoff",
+             params: handoff_payload, headers: admin.create_new_auth_token, as: :json
+
+        expect(response).to have_http_status(:not_found)
+      end
+    end
+  end
 end

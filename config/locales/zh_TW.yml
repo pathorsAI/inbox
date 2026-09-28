@@ -303,6 +303,12 @@ zh_TW:
       voice_call:
         twilio: 'Voice Call'
         whatsapp: 'WhatsApp Call'
+      pathors_handoff:
+        title: 'AI 交接摘要'
+        not_captured: '未取得'
+        roles:
+          assistant: 'AI'
+          user: '客戶'
       delivery_status:
         error_code: '錯誤代碼：%{error_code}'
     activity:

@@ -112,6 +112,25 @@
       "HIDE_LABELS": "Hide labels",
       "LABELS_COUNT": "{count} labels"
     },
+    "PATHORS_HANDOFF": {
+      "TITLE": "AI handoff summary",
+      "META": "{time} handed off · AI talked {duration}",
+      "META_WITHOUT_DURATION": "{time} handed off",
+      "DURATION_MINUTES": "{minutes}m {seconds}s",
+      "DURATION_SECONDS": "{seconds}s",
+      "VARIABLES_LABEL": "Captured variables · {count}",
+      "VARIABLES_LABEL_EMPTY": "Captured variables",
+      "NO_VARIABLES": "No variables captured before handoff",
+      "NOT_CAPTURED": "Not captured",
+      "YES": "Yes",
+      "NO": "No",
+      "TRANSCRIPT_LABEL": "Transcript · {count} turn | Transcript · {count} turns",
+      "SHOW_EARLIER": "Show {count} earlier",
+      "COLLAPSE": "Collapse",
+      "ROLE_ASSISTANT": "AI",
+      "ROLE_USER": "Caller",
+      "TURN_LABEL": "{role} · {time}"
+    },
     "VOICE_CALL": {
       "INCOMING_CALL": "Incoming call",
       "OUTGOING_CALL": "Outgoing call",

@@ -41,6 +41,7 @@ import LocationBubble from './bubbles/Location.vue';
 import CSATBubble from './bubbles/CSAT.vue';
 import FormBubble from './bubbles/Form.vue';
 import VoiceCallBubble from './bubbles/VoiceCall.vue';
+import PathorsHandoffBubble from './bubbles/PathorsHandoff.vue';
 import WhatsappFlowResponseBubble from './bubbles/WhatsappFlowResponse.vue';
 import WhatsappReferral from './bubbles/Text/WhatsappReferral.vue';
 
@@ -291,6 +292,14 @@ const shouldShowAvatar = computed(() => {
 
   return true;
 });
+
+// The Pathors handoff card is an activity message (never sent to the channel)
+// that needs a full card instead of the one-line activity pill.
+const isPathorsHandoff = computed(
+  () =>
+    variant.value === MESSAGE_VARIANTS.ACTIVITY &&
+    props.contentType === CONTENT_TYPES.PATHORS_HANDOFF
+);
 
 const componentToRender = computed(() => {
   if (props.isEmailInbox && !props.private) {
@@ -559,7 +568,10 @@ provideMessageContext({
       },
     ]"
   >
-    <div v-if="variant === MESSAGE_VARIANTS.ACTIVITY">
+    <div v-if="isPathorsHandoff" class="flex justify-center w-full">
+      <PathorsHandoffBubble />
+    </div>
+    <div v-else-if="variant === MESSAGE_VARIANTS.ACTIVITY">
       <ActivityBubble :content="content" />
     </div>
     <div

@@ -87,6 +87,75 @@ const activityMessage = computed(() =>
   })
 );
 
+// A Pathors voice call handed to a human at 14:32 today, local time.
+const atToday = (hours, minutes, seconds = 0) => {
+  const date = new Date();
+  date.setHours(hours, minutes, seconds, 0);
+  return date.toISOString();
+};
+
+const hotelTranscript = [
+  [
+    'assistant',
+    '您好，這裡是晴山溫泉酒店，我是 AI 客服，請問有什麼可以幫您？',
+    28,
+    48,
+  ],
+  ['user', '我想改訂房日期。', 29, 2],
+  ['assistant', '好的，請問訂房大名跟訂單編號是？', 29, 8],
+  ['user', '陳志明，訂單 HS-240918。', 29, 26],
+  [
+    'assistant',
+    '陳先生您好，原訂 10/12 入住兩晚、雙人和室。想改到哪一天呢？',
+    29,
+    38,
+  ],
+  ['user', '改 10/19，一樣兩晚。', 30, 8],
+  ['assistant', '10/19 的雙人和室只剩加價房型，每晚多 1,200 元。', 30, 24],
+  ['user', '我之前有說要加床，這樣怎麼算？可以找人幫我問優惠嗎？', 31, 8],
+  ['assistant', '了解，我幫您轉接專人，請稍候。', 31, 48],
+].map(([role, content, minutes, seconds]) => ({
+  role,
+  content,
+  timestamp: atToday(14, minutes, seconds),
+}));
+
+const getHandoffMessage = data =>
+  getMessage({
+    content: 'AI handoff summary',
+    messageType: 2,
+    contentType: 'pathors_handoff',
+    contentAttributes: {
+      data: {
+        transferredAt: atToday(14, 32),
+        aiDurationSeconds: 192,
+        ...data,
+      },
+    },
+  });
+
+const pathorsHandoff = computed(() =>
+  getHandoffMessage({
+    transcript: hotelTranscript,
+    variables: {
+      customer_name: '陳志明',
+      booking_id: 'HS-240918',
+      original_checkin: '2026-10-12',
+      new_checkin: '2026-10-19',
+      nights: 2,
+      extra_bed: true,
+      callback_phone: null,
+    },
+  })
+);
+
+const pathorsHandoffWithoutVariables = computed(() =>
+  getHandoffMessage({
+    transcript: hotelTranscript.slice(0, 2),
+    variables: {},
+  })
+);
+
 const email = computed(() =>
   getMessage({
     content: null,
@@ -163,6 +232,16 @@ const email = computed(() =>
     <Variant title="Activity">
       <div class="p-4 bg-n-background rounded-lg w-full min-w-5xl grid">
         <Message :current-user-id="1" v-bind="activityMessage" />
+      </div>
+    </Variant>
+    <Variant title="Pathors Handoff">
+      <div class="p-4 bg-n-background rounded-lg w-full min-w-5xl grid">
+        <Message :current-user-id="1" v-bind="pathorsHandoff" />
+      </div>
+    </Variant>
+    <Variant title="Pathors Handoff (no variables)">
+      <div class="p-4 bg-n-background rounded-lg w-full min-w-5xl grid">
+        <Message :current-user-id="1" v-bind="pathorsHandoffWithoutVariables" />
       </div>
     </Variant>
     <Variant title="Private Message">

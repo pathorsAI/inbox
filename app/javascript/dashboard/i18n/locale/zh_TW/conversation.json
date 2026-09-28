@@ -93,6 +93,25 @@
       "HIDE_LABELS": "隱藏標籤",
       "LABELS_COUNT": "{count} labels"
     },
+    "PATHORS_HANDOFF": {
+      "TITLE": "AI 交接摘要",
+      "META": "{time} 轉接 · AI 通話 {duration}",
+      "META_WITHOUT_DURATION": "{time} 轉接",
+      "DURATION_MINUTES": "{minutes} 分 {seconds} 秒",
+      "DURATION_SECONDS": "{seconds} 秒",
+      "VARIABLES_LABEL": "已擷取變數 · {count}",
+      "VARIABLES_LABEL_EMPTY": "已擷取變數",
+      "NO_VARIABLES": "轉接前沒有擷取到變數",
+      "NOT_CAPTURED": "未取得",
+      "YES": "是",
+      "NO": "否",
+      "TRANSCRIPT_LABEL": "對話紀錄 · {count} 則",
+      "SHOW_EARLIER": "顯示前 {count} 則",
+      "COLLAPSE": "收合",
+      "ROLE_ASSISTANT": "AI",
+      "ROLE_USER": "客戶",
+      "TURN_LABEL": "{role} · {time}"
+    },
     "VOICE_CALL": {
       "INCOMING_CALL": "來電",
       "OUTGOING_CALL": "撥出電話",

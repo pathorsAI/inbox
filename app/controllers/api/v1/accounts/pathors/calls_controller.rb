@@ -9,12 +9,16 @@ class Api::V1::Accounts::Pathors::CallsController < Api::V1::Accounts::BaseContr
   }.freeze
 
   # create/update are backend-to-backend webhooks: bots use the whitelisted bot
-  # token (see BOT_ACCESSIBLE_ENDPOINTS), agents their own token. `join` and
-  # `hangup` are dashboard actions authorized on conversation access (see
-  # #authorize_call_access).
+  # token (see BOT_ACCESSIBLE_ENDPOINTS), agents their own token. `handoff` is
+  # one too, but it writes into a conversation without checking inbox access and
+  # echoes an existing card back, so it requires an account administrator (the
+  # Pathors backend uses the admin's token; bot tokens are not whitelisted) and
+  # rejects anyone else with 401. `join` and `hangup` are dashboard actions
+  # authorized on conversation access (see #authorize_call_access).
   before_action :fetch_conversation, only: [:create]
+  before_action :check_admin_authorization?, only: [:handoff]
   before_action :fetch_call, only: [:update]
-  before_action :fetch_pathors_call, only: [:join, :hangup]
+  before_action :fetch_pathors_call, only: [:join, :hangup, :handoff]
   before_action :authorize_call_access, only: [:join, :hangup]
 
   def create
@@ -64,6 +68,18 @@ class Api::V1::Accounts::Pathors::CallsController < Api::V1::Accounts::BaseContr
 
     result = ::Pathors::CallHangupService.new(call: @call, user: Current.user).perform
     render json: result.body, status: result.status
+  end
+
+  # Posted by the Pathors backend when a human takes the call over; see
+  # Pathors::CallHandoffService. The payload is validated before anything is
+  # written, so a malformed request is a 422 rather than a half-built card.
+  def handoff
+    service = ::Pathors::CallHandoffService.new(call: @call, payload: handoff_params)
+    error = service.validation_error
+    return render_error(error) if error
+
+    @message, created = service.perform
+    render status: created ? :created : :ok
   end
 
   private
@@ -188,8 +204,8 @@ class Api::V1::Accounts::Pathors::CallsController < Api::V1::Accounts::BaseContr
     @call = account_calls.find(params[:id])
   end
 
-  # A non-pathors call has no LiveKit room to join, so it is simply not found
-  # for this endpoint rather than a distinct error the UI has to phrase.
+  # A non-pathors call has no LiveKit room and no AI handoff, so it is simply
+  # not found for these endpoints rather than a distinct error to phrase.
   def fetch_pathors_call
     @call = account_calls.where(provider: :pathors).find(params[:id])
   end
@@ -223,5 +239,12 @@ class Api::V1::Accounts::Pathors::CallsController < Api::V1::Accounts::BaseContr
 
   def update_params
     params.permit(:status, :duration_seconds, :end_reason, :ended_at, :recording_url, :transcript)
+  end
+
+  # `variables` is the AI's own extraction schema — arbitrary keys and JSON
+  # values — so it cannot go through `permit`; the service validates the shape.
+  # `to_unsafe_h` keeps the keys exactly as sent.
+  def handoff_params
+    params.to_unsafe_h.slice(:transcript, :variables, :transferred_at, :ai_duration_seconds)
   end
 end

@@ -45,7 +45,7 @@ properties:
     type:
       - string
       - 'null'
-    enum: ["text", "input_text", "input_textarea", "input_email", "input_select", "cards", "form", "article", "incoming_email", "input_csat", "integrations", "sticker", "voice_call", null]
+    enum: ["text", "input_text", "input_textarea", "input_email", "input_select", "cards", "form", "article", "incoming_email", "input_csat", "integrations", "sticker", "voice_call", "pathors_handoff", null]
     description: The type of the template message
   content_attributes:
     type: object
