@@ -69,6 +69,7 @@ export const CONTENT_TYPES = {
   INTEGRATIONS: 'integrations',
   STICKER: 'sticker',
   VOICE_CALL: 'voice_call',
+  PATHORS_HANDOFF: 'pathors_handoff',
 };
 
 export const MEDIA_TYPES = [

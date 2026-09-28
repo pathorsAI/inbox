@@ -56,11 +56,22 @@ const MessageControl = Symbol('MessageControl');
  */
 
 /**
+ * @typedef {Object} PathorsHandoffTurn
+ * @property {'user'|'assistant'} role - Who spoke: the caller or the AI
+ * @property {string} content - What was said
+ * @property {string} [timestamp] - ISO-8601 time of the turn
+ */
+
+/**
  * @typedef {Object} ContentAttributes
  * @property {string} externalError - an error message to be shown if the message failed to send
- * @property {Object} [data] - Optional data object containing roomName and messageId
+ * @property {Object} [data] - Optional data object containing roomName and messageId, or the Pathors handoff payload
  * @property {string} data.roomName - Name of the room
  * @property {string} data.messageId - ID of the message
+ * @property {PathorsHandoffTurn[]} [data.transcript] - pathors_handoff: what the AI and the caller said before the handoff
+ * @property {Record<string, unknown>} [data.variables] - pathors_handoff: variables the AI extracted, keys kept verbatim (not camelized)
+ * @property {string} [data.transferredAt] - pathors_handoff: ISO-8601 time the call was handed to a human
+ * @property {number|null} [data.aiDurationSeconds] - pathors_handoff: how long the AI was on the call
  * @property {'story_mention'} [imageType] - Flag to indicate this is a story mention
  * @property {'dyte'} [type] - Flag to indicate this is a dyte call
  * @property {EmailContent} [email] - Email content and metadata
@@ -83,7 +94,7 @@ const MessageControl = Symbol('MessageControl');
 
 /**
  * @typedef {'sent'|'delivered'|'read'|'failed'|'progress'} MessageStatus
- * @typedef {'text'|'input_text'|'input_textarea'|'input_email'|'input_select'|'cards'|'form'|'article'|'incoming_email'|'input_csat'|'integrations'|'sticker'} MessageContentType
+ * @typedef {'text'|'input_text'|'input_textarea'|'input_email'|'input_select'|'cards'|'form'|'article'|'incoming_email'|'input_csat'|'integrations'|'sticker'|'voice_call'|'pathors_handoff'} MessageContentType
  * @typedef {0|1|2|3} MessageType
  * @typedef {'contact'|'user'|'Contact'|'User'} SenderType
  * @typedef {'user'|'agent'|'activity'|'private'|'bot'|'error'|'template'|'email'|'unsupported'} MessageVariant

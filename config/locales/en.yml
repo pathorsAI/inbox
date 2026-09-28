@@ -337,6 +337,12 @@ en:
       voice_call:
         twilio: 'Voice Call'
         whatsapp: 'WhatsApp Call'
+      pathors_handoff:
+        title: 'AI handoff summary'
+        not_captured: 'Not captured'
+        roles:
+          assistant: 'AI'
+          user: 'Caller'
       delivery_status:
         error_code: 'Error code: %{error_code}'
     activity:

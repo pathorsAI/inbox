@@ -47,6 +47,8 @@ const allMessages = computed(() => {
     stopPaths: [
       'content_attributes.translations',
       'content_attributes.whatsapp_flow_response.response_json',
+      // Keys are the Pathors agent's own variable names; show them verbatim.
+      'content_attributes.data.variables',
     ],
   });
 });

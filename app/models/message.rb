@@ -100,7 +100,10 @@ class Message < ApplicationRecord
     input_csat: 9,
     integrations: 10,
     sticker: 11,
-    voice_call: 12
+    voice_call: 12,
+    # Pathors fork-only. Kept far from upstream's range so a sync that appends
+    # 13, 14, … never lands on the same integer.
+    pathors_handoff: 100
   }
   enum status: { sent: 0, delivered: 1, read: 2, failed: 3 }
   # [:submitted_email, :items, :submitted_values] : Used for bot message types

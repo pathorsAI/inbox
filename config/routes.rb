@@ -400,6 +400,7 @@ Rails.application.routes.draw do
               member do
                 post :join
                 post :hangup
+                post :handoff
               end
             end
             resource :context, only: [:show]

@@ -10770,6 +10770,7 @@
               "integrations",
               "sticker",
               "voice_call",
+              "pathors_handoff",
               null
             ],
             "description": "The type of the template message"
@@ -15863,7 +15864,8 @@
               "input_csat",
               "integrations",
               "sticker",
-              "voice_call"
+              "voice_call",
+              "pathors_handoff"
             ],
             "description": "The type of the message content"
           },

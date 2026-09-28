@@ -56,7 +56,9 @@ class Call < ApplicationRecord
 
   # `calls` has no columns for these, so they live in the jsonb meta blob.
   # `room_name` is unused in P1 and reserved for the P2 live-audio bridge.
-  store_accessor :meta, :room_name, :ended_at, :from_number, :to_number, :recording_url
+  # `handoff_message_id` points at the AI handoff card posted when a human takes
+  # the call over; its presence is what makes that endpoint idempotent.
+  store_accessor :meta, :room_name, :ended_at, :from_number, :to_number, :recording_url, :handoff_message_id
 
   validates :provider_call_id, presence: true, uniqueness: { scope: :provider }
   validates :status, inclusion: { in: STATUSES }
