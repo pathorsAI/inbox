@@ -3,7 +3,13 @@ import {
   OPERATOR_TYPES_2,
   OPERATOR_TYPES_3,
   OPERATOR_TYPES_5,
+  OPERATOR_TYPES_6,
 } from 'dashboard/components/widgets/FilterInput/FilterOperatorTypes.js';
+
+// Fork: whether a contact is linked to a Twenty CRM person, needs attention
+// (sync conflicts waiting) or is not linked. Contacts::FilterService matches these.
+export const TWENTY_STATUSES = ['linked', 'needs_attention', 'unlinked'];
+
 const filterTypes = [
   {
     attributeKey: 'name',
@@ -18,7 +24,7 @@ const filterTypes = [
     attributeI18nKey: 'EMAIL',
     inputType: 'plain_text',
     dataType: 'text',
-    filterOperators: OPERATOR_TYPES_3,
+    filterOperators: OPERATOR_TYPES_6,
     attribute_type: 'standard',
   },
   {
@@ -26,7 +32,7 @@ const filterTypes = [
     attributeI18nKey: 'PHONE_NUMBER',
     inputType: 'plain_text',
     dataType: 'text',
-    filterOperators: OPERATOR_TYPES_3,
+    filterOperators: OPERATOR_TYPES_6,
     attribute_type: 'standard',
   },
   {
@@ -99,6 +105,14 @@ const filterTypes = [
     inputType: 'multi_select',
     dataType: 'text',
     filterOperators: OPERATOR_TYPES_2,
+    attributeModel: 'standard',
+  },
+  {
+    attributeKey: 'twenty_status',
+    attributeI18nKey: 'TWENTY_STATUS',
+    inputType: 'search_select',
+    dataType: 'text',
+    filterOperators: OPERATOR_TYPES_1,
     attributeModel: 'standard',
   },
 ];

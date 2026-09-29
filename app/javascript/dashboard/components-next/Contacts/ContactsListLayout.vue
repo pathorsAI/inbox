@@ -50,21 +50,17 @@ const isLabelView = computed(
   () => route.name === 'contacts_dashboard_labels_index'
 );
 
-const showActiveFiltersPreview = computed(() => {
-  return (
-    (props.hasAppliedFilters || !isNotSegmentView.value) &&
-    !props.isFetchingList &&
-    !isLabelView.value &&
-    !isActiveView.value
-  );
-});
+// The list view shows its filters in the filter bar; a segment previews its saved query.
+const showSegmentFiltersPreview = computed(
+  () => !isNotSegmentView.value && !props.isFetchingList
+);
 
 const updateCurrentPage = page => {
   emit('update:currentPage', page);
 };
 
-const openFilter = () => {
-  contactListHeaderWrapper.value?.onToggleFilters();
+const openSegmentFilter = () => {
+  contactListHeaderWrapper.value.openSegmentFilter();
 };
 
 const showLoadMore = computed(() => {
@@ -101,11 +97,11 @@ const showPagination = computed(() => {
       <main class="flex-1 overflow-y-auto px-6">
         <div class="w-full mx-auto max-w-5xl">
           <ContactsActiveFiltersPreview
-            v-if="showActiveFiltersPreview"
+            v-if="showSegmentFiltersPreview"
             :active-segment="activeSegment"
             class="mb-1"
             @clear-filters="emit('clearFilters')"
-            @open-filter="openFilter"
+            @open-filter="openSegmentFilter"
           />
           <slot name="default" />
           <ContactsLoadMore

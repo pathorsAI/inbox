@@ -1,12 +1,12 @@
 <script setup>
-import { useTemplateRef, onBeforeUnmount, computed, ref } from 'vue';
+import { useTemplateRef, computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useTrack } from 'dashboard/composables';
 import { useStore } from 'dashboard/composables/store';
-import { vOnClickOutside } from '@vueuse/components';
 import { CONTACTS_EVENTS } from 'dashboard/helper/AnalyticsHelper/events';
 import { useContactFilterContext } from './contactProvider.js';
 import { useSnakeCase } from 'dashboard/composables/useTransformKeys';
+import { provideDropdownTeleport } from 'dashboard/components-next/dropdown-menu/base/provider';
 
 import Button from 'next/button/Button.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
@@ -17,12 +17,7 @@ const props = defineProps({
   segmentName: { type: String, default: '' },
 });
 
-const emit = defineEmits([
-  'applyFilter',
-  'updateSegment',
-  'close',
-  'clearFilters',
-]);
+const emit = defineEmits(['applyFilter', 'updateSegment', 'clearFilters']);
 const { attributeFilterTypes } = useContactFilterContext();
 
 const filters = defineModel({
@@ -41,6 +36,9 @@ const DEFAULT_FILTER = {
 
 const { t } = useI18n();
 const store = useStore();
+
+// The panel renders inside a scrolling Popover, which would clip its dropdowns.
+provideDropdownTeleport();
 
 const resetFilter = () => {
   emit('clearFilters');
@@ -93,19 +91,10 @@ const filterModalHeaderTitle = computed(() => {
     ? t('CONTACTS_LAYOUT.FILTER.TITLE')
     : t('CONTACTS_LAYOUT.FILTER.EDIT_SEGMENT');
 });
-
-onBeforeUnmount(() => emit('close'));
-const outsideClickHandler = [
-  () => emit('close'),
-  { ignore: ['#toggleContactsFilterButton'] },
-];
 </script>
 
 <template>
-  <div
-    v-on-click-outside="outsideClickHandler"
-    class="z-40 w-[min(34rem,calc(100vw-2rem))] lg:w-[750px] overflow-visible border border-n-weak bg-n-alpha-3 backdrop-blur-[100px] shadow-lg rounded-xl p-6 grid gap-6"
-  >
+  <div class="grid w-full gap-6 p-6 md:w-[34rem] lg:w-[750px]">
     <h3 class="text-base font-medium leading-6 text-n-slate-12">
       {{ filterModalHeaderTitle }}
     </h3>

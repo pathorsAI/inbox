@@ -1,11 +1,10 @@
 <script setup>
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { useToggle } from '@vueuse/core';
-import { vOnClickOutside } from '@vueuse/components';
 import { useUISettings } from 'dashboard/composables/useUISettings';
 import { useMapGetter, useStore } from 'dashboard/composables/store.js';
 import wootConstants from 'dashboard/constants/globals';
+import Popover from 'dashboard/components-next/popover/Popover.vue';
 import SelectMenu from 'dashboard/components-next/selectmenu/SelectMenu.vue';
 import NextButton from 'dashboard/components-next/button/Button.vue';
 
@@ -25,8 +24,6 @@ const { updateUISettings } = useUISettings();
 
 const chatStatusFilter = useMapGetter('getChatStatusFilter');
 const chatSortFilter = useMapGetter('getChatSortFilter');
-
-const [showActionsDropdown, toggleDropdown] = useToggle();
 
 const currentStatusFilter = computed(() => {
   return chatStatusFilter.value || wootConstants.STATUS_TYPE.OPEN;
@@ -139,48 +136,43 @@ const handleSortChange = value => {
 </script>
 
 <template>
-  <div class="relative flex">
+  <Popover
+    :align="isOnExpandedLayout ? 'end' : 'start'"
+    disable-mobile-view
+    :show-content-border="false"
+  >
     <NextButton
       v-tooltip.right="$t('CHAT_LIST.SORT_TOOLTIP_LABEL')"
       icon="i-lucide-arrow-up-down"
       slate
       faded
       xs
-      @click="toggleDropdown()"
     />
-    <div
-      v-if="showActionsDropdown"
-      v-on-click-outside="() => toggleDropdown()"
-      class="mt-1 bg-n-alpha-3 backdrop-blur-[100px] border border-n-weak w-72 rounded-xl p-4 absolute z-40 top-full"
-      :class="{
-        'ltr:left-0 rtl:right-0': !isOnExpandedLayout,
-        'ltr:right-0 rtl:left-0': isOnExpandedLayout,
-      }"
-    >
-      <div class="flex items-center justify-between last:mt-4 gap-2">
-        <span class="text-sm truncate text-n-slate-12">
-          {{ $t('CHAT_LIST.CHAT_SORT.STATUS') }}
-        </span>
-        <SelectMenu
-          :model-value="chatStatusFilter"
-          :options="chatStatusOptions"
-          :label="activeChatStatusLabel"
-          :sub-menu-position="isOnExpandedLayout ? 'left' : 'right'"
-          @update:model-value="handleStatusChange"
-        />
+    <template #content>
+      <div class="border border-n-weak w-72 rounded-xl p-4">
+        <div class="flex items-center justify-between last:mt-4 gap-2">
+          <span class="text-sm truncate text-n-slate-12">
+            {{ $t('CHAT_LIST.CHAT_SORT.STATUS') }}
+          </span>
+          <SelectMenu
+            :model-value="chatStatusFilter"
+            :options="chatStatusOptions"
+            :label="activeChatStatusLabel"
+            @update:model-value="handleStatusChange"
+          />
+        </div>
+        <div class="flex items-center justify-between last:mt-4 gap-2">
+          <span class="text-sm truncate text-n-slate-12">
+            {{ $t('CHAT_LIST.CHAT_SORT.ORDER_BY') }}
+          </span>
+          <SelectMenu
+            :model-value="chatSortFilter"
+            :options="chatSortOptions"
+            :label="activeChatSortLabel"
+            @update:model-value="handleSortChange"
+          />
+        </div>
       </div>
-      <div class="flex items-center justify-between last:mt-4 gap-2">
-        <span class="text-sm truncate text-n-slate-12">
-          {{ $t('CHAT_LIST.CHAT_SORT.ORDER_BY') }}
-        </span>
-        <SelectMenu
-          :model-value="chatSortFilter"
-          :options="chatSortOptions"
-          :label="activeChatSortLabel"
-          :sub-menu-position="isOnExpandedLayout ? 'left' : 'right'"
-          @update:model-value="handleSortChange"
-        />
-      </div>
-    </div>
-  </div>
+    </template>
+  </Popover>
 </template>

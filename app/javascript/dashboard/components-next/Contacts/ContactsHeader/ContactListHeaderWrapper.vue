@@ -1,7 +1,11 @@
 <script setup>
-import { ref, computed, unref } from 'vue';
+import { ref, computed, unref, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { useStore, useMapGetter } from 'dashboard/composables/store';
+import {
+  useStore,
+  useMapGetter,
+  useFunctionGetter,
+} from 'dashboard/composables/store';
 import { useRouter } from 'vue-router';
 import { useAlert, useTrack } from 'dashboard/composables';
 import { CONTACTS_EVENTS } from 'dashboard/helper/AnalyticsHelper/events';
@@ -19,6 +23,7 @@ import {
 } from 'dashboard/composables/useTransformKeys';
 
 import ContactsHeader from 'dashboard/components-next/Contacts/ContactsHeader/ContactHeader.vue';
+import ContactsFilterBar from 'dashboard/components-next/Contacts/ContactsHeader/components/ContactsFilterBar.vue';
 import CreateNewContactDialog from 'dashboard/components-next/Contacts/ContactsForm/CreateNewContactDialog.vue';
 import ContactExportDialog from 'dashboard/components-next/Contacts/ContactsForm/ContactExportDialog.vue';
 import ContactImportDialog from 'dashboard/components-next/Contacts/ContactsForm/ContactImportDialog.vue';
@@ -50,23 +55,34 @@ const { t } = useI18n();
 const store = useStore();
 const router = useRouter();
 
+const contactsHeaderRef = ref(null);
 const createNewContactDialogRef = ref(null);
 const contactExportDialogRef = ref(null);
 const contactImportDialogRef = ref(null);
 const createSegmentDialogRef = ref(null);
 const deleteSegmentDialogRef = ref(null);
 
-const showFiltersModal = ref(false);
+// Draft edited in the advanced panel; the applied filters live in the store.
 const appliedFilter = ref([]);
 const segmentsQuery = ref({});
 
 const appliedFilters = useMapGetter('contacts/getAppliedContactFiltersV4');
 const contactAttributes = useMapGetter('attributes/getContactAttributes');
 const labels = useMapGetter('labels/getLabels');
+const twentyIntegration = useFunctionGetter(
+  'integrations/getIntegration',
+  'twenty'
+);
 const hasActiveSegments = computed(
   () => props.activeSegment && props.segmentsId !== 0
 );
 const activeSegmentName = computed(() => props.activeSegment?.name);
+// Segment, label and active views keep their own filtering.
+const isListView = computed(
+  () => !props.segmentsId && !props.isLabelView && !props.isActiveView
+);
+
+onMounted(() => store.dispatch('integrations/get'));
 
 const openCreateNewContactDialog = () => {
   createNewContactDialogRef.value?.dialogRef.open();
@@ -183,11 +199,6 @@ const onDeleteSegment = async payload => {
   }
 };
 
-const closeAdvanceFiltersModal = () => {
-  showFiltersModal.value = false;
-  appliedFilter.value = [];
-};
-
 const clearFilters = async () => {
   emit('clearFilters');
 };
@@ -196,10 +207,27 @@ const onApplyFilter = async payload => {
   payload = useSnakeCase(payload);
   segmentsQuery.value = filterQueryGenerator(payload);
   emit('applyFilter', filterQueryGenerator(payload));
-  showFiltersModal.value = false;
 };
 
-const onUpdateSegment = async (payload, segmentName) => {
+// The filter bar applies through the same store + refetch path as the advanced panel.
+const applyConditions = conditions => {
+  if (!conditions.length) {
+    clearFilters();
+    return;
+  }
+  store.dispatch(
+    'contacts/setContactFilters',
+    useSnakeCase(JSON.parse(JSON.stringify(conditions)))
+  );
+  onApplyFilter(conditions);
+};
+
+const applyAdvancedFilters = (filters, hide) => {
+  onApplyFilter(filters);
+  hide();
+};
+
+const onUpdateSegment = async (payload, segmentName, hide) => {
   payload = useSnakeCase(payload);
   const payloadData = {
     ...props.activeSegment,
@@ -207,7 +235,7 @@ const onUpdateSegment = async (payload, segmentName) => {
     query: filterQueryGenerator(payload),
   };
   await store.dispatch('customViews/update', payloadData);
-  closeAdvanceFiltersModal();
+  hide();
 };
 
 const setParamsForEditSegmentModal = () => {
@@ -245,7 +273,8 @@ const initializeSegmentToFilterModal = segment => {
   appliedFilter.value = [...appliedFilter.value, ...newFilters];
 };
 
-const onToggleFilters = () => {
+// Loads the applied filters, or the segment's, into the advanced panel as it opens.
+const prepareFilterDraft = () => {
   appliedFilter.value = [];
   if (hasActiveSegments.value) {
     initializeSegmentToFilterModal(props.activeSegment);
@@ -262,16 +291,16 @@ const onToggleFilters = () => {
           },
         ];
   }
-  showFiltersModal.value = true;
 };
 
 defineExpose({
-  onToggleFilters,
+  openSegmentFilter: () => contactsHeaderRef.value.openSegmentFilter(),
 });
 </script>
 
 <template>
   <ContactsHeader
+    ref="contactsHeaderRef"
     :show-search="showSearch"
     :search-value="searchValue"
     :active-sort="activeSort"
@@ -280,34 +309,48 @@ defineExpose({
     :is-segments-view="hasActiveSegments"
     :is-label-view="isLabelView"
     :is-active-view="isActiveView"
-    :has-active-filters="hasAppliedFilters"
     :button-label="t('CONTACTS_LAYOUT.HEADER.MESSAGE_BUTTON')"
     @search="emit('search', $event)"
     @update:sort="emit('update:sort', $event)"
     @add="openCreateNewContactDialog"
     @import="openContactImportDialog"
     @export="openContactExportDialog"
-    @filter="onToggleFilters"
-    @create-segment="openCreateSegmentDialog"
+    @filter="prepareFilterDraft"
     @delete-segment="openDeleteSegmentDialog"
   >
-    <template #filter>
-      <div
-        class="absolute mt-1 ltr:-right-52 rtl:-left-52 sm:ltr:right-0 sm:rtl:left-0 top-full"
-      >
-        <ContactsFilter
-          v-if="showFiltersModal"
-          v-model="appliedFilter"
-          :segment-name="activeSegmentName"
-          :is-segment-view="hasActiveSegments"
-          @apply-filter="onApplyFilter"
-          @update-segment="onUpdateSegment"
-          @close="closeAdvanceFiltersModal"
-          @clear-filters="clearFilters"
-        />
-      </div>
+    <template #filter="{ hide }">
+      <ContactsFilter
+        v-model="appliedFilter"
+        :segment-name="activeSegmentName"
+        is-segment-view
+        @update-segment="
+          (filters, name) => onUpdateSegment(filters, name, hide)
+        "
+        @clear-filters="clearFilters"
+      />
     </template>
   </ContactsHeader>
+
+  <div v-if="isListView" class="px-6 pb-2">
+    <ContactsFilterBar
+      class="w-full mx-auto max-w-5xl"
+      :filters="appliedFilters"
+      :labels="labels"
+      :show-twenty="!!twentyIntegration.enabled"
+      @apply="applyConditions"
+      @open-advanced="prepareFilterDraft"
+      @create-segment="openCreateSegmentDialog"
+      @clear-all="clearFilters"
+    >
+      <template #advanced="{ hide }">
+        <ContactsFilter
+          v-model="appliedFilter"
+          @apply-filter="filters => applyAdvancedFilters(filters, hide)"
+          @clear-filters="clearFilters"
+        />
+      </template>
+    </ContactsFilterBar>
+  </div>
 
   <CreateNewContactDialog ref="createNewContactDialogRef" @create="onCreate" />
   <ContactExportDialog ref="contactExportDialogRef" @export="onExport" />
