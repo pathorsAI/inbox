@@ -61,6 +61,24 @@ describe Twilio::OneoffSmsCampaignService do
       expect(campaign.reload.completed?).to be true
     end
 
+    it 'skips blocked contacts in the audience' do
+      blocked_contact, unblocked_contact = FactoryBot.create_list(:contact, 2, :with_phone_number, account: account)
+      blocked_contact.update!(blocked: true)
+      blocked_contact.update_labels([label1.title])
+      unblocked_contact.update_labels([label1.title])
+
+      expect(twilio_messages).not_to receive(:create).with(hash_including(to: blocked_contact.phone_number))
+      expect(twilio_messages).to receive(:create).with(
+        body: campaign.message,
+        messaging_service_sid: twilio_sms.messaging_service_sid,
+        to: unblocked_contact.phone_number,
+        status_callback: 'http://localhost:3000/twilio/delivery_status'
+      ).once
+
+      sms_campaign_service.perform
+      expect(campaign.reload.completed?).to be true
+    end
+
     it 'marks the campaign completed after processing the audience' do
       contact = create(:contact, :with_phone_number, account: account)
       contact.update_labels([label1.title])

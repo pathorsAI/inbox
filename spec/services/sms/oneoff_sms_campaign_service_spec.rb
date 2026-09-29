@@ -45,6 +45,19 @@ describe Sms::OneoffSmsCampaignService do
       expect(campaign.reload.completed?).to be true
     end
 
+    it 'skips blocked contacts in the audience' do
+      blocked_contact, unblocked_contact = FactoryBot.create_list(:contact, 2, :with_phone_number, account: account)
+      blocked_contact.update!(blocked: true)
+      blocked_contact.update_labels([label1.title])
+      unblocked_contact.update_labels([label1.title])
+
+      expect(sms_channel).not_to receive(:send_text_message).with(blocked_contact.phone_number, anything)
+      expect(sms_channel).to receive(:send_text_message).with(unblocked_contact.phone_number, anything).once
+
+      sms_campaign_service.perform
+      expect(campaign.reload.completed?).to be true
+    end
+
     it 'marks the campaign completed after processing the audience' do
       contact = create(:contact, :with_phone_number, account: account)
       contact.update_labels([label1.title])
