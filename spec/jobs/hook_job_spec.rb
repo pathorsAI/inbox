@@ -260,5 +260,31 @@ RSpec.describe HookJob do
       expect { described_class.perform_now(twenty_hook, 'note.created', { note: note }) }
         .to have_enqueued_job(described_class).with(twenty_hook, 'note.created', { note: note })
     end
+
+    it 'logs a throttled attempt to the CRM sync log' do
+      allow(processor).to receive(:process).and_raise(Crm::Twenty::Api::Client::RateLimitError, 'Limit reached')
+
+      expect { described_class.new.perform(twenty_hook, 'note.created', { note: note }) }.to raise_error(Crm::Twenty::Api::Client::RateLimitError)
+
+      expect(CrmSyncEvent.last).to have_attributes(action: 'rate_limited', status: 'failure', contact_id: contact.id, message: 'Limit reached')
+    end
+
+    it 'logs a failure to the CRM sync log and does not retry it' do
+      allow(processor).to receive(:process).and_raise(Crm::Twenty::Api::Client::ApiError, 'Twenty API error: 500')
+
+      expect { described_class.new.perform(twenty_hook, 'note.created', { note: note }) }.not_to raise_error
+
+      expect(CrmSyncEvent.last).to have_attributes(action: 'failed', status: 'failure', contact_id: contact.id, message: 'Twenty API error: 500',
+                                                   details: { 'event' => 'note.created', 'error_class' => 'Crm::Twenty::Api::Client::ApiError' })
+    end
+
+    it 'does not log a lock conflict, which is only retried' do
+      job_instance = described_class.new
+      allow(job_instance).to receive(:with_lock).and_raise(MutexApplicationJob::LockAcquisitionError)
+
+      expect { job_instance.perform(twenty_hook, 'note.created', { note: note }) }.to raise_error(MutexApplicationJob::LockAcquisitionError)
+
+      expect(CrmSyncEvent.count).to eq(0)
+    end
   end
 end

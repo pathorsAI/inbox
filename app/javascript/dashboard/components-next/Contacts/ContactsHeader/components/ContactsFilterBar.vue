@@ -7,7 +7,6 @@ import {
   useResizeObserver,
 } from '@vueuse/core';
 import countries from 'shared/constants/countries';
-import { TWENTY_STATUSES } from 'dashboard/routes/dashboard/contacts/contactFilterItems';
 
 import Button from 'dashboard/components-next/button/Button.vue';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
@@ -31,7 +30,8 @@ const props = defineProps({
   // Applied conditions, camelCased (contacts/getAppliedContactFiltersV4).
   filters: { type: Array, default: () => [] },
   labels: { type: Array, default: () => [] },
-  showTwenty: { type: Boolean, default: false },
+  // The crm_status definition's values; the CRM status pill shows only when the account has it.
+  crmStatuses: { type: Array, default: () => [] },
   // Rendered inside the header's action row on narrow screens: every pill
   // lives in the overflow menu, and so do 存成區段 / 清除全部.
   compact: { type: Boolean, default: false },
@@ -50,9 +50,9 @@ const quickT = (key, params) =>
   t(`CONTACTS_LAYOUT.FILTER.QUICK.${key}`, params);
 
 const pillKeys = computed(() =>
-  props.showTwenty
+  props.crmStatuses.length
     ? QUICK_FILTER_ORDER
-    : QUICK_FILTER_ORDER.filter(key => key !== QUICK_FILTER.TWENTY_STATUS)
+    : QUICK_FILTER_ORDER.filter(key => key !== QUICK_FILTER.CRM_STATUS)
 );
 const quickFilters = computed(() =>
   readQuickFilters(props.filters, pillKeys.value)
@@ -75,11 +75,8 @@ const OPTIONS = {
       value: method,
       label: quickT(`CONTACT_METHOD.${method}`),
     })),
-  [QUICK_FILTER.TWENTY_STATUS]: () =>
-    TWENTY_STATUSES.map(status => ({
-      value: status,
-      label: quickT(`TWENTY_STATUS.${status.toUpperCase()}`),
-    })),
+  [QUICK_FILTER.CRM_STATUS]: () =>
+    props.crmStatuses.map(status => ({ value: status, label: status })),
 };
 
 const valueLabel = (key, value, options) => {

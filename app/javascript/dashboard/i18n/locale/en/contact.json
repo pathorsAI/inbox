@@ -443,11 +443,8 @@
           "PHONE": "Has phone",
           "BOTH": "Has both"
         },
-        "TWENTY_STATUS": {
-          "LABEL": "Twenty status",
-          "LINKED": "Linked",
-          "NEEDS_ATTENTION": "Needs attention",
-          "UNLINKED": "Not linked"
+        "CRM_STATUS": {
+          "LABEL": "CRM status"
         },
         "NO_MATCHES": "No matches",
         "APPLY": "Apply",
@@ -461,6 +458,29 @@
         "CLEAR_ALL": "Clear all",
         "OR_LOCKED": "Advanced conditions use OR. Edit them in Conditions."
       }
+    },
+    "TABLE": {
+      "COLUMNS": {
+        "NAME": "Name",
+        "COMPANY": "Company",
+        "CONTACT": "Contact",
+        "SOURCE": "Source",
+        "LABELS": "Labels",
+        "CRM": "CRM",
+        "LAST_ACTIVITY": "Last activity"
+      },
+      "COLUMNS_MENU": {
+        "LABEL": "Columns",
+        "TITLE": "Show attributes as columns",
+        "EMPTY": "No custom attributes yet"
+      },
+      "CRM": {
+        "OPPORTUNITY": "Opportunity: {name}",
+        "OWNER": "Owner: {name}"
+      },
+      "JOB_TITLE": "· {title}",
+      "MORE_LABELS": "+{count}",
+      "EMPTY_CELL": "—"
     },
     "CARD": {
       "OF": "of",

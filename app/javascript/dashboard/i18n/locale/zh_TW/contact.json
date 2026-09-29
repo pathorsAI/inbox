@@ -441,11 +441,8 @@
           "PHONE": "有電話",
           "BOTH": "兩者都有"
         },
-        "TWENTY_STATUS": {
-          "LABEL": "Twenty 狀態",
-          "LINKED": "已連結",
-          "NEEDS_ATTENTION": "需要處理",
-          "UNLINKED": "未連結"
+        "CRM_STATUS": {
+          "LABEL": "CRM 狀態"
         },
         "NO_MATCHES": "找不到符合的項目",
         "APPLY": "套用",
@@ -459,6 +456,29 @@
         "CLEAR_ALL": "清除全部",
         "OR_LOCKED": "進階條件用了 OR，請在「條件」裡編輯"
       }
+    },
+    "TABLE": {
+      "COLUMNS": {
+        "NAME": "名稱",
+        "COMPANY": "公司",
+        "CONTACT": "聯絡方式",
+        "SOURCE": "來源",
+        "LABELS": "標籤",
+        "CRM": "CRM",
+        "LAST_ACTIVITY": "最後活動"
+      },
+      "COLUMNS_MENU": {
+        "LABEL": "欄位",
+        "TITLE": "把屬性顯示成欄位",
+        "EMPTY": "還沒有自訂屬性"
+      },
+      "CRM": {
+        "OPPORTUNITY": "商機：{name}",
+        "OWNER": "負責人：{name}"
+      },
+      "JOB_TITLE": "· {title}",
+      "MORE_LABELS": "+{count}",
+      "EMPTY_CELL": "—"
     },
     "CARD": {
       "OF": "/",

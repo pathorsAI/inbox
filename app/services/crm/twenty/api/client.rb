@@ -42,7 +42,7 @@ class Crm::Twenty::Api::Client
   COMPANY_FIELDS = 'id name domainName { primaryLinkUrl }'.freeze
   PERSON_FIELDS = "#{PERSON_SCALARS} company { #{COMPANY_FIELDS} }".freeze
 
-  OPPORTUNITY_FIELDS = 'id name stage closeDate updatedAt amount { amountMicros currencyCode }'.freeze
+  OPPORTUNITY_FIELDS = 'id name stage closeDate updatedAt amount { amountMicros currencyCode } owner { name { firstName lastName } }'.freeze
 
   # Nested connections ignore first/orderBy in v2.41, so they come back whole
   # and are sorted by the caller. A one-to-many two levels down (person →

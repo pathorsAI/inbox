@@ -415,6 +415,9 @@ Rails.application.routes.draw do
             resources :hooks, only: [:show, :create, :update, :destroy] do
               member do
                 post :process_event
+                get :sync_events, to: 'crm_sync#sync_events'
+                get :crm_backfill, to: 'crm_sync#backfill_status'
+                post :crm_backfill, to: 'crm_sync#start_backfill'
               end
             end
             resource :slack, only: [:create, :update, :destroy], controller: 'slack' do

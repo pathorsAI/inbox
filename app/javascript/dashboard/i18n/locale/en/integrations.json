@@ -50,6 +50,73 @@
         "LOAD_MORE": "Load more"
       }
     },
+    "CRM_SYNC": {
+      "TITLE": "Sync status",
+      "LAST_SUCCESS": "Last success {time}",
+      "NEVER_SYNCED": "Not synced yet",
+      "STATS": {
+        "SYNCED_24H": "Synced in 24h",
+        "FAILURE": "Failed",
+        "RATE_LIMITED": "Retried after rate limit",
+        "PENDING_CONFLICTS": "Conflicts to resolve"
+      },
+      "BACKFILL": {
+        "BUTTON": "Match all contacts",
+        "DESCRIPTION": "Links existing people only and never creates new ones. Also refreshes CRM attributes on linked contacts.",
+        "CONFIRM": "Matches about 20 contacts a minute. You can leave this page while it runs.",
+        "START": "Start",
+        "CANCEL": "Cancel",
+        "RUNNING": "Matching {processed} of {total}",
+        "FINISHED": "Finished {time}",
+        "ALREADY_RUNNING": "Already running",
+        "START_ERROR": "Could not start matching",
+        "COUNTS": "Linked {linked} · Refreshed {refreshed} · To resolve {ambiguous} · No match {no_match} · Errors {errors}"
+      },
+      "EVENTS": {
+        "TITLE": "Sync log",
+        "ONLY_FAILURES": "Failures only",
+        "EMPTY": "No sync activity yet",
+        "EMPTY_FAILURES": "No failures",
+        "LOAD_ERROR": "Could not load the sync log",
+        "LOAD_MORE": "Load more"
+      },
+      "STATUS": {
+        "SUCCESS": "Success",
+        "FAILURE": "Failed",
+        "CONFLICT": "Conflict",
+        "NOTE": "Note",
+        "RATE_LIMITED": "Rate limited"
+      },
+      "ACTIONS": {
+        "LINKED": "Linked to an existing CRM person",
+        "CREATED_PERSON": "Created a CRM person",
+        "FILLED_FIELDS": "Filled in {fields}",
+        "NOTE_SYNCED": "Synced a note to the CRM",
+        "NOTE_DELETED": "Deleted a note from the CRM",
+        "CONVERSATION_LOGGED": "Logged the conversation in the CRM",
+        "CONFLICT_RAISED": {
+          "FIELD": "{field} differs between Inbox and the CRM",
+          "AMBIGUOUS": "Several CRM people match",
+          "DUPLICATE_CONTACT": "Duplicates another contact"
+        },
+        "CONFLICT_RESOLVED": "Resolved a conflict",
+        "ATTRIBUTES_REFRESHED": "Refreshed CRM attributes",
+        "FAILED": "Sync failed",
+        "RATE_LIMITED": "Rate limited by the CRM, retrying later",
+        "BACKFILL_STARTED": "Started matching all contacts",
+        "BACKFILL_FINISHED": "Finished matching all contacts: linked {linked} · no match {no_match} · to resolve {ambiguous} · errors {errors}"
+      },
+      "FIELDS": {
+        "NAME": "Name",
+        "EMAIL": "Email",
+        "PHONE": "Phone",
+        "COMPANY": "Company",
+        "CITY": "City",
+        "LINKEDIN": "LinkedIn",
+        "JOB_TITLE": "Job title"
+      },
+      "LIST_SEPARATOR": ", "
+    },
     "SHOPIFY": {
       "HEADER": "Shopify",
       "DELETE": {

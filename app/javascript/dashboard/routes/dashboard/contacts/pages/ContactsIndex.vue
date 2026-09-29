@@ -11,7 +11,7 @@ import filterQueryGenerator from 'dashboard/helper/filterQueryGenerator';
 import ContactsListLayout from 'dashboard/components-next/Contacts/ContactsListLayout.vue';
 import ContactEmptyState from 'dashboard/components-next/Contacts/EmptyState/ContactEmptyState.vue';
 import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
-import ContactsList from 'dashboard/components-next/Contacts/Pages/ContactsList.vue';
+import ContactsTable from 'dashboard/components-next/Contacts/ContactsTable/ContactsTable.vue';
 import ContactsBulkActionBar from '../components/ContactsBulkActionBar.vue';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import BulkActionsAPI from 'dashboard/api/bulkActions';
@@ -557,11 +557,15 @@ onMounted(async () => {
           </span>
         </div>
 
-        <div v-else class="flex flex-col gap-4 pt-4 pb-6">
-          <ContactsList
+        <div v-else class="pt-2 pb-6">
+          <ContactsTable
             :contacts="contacts"
             :selected-contact-ids="selectedContactIds"
+            :active-sort="sortState.activeSort"
+            :active-ordering="sortState.activeOrdering"
             @toggle-contact="toggleContactSelection"
+            @toggle-all="toggleSelectAll"
+            @update:sort="handleSort"
           />
           <Dialog
             v-if="selectedCount"

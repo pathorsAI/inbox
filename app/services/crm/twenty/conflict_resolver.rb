@@ -22,10 +22,12 @@ class Crm::Twenty::ConflictResolver
   pattr_initialize [:hook!, :contact!]
 
   # options: field (field conflicts), person_id (ambiguous), other_contact_id (duplicate_contact)
-  def perform(type:, choice:, **)
+  def perform(type:, choice:, field: nil, **)
     contact.reload
     action = choice == 'dismiss' ? :dismiss : ACTIONS.fetch([type, choice]) { raise Error, t('conflict_not_found') }
-    send(action, type: type, **)
+    send(action, type: type, field: field, **)
+    Crm::SyncLog.record(hook: hook, action: 'conflict_resolved', contact: contact,
+                        details: { conflict_type: type, field: field, choice: choice }.compact)
     Crm::Twenty::PersonCardService.new(hook: hook, contact: contact.reload).perform
   rescue Crm::Twenty::Api::Client::RateLimitError
     raise

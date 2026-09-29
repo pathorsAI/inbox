@@ -4,11 +4,11 @@
 #
 # Every sidebar open would otherwise be a Twenty request against a rate limit
 # shared by the whole workspace, so cards are cached briefly, and so is the
-# answer "nobody in Twenty matches this contact".
+# answer "nobody in Twenty matches this contact". Each card read also
+# refreshes the contact's CRM attributes (a no-op while the card is cached).
 class Crm::Twenty::PersonCardService
   CARD_TTL = 2.minutes
   MISS_TTL = 10.minutes
-  STAGES_TTL = 12.hours
   OPPORTUNITY_LIMIT = 5
   NOTE_LIMIT = 5
   EXCERPT_LENGTH = 280
@@ -37,9 +37,7 @@ class Crm::Twenty::PersonCardService
 
   def linked_card(create)
     person_id = linked_person_id(create)
-    return if person_id.blank?
-
-    Crm::Twenty::Cache.fetch(hook, 'card', person_id, ttl: CARD_TTL) { client.person_card(person_id, opportunity_limit: OPPORTUNITY_LIMIT) }
+    linker.card(person_id) if person_id.present?
   end
 
   def linked_person_id(create)
@@ -56,17 +54,21 @@ class Crm::Twenty::PersonCardService
     end
   end
 
+  # Its status may have changed since the last sync: a conflict dismissed, or a cached miss.
   def unlinked
+    linker.mark_unlinked(contact)
     { linked: false, can_create: contact.email.present? || contact.phone_number.present?,
       person: nil, opportunities: [], notes: [], notes_count: 0, conflicts: Crm::Twenty::Conflicts.new(contact).stored }
   end
 
   def present(card)
     notes = Array(card.dig('noteTargets', 'edges')).filter_map { |edge| edge.dig('node', 'note') }
+    conflicts = current_conflicts(card)
+    linker.attributes.linked(contact, card)
     {
       linked: true,
       can_create: true,
-      conflicts: current_conflicts(card),
+      conflicts: conflicts,
       person: person(card),
       opportunities: opportunities(card).map { |opportunity| present_opportunity(opportunity) },
       notes: notes.sort_by { |note| note['createdAt'].to_s }.reverse.first(NOTE_LIMIT).map { |note| present_note(note) },
@@ -103,10 +105,7 @@ class Crm::Twenty::PersonCardService
   end
 
   def opportunities(card)
-    own = Array(card.dig('pointOfContactForOpportunities', 'edges'))
-    company = Array(card.dig('company', 'opportunities', 'edges'))
-    (own + company).pluck('node').uniq { |opportunity| opportunity['id'] }
-                   .sort_by { |opportunity| opportunity['updatedAt'].to_s }.reverse.first(OPPORTUNITY_LIMIT)
+    Crm::Twenty::ContactAttributes.opportunities(card).first(OPPORTUNITY_LIMIT)
   end
 
   def present_opportunity(opportunity)
@@ -115,7 +114,8 @@ class Crm::Twenty::PersonCardService
       id: opportunity['id'],
       name: opportunity['name'],
       url: client.record_url('opportunity', opportunity['id']),
-      stage: stage && { value: stage, label: stages.dig(stage, 'label') || stage.humanize, color: stages.dig(stage, 'color') },
+      stage: stage && { value: stage, label: linker.attributes.stage_label(stage), color: stages.dig(stage, 'color') },
+      owner: opportunity['owner'] && Crm::Twenty::PersonMapper.full_name(opportunity['owner']).presence,
       amount: amount(opportunity['amount']),
       close_date: opportunity['closeDate']&.first(10)
     }
@@ -144,6 +144,6 @@ class Crm::Twenty::PersonCardService
   end
 
   def stages
-    @stages ||= Crm::Twenty::Cache.fetch(hook, 'stages', ttl: STAGES_TTL) { client.opportunity_stages }
+    linker.attributes.stages
   end
 end

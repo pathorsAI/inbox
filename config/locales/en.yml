@@ -765,6 +765,21 @@ en:
 
       Transcript:
       %{format_messages}
+    contact_attributes:
+      description: 'Synced from your CRM'
+      statuses:
+        linked: 'Linked'
+        needs_attention: 'Needs attention'
+        unlinked: 'Not linked'
+      names:
+        crm_status: 'CRM status'
+        crm_provider: 'CRM'
+        crm_job_title: 'Job title'
+        crm_stage: 'Opportunity stage'
+        crm_opportunity: 'Opportunity'
+        crm_owner: 'Opportunity owner'
+        crm_url: 'CRM record'
+        crm_synced_at: 'Last CRM sync'
   agent_capacity_policy:
     inbox_already_assigned: 'Inbox has already been assigned to this policy'
   portals:

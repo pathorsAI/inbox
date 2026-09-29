@@ -6,10 +6,6 @@ import {
   OPERATOR_TYPES_6,
 } from 'dashboard/components/widgets/FilterInput/FilterOperatorTypes.js';
 
-// Fork: whether a contact is linked to a Twenty CRM person, needs attention
-// (sync conflicts waiting) or is not linked. Contacts::FilterService matches these.
-export const TWENTY_STATUSES = ['linked', 'needs_attention', 'unlinked'];
-
 const filterTypes = [
   {
     attributeKey: 'name',
@@ -107,6 +103,8 @@ const filterTypes = [
     filterOperators: OPERATOR_TYPES_2,
     attributeModel: 'standard',
   },
+  // Fork, legacy: segments saved with the retired Twenty status filter still load for editing;
+  // Contacts::FilterService still matches it.
   {
     attributeKey: 'twenty_status',
     attributeI18nKey: 'TWENTY_STATUS',

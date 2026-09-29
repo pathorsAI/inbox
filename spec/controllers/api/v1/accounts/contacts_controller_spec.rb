@@ -68,6 +68,40 @@ RSpec.describe 'Contacts API', type: :request do
         expect(contact_inboxes).to eq([])
       end
 
+      it 'returns each contact’s labels and the inbox it first came from' do
+        first_inbox = create(:inbox, account: account, name: 'Contact Pathors')
+        create(:contact_inbox, contact: contact_1, inbox: first_inbox, created_at: 2.days.ago)
+        create(:contact_inbox, contact: contact_1, created_at: 1.day.ago)
+        contact_1.update_labels(%w[vip partner])
+
+        get "/api/v1/accounts/#{account.id}/contacts?include_contact_inboxes=false", headers: admin.create_new_auth_token, as: :json
+
+        payload = response.parsed_body['payload'].index_by { |item| item['id'] }
+        expect(payload[contact_1.id]['labels']).to match_array(%w[vip partner])
+        expect(payload[contact_1.id]['source_inbox']).to eq('id' => first_inbox.id, 'name' => 'Contact Pathors',
+                                                            'channel_type' => first_inbox.channel_type)
+        expect(payload[contact_4.id]).to include('labels' => [], 'source_inbox' => nil)
+      end
+
+      it 'loads labels and source inboxes without a query per contact' do
+        headers = admin.create_new_auth_token
+        count_queries = lambda do
+          queries = 0
+          counter = ->(_name, _started, _finished, _id, payload) { queries += 1 unless payload[:name] == 'SCHEMA' || payload[:cached] }
+          ActiveSupport::Notifications.subscribed(counter, 'sql.active_record') do
+            get "/api/v1/accounts/#{account.id}/contacts?include_contact_inboxes=false", headers: headers, as: :json
+          end
+          queries
+        end
+        [contact, contact_1].each { |item| item.update_labels(['vip']) && create(:contact_inbox, contact: item) }
+        count_queries.call
+        baseline = count_queries.call
+
+        create_list(:contact, 3, :with_email, account: account).each { |item| item.update_labels(['lead']) && create(:contact_inbox, contact: item) }
+
+        expect(count_queries.call).to eq(baseline)
+      end
+
       it 'returns limited information on inboxes' do
         get "/api/v1/accounts/#{account.id}/contacts?include_contact_inboxes=true",
             headers: admin.create_new_auth_token,
@@ -337,6 +371,12 @@ RSpec.describe 'Contacts API', type: :request do
         expect(response.body).not_to include(contact1.email)
       end
 
+      it 'returns labels and the source inbox with each result' do
+        get "/api/v1/accounts/#{account.id}/contacts/search", params: { q: contact2.email }, headers: admin.create_new_auth_token, as: :json
+
+        expect(response.parsed_body['payload'].first).to include('labels' => [], 'source_inbox' => nil)
+      end
+
       it 'matches the contact ignoring the case in email' do
         get "/api/v1/accounts/#{account.id}/contacts/search",
             params: { q: 'Test@Test.com' },
@@ -448,6 +488,21 @@ RSpec.describe 'Contacts API', type: :request do
         expect(response).to conform_schema(200)
         expect(response.body).to include(contact2.email)
         expect(response.body).to include(contact1.email)
+      end
+
+      it 'filters on the CRM status the CRM integration writes, and returns the list fields' do
+        Crm::ContactAttributes.write(contact1, provider: 'Twenty', status: :linked)
+        Crm::ContactAttributes.write(contact2, provider: 'Twenty', status: :unlinked)
+
+        post "/api/v1/accounts/#{account.id}/contacts/filter",
+             params: { payload: [attribute_key: 'crm_status', filter_operator: 'equal_to', values: ['Linked'],
+                                 custom_attribute_type: 'contact_attribute'] },
+             headers: admin.create_new_auth_token,
+             as: :json
+
+        expect(response).to have_http_status(:success)
+        expect(response.parsed_body['payload'].pluck('id')).to eq([contact1.id])
+        expect(response.parsed_body['payload'].first).to include('labels' => [], 'source_inbox' => nil)
       end
 
       it 'returns error the query operator is invalid' do

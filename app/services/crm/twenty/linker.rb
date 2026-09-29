@@ -6,12 +6,17 @@
 # contact stays unlinked and the candidates are raised as a conflict. Linking
 # fills each side's blanks from the other and records what they disagree on
 # (Crm::Twenty::Conflicts). A new link also queues the contact's notes that
-# never reached Twenty, such as those written while it was ambiguous.
+# never reached Twenty, such as those written while it was ambiguous. The
+# contact's CRM attributes (Crm::ContactAttributes) follow every link and
+# unlink.
 class Crm::Twenty::Linker
   include Events::Types
 
   EXTERNAL_ID = 'twenty_id'.freeze
   NOTES_KEY = 'twenty_notes'.freeze
+  # Twenty field → the Inbox field it corresponds to, for the sync log.
+  PERSON_FIELD_NAMES = { name: 'name', emails: 'email', phones: 'phone_number', city: 'city', linkedinLink: 'social_profiles',
+                         companyId: 'company_name' }.freeze
 
   attr_reader :hook, :client
 
@@ -28,7 +33,9 @@ class Crm::Twenty::Linker
   # the person when nobody matches). nil when the contact stays unlinked.
   def person_id_for(contact, create:)
     contact.reload
-    self.class.person_id(contact) || link(contact, resolve_person(contact, create: create))
+    person_id = self.class.person_id(contact) || link(contact, resolve_person(contact, create: create))
+    mark_unlinked(contact) if person_id.nil?
+    person_id
   end
 
   def resolve_person(contact, create:)
@@ -58,11 +65,13 @@ class Crm::Twenty::Linker
     return if person.nil?
 
     newly_linked = self.class.person_id(contact) != person['id']
-    person = fill_person(contact, person)
-    save_contact(contact, person)
+    person, to_crm = fill_person(contact, person)
+    to_inbox = save_contact(contact, person)
     record_conflicts(contact, Crm::Twenty::Conflicts.new(contact).for_person(person))
     queue_unsynced_notes(contact) if newly_linked
     expire_card(person['id'])
+    refresh_attributes(contact, person)
+    log_link(contact, newly_linked, to_inbox, to_crm)
     person['id']
   end
 
@@ -70,20 +79,43 @@ class Crm::Twenty::Linker
     return unless identifiable?(contact)
 
     attributes = Crm::Twenty::PersonMapper.new(contact).create_attributes
-    client.create_person(attributes.merge(createdBy: actor, companyId: company_id_for(contact)).compact)
+    client.create_person(attributes.merge(createdBy: actor, companyId: company_id_for(contact)).compact).tap do |person|
+      Crm::SyncLog.record(hook: hook, action: 'created_person', contact: contact, details: { person_id: person['id'] }) if person
+    end
   end
 
   def unlink(contact)
     Crm::Twenty::ExternalStore.delete(contact.id, EXTERNAL_ID)
     Crm::Twenty::ExternalStore.delete(contact.id, Crm::Twenty::Conflicts::KEY)
     contact.reload
+    attributes.unlinked(contact)
+  end
+
+  # Status only: a contact nobody in Twenty matches (or several do).
+  def mark_unlinked(contact)
+    attributes.unlinked(contact) if identifiable?(contact)
   end
 
   def record_conflicts(contact, conflicts)
-    return if conflicts == Crm::Twenty::Conflicts.new(contact).stored
+    stored = Crm::Twenty::Conflicts.new(contact).stored
+    return if conflicts == stored
 
     Crm::Twenty::ExternalStore.write(contact.id, Crm::Twenty::Conflicts::KEY, conflicts)
     contact.reload
+    log_new_conflicts(contact, conflicts, stored)
+  end
+
+  # The person with their opportunities and notes, shared with the sidebar
+  # card. fetched_at is when it was read from Twenty.
+  def card(person_id)
+    Crm::Twenty::Cache.fetch(hook, 'card', person_id, ttl: Crm::Twenty::PersonCardService::CARD_TTL) do
+      client.person_card(person_id, opportunity_limit: Crm::Twenty::PersonCardService::OPPORTUNITY_LIMIT)
+            &.merge('fetched_at' => Time.current.iso8601)
+    end
+  end
+
+  def attributes
+    @attributes ||= Crm::Twenty::ContactAttributes.new(hook, client)
   end
 
   def expire_card(person_id)
@@ -120,19 +152,54 @@ class Crm::Twenty::Linker
     nil
   end
 
+  # Returns the Inbox fields it filled.
   def save_contact(contact, person)
     changes = Crm::Twenty::PersonMapper.new(contact).contact_updates(person)
     additional = changes.delete(:additional_attributes) || contact.additional_attributes
+    filled = changes.keys.map(&:to_s) + additional.keys.reject { |key| additional[key] == contact.additional_attributes[key] }
     external = (additional['external'] || {}).merge(EXTERNAL_ID => person['id'])
     contact.assign_attributes(changes.merge(additional_attributes: additional.merge('external' => external)))
     contact.save! if contact.changed?
+    filled
   end
 
+  # Returns the person as it now is, and the fields filled on it.
   def fill_person(contact, person)
     updates = Crm::Twenty::PersonMapper.new(contact).person_updates(person)
     updates[:companyId] = company_id_for(contact) if person['company'].blank?
     updates.compact!
-    updates.present? ? client.update_person(person['id'], updates) : person
+    return [person, []] if updates.blank?
+
+    [client.update_person(person['id'], updates), updates.keys.map { |field| PERSON_FIELD_NAMES.fetch(field) }]
+  end
+
+  # The card was just expired, so this reads Twenty afresh (and warms the
+  # sidebar's cache). The link stands if that read fails; the opportunity
+  # fields catch up on the next card read.
+  def refresh_attributes(contact, person)
+    fresh = card(person['id'])
+    fresh ? attributes.linked(contact, fresh) : attributes.linked_person(contact, person)
+  rescue Crm::Twenty::Api::Client::ApiError => e
+    Rails.logger.warn("Twenty card read after linking contact #{contact.id} failed: #{e.message}")
+    attributes.linked_person(contact, person)
+  end
+
+  def log_link(contact, newly_linked, to_inbox, to_crm)
+    fields = (to_inbox + to_crm).uniq
+    details = fields.any? ? { fields: fields, to_inbox: to_inbox, to_crm: to_crm } : {}
+    if newly_linked
+      Crm::SyncLog.record(hook: hook, action: 'linked', contact: contact, details: details)
+    elsif fields.any?
+      Crm::SyncLog.record(hook: hook, action: 'filled_fields', contact: contact, details: details)
+    end
+  end
+
+  def log_new_conflicts(contact, conflicts, stored)
+    known = stored.map { |conflict| Crm::Twenty::Conflicts.fingerprint(conflict) }
+    conflicts.reject { |conflict| known.include?(Crm::Twenty::Conflicts.fingerprint(conflict)) }.each do |conflict|
+      Crm::SyncLog.record(hook: hook, action: 'conflict_raised', contact: contact,
+                          details: { conflict_type: conflict['type'], field: conflict['field'] }.compact)
+    end
   end
 
   def company_id_for(contact)

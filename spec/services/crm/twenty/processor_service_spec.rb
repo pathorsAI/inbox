@@ -36,6 +36,9 @@ RSpec.describe Crm::Twenty::ProcessorService do
   before do
     stub_twenty('query Verify', 'workspaceMembers' => { 'totalCount' => 1 })
     stub_twenty('query Members', 'workspaceMembers' => { 'edges' => [] })
+    # Linking reads the person card once for the contact's CRM attributes.
+    stub_twenty('query PersonCard', 'person' => person.merge('pointOfContactForOpportunities' => { 'edges' => [] }))
+    stub_twenty('query CompanyOpportunities', 'opportunities' => { 'edges' => [] })
     hook
   end
 
