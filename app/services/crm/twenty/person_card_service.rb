@@ -39,7 +39,7 @@ class Crm::Twenty::PersonCardService
     person_id = linked_person_id(create)
     return if person_id.blank?
 
-    Crm::Twenty::Cache.fetch(hook, 'card', person_id, ttl: CARD_TTL) { client.person_card(person_id) }
+    Crm::Twenty::Cache.fetch(hook, 'card', person_id, ttl: CARD_TTL) { client.person_card(person_id, opportunity_limit: OPPORTUNITY_LIMIT) }
   end
 
   def linked_person_id(create)
