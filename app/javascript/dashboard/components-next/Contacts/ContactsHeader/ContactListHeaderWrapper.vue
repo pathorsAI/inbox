@@ -7,6 +7,7 @@ import {
   useFunctionGetter,
 } from 'dashboard/composables/store';
 import { useRouter } from 'vue-router';
+import { breakpointsTailwind, useBreakpoints } from '@vueuse/core';
 import { useAlert, useTrack } from 'dashboard/composables';
 import { CONTACTS_EVENTS } from 'dashboard/helper/AnalyticsHelper/events';
 import filterQueryGenerator from 'dashboard/helper/filterQueryGenerator';
@@ -78,6 +79,10 @@ const hasActiveSegments = computed(
 );
 const activeSegmentName = computed(() => props.activeSegment?.name);
 // Segment, label and active views keep their own filtering.
+// Below sm the header wraps onto two rows; the collapsed filter buttons sit
+// in its action row instead of taking a third.
+const isBelowSm = useBreakpoints(breakpointsTailwind).smaller('sm');
+
 const isListView = computed(
   () => !props.segmentsId && !props.isLabelView && !props.isActiveView
 );
@@ -318,6 +323,26 @@ defineExpose({
     @filter="prepareFilterDraft"
     @delete-segment="openDeleteSegmentDialog"
   >
+    <template v-if="isListView && isBelowSm" #leading>
+      <ContactsFilterBar
+        compact
+        :filters="appliedFilters"
+        :labels="labels"
+        :show-twenty="!!twentyIntegration.enabled"
+        @apply="applyConditions"
+        @open-advanced="prepareFilterDraft"
+        @create-segment="openCreateSegmentDialog"
+        @clear-all="clearFilters"
+      >
+        <template #advanced="{ hide }">
+          <ContactsFilter
+            v-model="appliedFilter"
+            @apply-filter="filters => applyAdvancedFilters(filters, hide)"
+            @clear-filters="clearFilters"
+          />
+        </template>
+      </ContactsFilterBar>
+    </template>
     <template #filter="{ hide }">
       <ContactsFilter
         v-model="appliedFilter"
@@ -331,7 +356,7 @@ defineExpose({
     </template>
   </ContactsHeader>
 
-  <div v-if="isListView" class="px-6 pb-2">
+  <div v-if="isListView && !isBelowSm" class="px-6 pb-2">
     <ContactsFilterBar
       class="w-full mx-auto max-w-5xl"
       :filters="appliedFilters"

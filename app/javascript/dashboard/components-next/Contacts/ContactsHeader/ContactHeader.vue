@@ -66,8 +66,9 @@ defineExpose({
             </template>
           </Input>
         </div>
-        <div class="flex items-center flex-shrink-0 gap-4">
-          <div class="flex items-center gap-2">
+        <div class="flex items-center flex-shrink-0 w-full gap-4 sm:w-auto">
+          <slot name="leading" />
+          <div class="flex items-center gap-2 ms-auto">
             <template v-if="isSegmentsView && !isLabelView && !isActiveView">
               <Popover ref="segmentFilterPopoverRef" @show="emit('filter')">
                 <Button
