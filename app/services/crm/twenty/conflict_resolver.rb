@@ -53,6 +53,7 @@ class Crm::Twenty::ConflictResolver
               when 'email' then { emails: emails_with(contact.email) }
               when 'phone' then { phones: phones_with(contact.phone_number) }
               when 'company' then { companyId: company_id(contact.additional_attributes['company_name']) }
+              else raise Error, t('conflict_not_found')
               end
     linker.link(contact, client.update_person(person['id'], updates))
   end
@@ -68,6 +69,7 @@ class Crm::Twenty::ConflictResolver
     when 'email' then { email: unused(:email, person.dig('emails', 'primaryEmail').downcase) }
     when 'phone' then { phone_number: unused(:phone_number, e164(Crm::Twenty::Conflicts.person_phone(person))) }
     when 'company' then { additional_attributes: contact.additional_attributes.merge('company_name' => person.dig('company', 'name')) }
+    else raise Error, t('conflict_not_found')
     end
   end
 

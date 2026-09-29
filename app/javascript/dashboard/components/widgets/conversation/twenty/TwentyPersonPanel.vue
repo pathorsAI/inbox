@@ -45,7 +45,7 @@ const {
 
 // 429: Twenty throttled us; 502: Twenty is down. Either way it is Twenty,
 // not this inbox, and trying again shortly is the fix.
-const TWENTY_UNAVAILABLE = [429, 502];
+const TWENTY_UNAVAILABLE = new Set([429, 502]);
 
 const person = computed(() => record.value.person);
 
@@ -83,7 +83,7 @@ const fetchRecord = async () => {
     );
     if (response) record.value = response.data;
   } catch (error) {
-    errorMessage.value = TWENTY_UNAVAILABLE.includes(error.response?.status)
+    errorMessage.value = TWENTY_UNAVAILABLE.has(error.response?.status)
       ? t('CONVERSATION_SIDEBAR.TWENTY.UNAVAILABLE')
       : t('CONVERSATION_SIDEBAR.TWENTY.LOAD_ERROR');
   }
@@ -99,7 +99,7 @@ const createPerson = async () => {
     const { status, data } = error.response || {};
     // A 422 carries a translated reason (e.g. the contact has no email or phone).
     if (status === 422) useAlert(data.error);
-    else if (TWENTY_UNAVAILABLE.includes(status))
+    else if (TWENTY_UNAVAILABLE.has(status))
       useAlert(t('CONVERSATION_SIDEBAR.TWENTY.UNAVAILABLE'));
     else useAlert(t('CONVERSATION_SIDEBAR.TWENTY.CREATE_ERROR'));
   }
@@ -109,7 +109,7 @@ const resolveErrorMessage = error => {
   const { status, data } = error.response || {};
   // A 422 carries a translated reason (e.g. another contact has this email).
   if (status === 422) return data.error;
-  if (TWENTY_UNAVAILABLE.includes(status))
+  if (TWENTY_UNAVAILABLE.has(status))
     return t('CONVERSATION_SIDEBAR.TWENTY.UNAVAILABLE');
   return t('CONVERSATION_SIDEBAR.TWENTY.CONFLICTS.RESOLVE_ERROR');
 };

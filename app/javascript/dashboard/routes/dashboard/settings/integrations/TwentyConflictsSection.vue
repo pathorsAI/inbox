@@ -9,6 +9,9 @@ import Button from 'dashboard/components-next/button/Button.vue';
 import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
 import TwentyConflictItem from 'dashboard/components/widgets/conversation/twenty/TwentyConflictItem.vue';
 
+// 429: Twenty throttled us; 502: Twenty is down.
+const TWENTY_UNAVAILABLE = new Set([429, 502]);
+
 const PER_PAGE = 25;
 
 const { t } = useI18n();
@@ -49,7 +52,7 @@ const loadMore = async () => {
     count.value = data.count;
     hasLoaded.value = true;
   } catch (error) {
-    errorMessage.value = [429, 502].includes(error.response?.status)
+    errorMessage.value = TWENTY_UNAVAILABLE.has(error.response?.status)
       ? t('CONVERSATION_SIDEBAR.TWENTY.UNAVAILABLE')
       : t('INTEGRATION_SETTINGS.TWENTY.CONFLICTS.LOAD_ERROR');
   } finally {
@@ -67,7 +70,7 @@ const resolveErrorMessage = error => {
   const { status, data } = error.response || {};
   // A 422 carries a translated reason (e.g. another contact has this email).
   if (status === 422) return data.error;
-  if ([429, 502].includes(status))
+  if (TWENTY_UNAVAILABLE.has(status))
     return t('CONVERSATION_SIDEBAR.TWENTY.UNAVAILABLE');
   return t('CONVERSATION_SIDEBAR.TWENTY.CONFLICTS.RESOLVE_ERROR');
 };

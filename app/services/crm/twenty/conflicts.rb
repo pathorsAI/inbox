@@ -26,6 +26,7 @@ class Crm::Twenty::Conflicts
     when 'field' then "field:#{conflict['field']}:#{digest(conflict['inbox'], conflict['twenty'])}"
     when 'ambiguous' then "ambiguous:#{digest(*conflict['candidates'].pluck('id').sort)}"
     when 'duplicate_contact' then "duplicate:#{conflict.dig('contact', 'id')}"
+    else raise ArgumentError, "Unknown Twenty conflict type #{conflict['type']}"
     end
   end
 
@@ -76,9 +77,20 @@ class Crm::Twenty::Conflicts
 
   def field_conflict(field, person)
     inbox, twenty = send(:"#{field}_values", person)
-    return if inbox.blank? || twenty.blank? || send(:"same_#{field}?", inbox, twenty, person)
+    return if inbox.blank? || twenty.blank? || agree?(field, inbox, twenty, person)
 
     { 'type' => 'field', 'field' => field, 'inbox' => inbox, 'twenty' => twenty }
+  end
+
+  # A value Twenty keeps as an additional email or phone is not a disagreement.
+  def agree?(field, inbox, twenty, person)
+    case field
+    when 'name' then same_name?(inbox, twenty)
+    when 'email' then twenty_emails(person).include?(inbox)
+    when 'phone' then twenty_numbers(person).intersect?(Crm::Twenty::PersonMapper.phone(inbox)[:variants])
+    when 'company' then inbox.downcase.squish == twenty.downcase.squish
+    else raise ArgumentError, "Unknown Twenty conflict field #{field}"
+    end
   end
 
   def name_values(person)
@@ -89,7 +101,7 @@ class Crm::Twenty::Conflicts
   # "Anna" and "Anna Tsai" are one name written shorter, and 鄭宇傑 beside
   # "Jack Cheng" is the same person's Chinese and English name; neither is a
   # disagreement worth a person's time.
-  def same_name?(inbox, twenty, _person)
+  def same_name?(inbox, twenty)
     a = inbox.downcase.squish
     b = twenty.downcase.squish
     a.include?(b) || b.include?(a) || a.match?(Crm::Twenty::PersonMapper::HAN) != b.match?(Crm::Twenty::PersonMapper::HAN)
@@ -99,26 +111,21 @@ class Crm::Twenty::Conflicts
     [contact.email, person.dig('emails', 'primaryEmail').presence&.downcase]
   end
 
-  def same_email?(inbox, twenty, person)
-    inbox == twenty || Array(person.dig('emails', 'additionalEmails')).map(&:downcase).include?(inbox)
+  def twenty_emails(person)
+    [person.dig('emails', 'primaryEmail'), *person.dig('emails', 'additionalEmails')].compact_blank.map(&:downcase)
   end
 
   def phone_values(person)
     [contact.phone_number, self.class.person_phone(person)]
   end
 
-  def same_phone?(_inbox, _twenty, person)
-    variants = Crm::Twenty::PersonMapper.phone(contact.phone_number)[:variants]
+  def twenty_numbers(person)
     numbers = [person.dig('phones', 'primaryPhoneNumber')] + Array(person.dig('phones', 'additionalPhones')).filter_map { |phone| phone['number'] }
-    numbers.compact_blank.any? { |number| variants.include?(number.delete('^0-9+')) }
+    numbers.compact_blank.map { |number| number.delete('^0-9+') }
   end
 
   def company_values(person)
     [contact.additional_attributes&.dig('company_name').presence, person.dig('company', 'name').presence]
-  end
-
-  def same_company?(inbox, twenty, _person)
-    inbox.downcase.squish == twenty.downcase.squish
   end
 
   def duplicate_contacts(person)
