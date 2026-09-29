@@ -457,6 +457,7 @@
       "TICKET": "工單",
       "LINEAR_ISSUES": "已連結的 Linear 議題",
       "SHOPIFY_ORDERS": "Shopify 訂單",
+      "TWENTY_CRM": "Twenty CRM",
       "SHARED_FILES": "Attachments"
     },
     "SHARED_FILES": {
@@ -489,6 +490,18 @@
         "PARTIALLY_FULFILLED": "部分出貨",
         "UNFULFILLED": "未出貨"
       }
+    },
+    "TWENTY": {
+      "LOAD_ERROR": "無法載入 Twenty CRM 資料",
+      "NOT_LINKED": "尚未加入 Twenty",
+      "ADD_TO_TWENTY": "加入 Twenty",
+      "CREATE_ERROR": "無法將此聯絡人加入 Twenty",
+      "OPEN_IN_TWENTY": "在 Twenty 開啟",
+      "OPPORTUNITIES": "商機",
+      "CLOSE_DATE": "預計成交 {date}",
+      "NOTES": "備註",
+      "UNTITLED_NOTE": "未命名備註",
+      "VIEW_ALL_NOTES": "在 Twenty 查看全部"
     }
   },
   "CONVERSATION_CUSTOM_ATTRIBUTES": {

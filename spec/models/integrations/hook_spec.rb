@@ -218,6 +218,34 @@ RSpec.describe Integrations::Hook do
     end
   end
 
+  describe 'twenty credential validation' do
+    let(:account) { create(:account) }
+
+    it 'rejects a URL and key Twenty does not accept' do
+      stub_request(:post, 'https://crm.example.com/graphql').to_return(status: 401)
+
+      hook = build(:integrations_hook, :twenty, account: account)
+
+      expect(hook).not_to be_valid
+      expect(hook.errors[:base].first).to include('Twenty API error: 401')
+    end
+
+    it 'rejects a private address without calling it' do
+      hook = build(:integrations_hook, :twenty, account: account,
+                                                settings: { 'api_url' => 'https://twenty-server.twenty.svc', 'api_key' => 'key' })
+
+      expect(hook).not_to be_valid
+      expect(a_request(:post, /twenty-server/)).not_to have_been_made
+    end
+
+    it 'accepts a working connection' do
+      stub_request(:post, 'https://crm.example.com/graphql')
+        .to_return(status: 200, body: { data: { workspaceMembers: { totalCount: 1 } } }.to_json, headers: { 'Content-Type' => 'application/json' })
+
+      expect(build(:integrations_hook, :twenty, account: account)).to be_valid
+    end
+  end
+
   describe 'cloudflare realtimekit credential validation' do
     let(:account) { create(:account) }
     let(:settings) { { 'account_id' => 'account_id', 'app_id' => 'app_id', 'api_token' => 'api_token' } }

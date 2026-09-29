@@ -1,5 +1,6 @@
 class HookJob < MutexApplicationJob
   retry_on LockAcquisitionError, wait: 3.seconds, attempts: 3
+  retry_on Crm::Twenty::Api::Client::RateLimitError, wait: 1.minute, attempts: 5
 
   queue_as :medium
 
@@ -9,7 +10,8 @@ class HookJob < MutexApplicationJob
     'google_translate' => :google_translate_integration,
     'leadsquared' => :process_leadsquared_integration_with_lock,
     'linear' => :process_linear_integration,
-    'github' => :process_github_integration
+    'github' => :process_github_integration,
+    'twenty' => :process_twenty_integration
   }.freeze
 
   def perform(hook, event_name, event_data = {})
@@ -17,6 +19,9 @@ class HookJob < MutexApplicationJob
 
     processor = INTEGRATION_PROCESSORS[hook.app_id]
     send(processor, hook, event_name, event_data) if processor
+  rescue LockAcquisitionError, Crm::Twenty::Api::Client::RateLimitError
+    # Re-raised so retry_on above gets them; the rescue below would swallow them.
+    raise
   rescue StandardError => e
     Rails.logger.error e
   end
@@ -67,6 +72,19 @@ class HookJob < MutexApplicationJob
 
   def process_github_integration(hook, event_name, event_data)
     Integrations::Github::ProcessorService.new(hook: hook, event_name: event_name, event_data: event_data).perform
+  end
+
+  # One lock per contact: contact.updated, conversation.created and a note can land
+  # within milliseconds, and each may create the Twenty person if it is missing.
+  # Twenty only enforces unique emails, so without the lock a phone-only contact
+  # would get one person per event.
+  def process_twenty_integration(hook, event_name, event_data)
+    processor = Crm::Twenty::ProcessorService.new(hook)
+    contact_id = processor.contact_id_for(event_name, event_data)
+    return if contact_id.blank?
+
+    key = format(::Redis::Alfred::CRM_CONTACT_PROCESS_MUTEX, hook_id: hook.id, contact_id: contact_id)
+    with_lock(key, 30.seconds) { processor.process(event_name, event_data) }
   end
 
   def process_leadsquared_integration_with_lock(hook, event_name, event_data)

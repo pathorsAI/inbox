@@ -28,9 +28,26 @@ class Note < ApplicationRecord
 
   scope :latest, -> { order(created_at: :desc) }
 
+  after_create_commit :dispatch_create_event
+  after_update_commit :dispatch_update_event
+  after_destroy_commit :dispatch_destroy_event
+
   private
 
   def ensure_account_id
     self.account_id = contact&.account_id
+  end
+
+  def dispatch_create_event
+    Rails.configuration.dispatcher.dispatch(NOTE_CREATED, Time.zone.now, note: self)
+  end
+
+  def dispatch_update_event
+    Rails.configuration.dispatcher.dispatch(NOTE_UPDATED, Time.zone.now, note: self)
+  end
+
+  # The async listeners run after the row is gone, so they get ids, not the record.
+  def dispatch_destroy_event
+    Rails.configuration.dispatcher.dispatch(NOTE_DELETED, Time.zone.now, note_data: { id: id, contact_id: contact_id, account_id: account_id })
   end
 end

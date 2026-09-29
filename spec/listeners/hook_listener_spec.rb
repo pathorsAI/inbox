@@ -129,10 +129,35 @@ describe HookListener do
       it 'enqueues the job for contact.updated' do
         expect(HookJob)
           .to receive(:perform_later)
-          .with(hook, 'contact.updated', { contact: conversation.contact })
+          .with(hook, 'contact.updated', { contact: conversation.contact, changed_attributes: nil })
 
         listener.contact_updated(contact_event)
       end
+    end
+  end
+
+  describe '#note_created' do
+    let(:event_name) { 'note.created' }
+    let(:note) { create(:note, account: account, contact: conversation.contact) }
+    let(:note_event) { Events::Base.new('note.created', Time.zone.now, note: note) }
+
+    before do
+      stub_request(:post, 'https://crm.example.com/graphql')
+        .to_return(status: 200, body: { data: { workspaceMembers: { totalCount: 1 } } }.to_json, headers: { 'Content-Type' => 'application/json' })
+    end
+
+    it 'enqueues the job for a twenty hook' do
+      hook = create(:integrations_hook, :twenty, account: account)
+      expect(HookJob).to receive(:perform_later).with(hook, 'note.created', { note: note }).once
+
+      listener.note_created(note_event)
+    end
+
+    it 'enqueues nothing for apps that do not sync notes' do
+      create(:integrations_hook, :github, account: account)
+      expect(HookJob).not_to receive(:perform_later)
+
+      listener.note_created(note_event)
     end
   end
 

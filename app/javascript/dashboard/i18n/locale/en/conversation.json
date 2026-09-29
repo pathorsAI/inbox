@@ -504,6 +504,7 @@
       "TICKET": "Ticket",
       "LINEAR_ISSUES": "Linked Linear Issues",
       "SHOPIFY_ORDERS": "Shopify Orders",
+      "TWENTY_CRM": "Twenty CRM",
       "SHARED_FILES": "Attachments"
     },
     "SHARED_FILES": {
@@ -536,6 +537,18 @@
         "PARTIALLY_FULFILLED": "Partially Fulfilled",
         "UNFULFILLED": "Unfulfilled"
       }
+    },
+    "TWENTY": {
+      "LOAD_ERROR": "Could not load Twenty CRM data",
+      "NOT_LINKED": "Not in Twenty yet",
+      "ADD_TO_TWENTY": "Add to Twenty",
+      "CREATE_ERROR": "Could not add this contact to Twenty",
+      "OPEN_IN_TWENTY": "Open in Twenty",
+      "OPPORTUNITIES": "Opportunities",
+      "CLOSE_DATE": "Closes {date}",
+      "NOTES": "Notes",
+      "UNTITLED_NOTE": "Untitled note",
+      "VIEW_ALL_NOTES": "View all in Twenty"
     }
   },
   "CONVERSATION_CUSTOM_ATTRIBUTES": {

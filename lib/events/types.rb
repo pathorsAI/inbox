@@ -48,6 +48,11 @@ module Events::Types
   CONTACT_MERGED = 'contact.merged'
   CONTACT_DELETED = 'contact.deleted'
 
+  # contact note events
+  NOTE_CREATED = 'note.created'
+  NOTE_UPDATED = 'note.updated'
+  NOTE_DELETED = 'note.deleted'
+
   # contact events
   INBOX_CREATED = 'inbox.created'
   INBOX_UPDATED = 'inbox.updated'
