@@ -1,7 +1,9 @@
 <script setup>
+import { ref } from 'vue';
 import Button from 'dashboard/components-next/button/Button.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
+import Popover from 'dashboard/components-next/popover/Popover.vue';
 import ContactSortMenu from './components/ContactSortMenu.vue';
 import ContactMoreActions from './components/ContactMoreActions.vue';
 import ComposeConversation from 'dashboard/components-next/NewConversation/ComposeConversation.vue';
@@ -14,7 +16,6 @@ defineProps({
   activeSort: { type: String, default: 'last_activity_at' },
   activeOrdering: { type: String, default: '' },
   isSegmentsView: { type: Boolean, default: false },
-  hasActiveFilters: { type: Boolean, default: false },
   isLabelView: { type: Boolean, default: false },
   isActiveView: { type: Boolean, default: false },
 });
@@ -26,9 +27,15 @@ const emit = defineEmits([
   'add',
   'import',
   'export',
-  'createSegment',
   'deleteSegment',
 ]);
+
+// Filtering the list lives in the filter bar under the header; the header only edits a segment.
+const segmentFilterPopoverRef = ref(null);
+
+defineExpose({
+  openSegmentFilter: () => segmentFilterPopoverRef.value?.show(),
+});
 </script>
 
 <template>
@@ -61,46 +68,26 @@ const emit = defineEmits([
         </div>
         <div class="flex items-center flex-shrink-0 gap-4">
           <div class="flex items-center gap-2">
-            <div v-if="!isLabelView && !isActiveView" class="relative">
+            <template v-if="isSegmentsView && !isLabelView && !isActiveView">
+              <Popover ref="segmentFilterPopoverRef" @show="emit('filter')">
+                <Button
+                  icon="i-lucide-pen-line"
+                  color="slate"
+                  size="sm"
+                  variant="ghost"
+                />
+                <template #content="{ hide }">
+                  <slot name="filter" :hide="hide" />
+                </template>
+              </Popover>
               <Button
-                id="toggleContactsFilterButton"
-                :icon="
-                  isSegmentsView ? 'i-lucide-pen-line' : 'i-lucide-list-filter'
-                "
+                icon="i-lucide-trash"
                 color="slate"
                 size="sm"
-                class="relative w-8"
                 variant="ghost"
-                @click="emit('filter')"
-              >
-                <div
-                  v-if="hasActiveFilters && !isSegmentsView"
-                  class="absolute top-0 right-0 w-2 h-2 rounded-full bg-n-brand"
-                />
-              </Button>
-              <slot name="filter" />
-            </div>
-            <Button
-              v-if="
-                hasActiveFilters &&
-                !isSegmentsView &&
-                !isLabelView &&
-                !isActiveView
-              "
-              icon="i-lucide-save"
-              color="slate"
-              size="sm"
-              variant="ghost"
-              @click="emit('createSegment')"
-            />
-            <Button
-              v-if="isSegmentsView && !isLabelView && !isActiveView"
-              icon="i-lucide-trash"
-              color="slate"
-              size="sm"
-              variant="ghost"
-              @click="emit('deleteSegment')"
-            />
+                @click="emit('deleteSegment')"
+              />
+            </template>
             <ContactSortMenu
               :active-sort="activeSort"
               :active-ordering="activeOrdering"

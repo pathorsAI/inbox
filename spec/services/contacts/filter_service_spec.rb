@@ -333,6 +333,50 @@ describe Contacts::FilterService do
       end
     end
 
+    context 'with presence of email and phone' do
+      it 'finds contacts that have a phone number, treating a blank one as none' do
+        el_contact.update_column(:phone_number, '') # rubocop:disable Rails/SkipsModelValidations
+        params[:payload] = [{ attribute_key: 'phone_number', filter_operator: 'is_present', values: [], query_operator: nil }.with_indifferent_access]
+
+        expect(filter_service.new(account, first_user, params).perform[:contacts]).to contain_exactly(cs_contact)
+      end
+
+      it 'combines email and phone presence' do
+        params[:payload] = [
+          { attribute_key: 'email', filter_operator: 'is_present', values: [], query_operator: 'AND' }.with_indifferent_access,
+          { attribute_key: 'phone_number', filter_operator: 'is_not_present', values: [], query_operator: nil }.with_indifferent_access
+        ]
+
+        expect(filter_service.new(account, first_user, params).perform[:contacts]).to contain_exactly(en_contact, el_contact)
+      end
+    end
+
+    context 'with twenty_status' do
+      before do
+        en_contact.update!(additional_attributes: en_contact.additional_attributes.merge('external' => { 'twenty_id' => 'person-1' }))
+        el_contact.update!(additional_attributes: el_contact.additional_attributes.merge(
+          'external' => { 'twenty_id' => 'person-2', 'twenty_conflicts' => [{ 'type' => 'field', 'field' => 'email' }] }
+        ))
+      end
+
+      def contacts_with(operator, status)
+        params[:payload] =
+          [{ attribute_key: 'twenty_status', filter_operator: operator, values: [status], query_operator: nil }.with_indifferent_access]
+        filter_service.new(account, first_user, params).perform[:contacts]
+      end
+
+      it 'finds linked, conflicted and unlinked contacts' do
+        expect(contacts_with('equal_to', 'linked')).to contain_exactly(en_contact, el_contact)
+        expect(contacts_with('equal_to', 'needs_attention')).to contain_exactly(el_contact)
+        expect(contacts_with('equal_to', 'unlinked')).to contain_exactly(cs_contact)
+        expect(contacts_with('not_equal_to', 'needs_attention')).to contain_exactly(en_contact, cs_contact)
+      end
+
+      it 'rejects an unknown status' do
+        expect { contacts_with('equal_to', 'maybe') }.to raise_error(CustomExceptions::CustomFilter::InvalidValue)
+      end
+    end
+
     context 'with additional attributes' do
       let(:payload) do
         [

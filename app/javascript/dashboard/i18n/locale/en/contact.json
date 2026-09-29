@@ -412,6 +412,54 @@
       "ACTIVE_FILTERS": {
         "MORE_FILTERS": "+ {count} more filters",
         "CLEAR_FILTERS": "Clear filters"
+      },
+      "QUICK": {
+        "PILL_VALUE": "{label}: {value}",
+        "LAST_ACTIVITY": {
+          "LABEL": "Last activity",
+          "TODAY": "Today",
+          "LAST_7_DAYS": "Last 7 days",
+          "LAST_30_DAYS": "Last 30 days",
+          "LAST_90_DAYS": "Last 90 days",
+          "CUSTOM_DATE": "Custom date",
+          "AFTER": "After {date}"
+        },
+        "LABELS": {
+          "LABEL": "Labels",
+          "SEARCH": "Search labels",
+          "EMPTY": "No labels yet"
+        },
+        "COMPANY": {
+          "LABEL": "Company",
+          "PLACEHOLDER": "Company name contains"
+        },
+        "COUNTRY": {
+          "LABEL": "Country",
+          "SEARCH": "Search countries"
+        },
+        "CONTACT_METHOD": {
+          "LABEL": "Contact info",
+          "EMAIL": "Has email",
+          "PHONE": "Has phone",
+          "BOTH": "Has both"
+        },
+        "TWENTY_STATUS": {
+          "LABEL": "Twenty status",
+          "LINKED": "Linked",
+          "NEEDS_ATTENTION": "Needs attention",
+          "UNLINKED": "Not linked"
+        },
+        "NO_MATCHES": "No matches",
+        "APPLY": "Apply",
+        "CLEAR": "Clear",
+        "CLEAR_PILL": "Clear {label}",
+        "MORE": "Filters",
+        "MORE_COUNT": "Filters · {count}",
+        "ADVANCED": "Conditions",
+        "ADVANCED_COUNT": "Conditions · {count}",
+        "SAVE_SEGMENT": "Save as segment",
+        "CLEAR_ALL": "Clear all",
+        "OR_LOCKED": "Advanced conditions use OR. Edit them in Conditions."
       }
     },
     "CARD": {

@@ -199,6 +199,18 @@ describe('Popover', () => {
       expect(desktopPopover().exists()).toBe(true);
       expect(wrapper.emitted('hide')).toBeUndefined();
     });
+
+    it('stays open when clicking a dropdown menu teleported out of the content', async () => {
+      mountPopover();
+      await openPopover();
+      const menu = document.createElement('div');
+      menu.setAttribute('data-dropdown-menu', '');
+      document.body.appendChild(menu);
+      menu.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+      await flushPromises();
+      expect(desktopPopover().exists()).toBe(true);
+      expect(wrapper.emitted('hide')).toBeUndefined();
+    });
   });
 
   describe('mobile view', () => {

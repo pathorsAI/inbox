@@ -66,6 +66,7 @@ const filterOperatorIcon = {
  * @property {import('vue').ComputedRef<Operator[]>} equalityOperators - Equality comparison operators
  * @property {import('vue').ComputedRef<Operator[]>} presenceOperators - Presence check operators
  * @property {import('vue').ComputedRef<Operator[]>} containmentOperators - Containment check operators
+ * @property {import('vue').ComputedRef<Operator[]>} textPresenceOperators - Containment plus presence check operators
  * @property {import('vue').ComputedRef<Operator[]>} comparisonOperators - Numeric comparison operators
  * @property {import('vue').ComputedRef<Operator[]>} dateOperators - Date-specific operators
  * @property {(key: 'list'|'text'|'number'|'link'|'date'|'checkbox') => Operator[]} getOperatorTypes - Get operators for a field type
@@ -109,6 +110,13 @@ export function useOperators() {
     operators.value[FILTER_OPS.NOT_EQUAL_TO],
     operators.value[FILTER_OPS.CONTAINS],
     operators.value[FILTER_OPS.DOES_NOT_CONTAIN],
+  ]);
+
+  /** @type {import('vue').ComputedRef<Array<Operator>>} */
+  const textPresenceOperators = computed(() => [
+    ...containmentOperators.value,
+    operators.value[FILTER_OPS.IS_PRESENT],
+    operators.value[FILTER_OPS.IS_NOT_PRESENT],
   ]);
 
   /** @type {import('vue').ComputedRef<Array<Operator>>} */
@@ -157,6 +165,7 @@ export function useOperators() {
     equalityOperators,
     presenceOperators,
     containmentOperators,
+    textPresenceOperators,
     comparisonOperators,
     dateOperators,
     getOperatorTypes,

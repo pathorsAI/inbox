@@ -98,10 +98,12 @@ useEventListener(
   { capture: true, passive: true }
 );
 
-// Selectors for teleported elements that should not trigger close
+// Selectors for teleported elements that should not trigger close, including
+// dropdown menus opened from inside the content (see provideDropdownTeleport)
 const clickOutsideIgnore = [
   'dialog.ProseMirror-prompt-backdrop',
   '[data-popover-content]',
+  '[data-dropdown-menu]',
 ];
 
 // An overlay opened from inside the popover teleports out of it, so its own Escape handler
@@ -117,6 +119,8 @@ const isNestedOverlay = event => {
   );
 };
 
+// Takes Escape and reka's pointer-down-outside event as is: reka dismisses unless its own event
+// is prevented (preventing detail.originalEvent does not count), and that event keeps the target.
 const keepOpenForNestedOverlay = event => {
   if (isNestedOverlay(event)) event.preventDefault();
 };
@@ -144,9 +148,7 @@ defineExpose({ show, hide, toggle });
           :collision-padding="16"
           class="flex flex-col max-h-[var(--reka-popover-content-available-height)] bg-n-alpha-3 backdrop-blur-[100px] shadow-xl rounded-xl z-[9999] duration-fast ease-out-soft data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 motion-reduce:animate-none"
           @escape-key-down="keepOpenForNestedOverlay"
-          @pointer-down-outside="
-            keepOpenForNestedOverlay($event.detail.originalEvent)
-          "
+          @pointer-down-outside="keepOpenForNestedOverlay"
           @focus-outside="$event.preventDefault()"
         >
           <div

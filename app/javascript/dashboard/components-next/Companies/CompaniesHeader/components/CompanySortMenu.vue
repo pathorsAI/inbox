@@ -1,8 +1,9 @@
 <script setup>
-import { ref, computed, toRef } from 'vue';
+import { computed, toRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import Button from 'dashboard/components-next/button/Button.vue';
+import Popover from 'dashboard/components-next/popover/Popover.vue';
 import SelectMenu from 'dashboard/components-next/selectmenu/SelectMenu.vue';
 
 const props = defineProps({
@@ -19,8 +20,6 @@ const props = defineProps({
 const emit = defineEmits(['update:sort']);
 
 const { t } = useI18n();
-
-const isMenuOpen = ref(false);
 
 const sortMenus = [
   {
@@ -83,44 +82,41 @@ const handleOrderChange = value => {
 </script>
 
 <template>
-  <div class="relative">
-    <Button
-      icon="i-lucide-arrow-down-up"
-      color="slate"
-      size="sm"
-      variant="ghost"
-      :class="isMenuOpen ? 'bg-n-alpha-2' : ''"
-      @click="isMenuOpen = !isMenuOpen"
-    />
-    <div
-      v-if="isMenuOpen"
-      v-on-clickaway="() => (isMenuOpen = false)"
-      class="absolute top-full mt-1 ltr:-right-32 rtl:-left-32 sm:ltr:right-0 sm:rtl:left-0 flex flex-col gap-4 bg-n-alpha-3 backdrop-blur-[100px] border border-n-weak w-72 rounded-xl p-4"
-    >
-      <div class="flex items-center justify-between gap-2">
-        <span class="text-sm text-n-slate-12">
-          {{ t('COMPANIES.SORT_BY.LABEL') }}
-        </span>
-        <SelectMenu
-          :model-value="activeSort"
-          :options="sortMenus"
-          :label="activeSortLabel"
-          sub-menu-position="left"
-          @update:model-value="handleSortChange"
-        />
+  <Popover disable-mobile-view :show-content-border="false">
+    <template #default="{ isOpen }">
+      <Button
+        icon="i-lucide-arrow-down-up"
+        color="slate"
+        size="sm"
+        variant="ghost"
+        :class="isOpen ? 'bg-n-alpha-2' : ''"
+      />
+    </template>
+    <template #content>
+      <div class="flex flex-col gap-4 border border-n-weak w-72 rounded-xl p-4">
+        <div class="flex items-center justify-between gap-2">
+          <span class="text-sm text-n-slate-12">
+            {{ t('COMPANIES.SORT_BY.LABEL') }}
+          </span>
+          <SelectMenu
+            :model-value="activeSort"
+            :options="sortMenus"
+            :label="activeSortLabel"
+            @update:model-value="handleSortChange"
+          />
+        </div>
+        <div class="flex items-center justify-between gap-2">
+          <span class="text-sm text-n-slate-12">
+            {{ t('COMPANIES.ORDER.LABEL') }}
+          </span>
+          <SelectMenu
+            :model-value="activeOrdering"
+            :options="orderingMenus"
+            :label="activeOrderingLabel"
+            @update:model-value="handleOrderChange"
+          />
+        </div>
       </div>
-      <div class="flex items-center justify-between gap-2">
-        <span class="text-sm text-n-slate-12">
-          {{ t('COMPANIES.ORDER.LABEL') }}
-        </span>
-        <SelectMenu
-          :model-value="activeOrdering"
-          :options="orderingMenus"
-          :label="activeOrderingLabel"
-          sub-menu-position="left"
-          @update:model-value="handleOrderChange"
-        />
-      </div>
-    </div>
-  </div>
+    </template>
+  </Popover>
 </template>

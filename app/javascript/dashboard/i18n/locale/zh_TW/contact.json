@@ -410,6 +410,54 @@
       "ACTIVE_FILTERS": {
         "MORE_FILTERS": "+ {count} 個篩選條件",
         "CLEAR_FILTERS": "清除篩選條件"
+      },
+      "QUICK": {
+        "PILL_VALUE": "{label}：{value}",
+        "LAST_ACTIVITY": {
+          "LABEL": "最後活動",
+          "TODAY": "今天",
+          "LAST_7_DAYS": "7 天內",
+          "LAST_30_DAYS": "30 天內",
+          "LAST_90_DAYS": "90 天內",
+          "CUSTOM_DATE": "自訂日期",
+          "AFTER": "晚於 {date}"
+        },
+        "LABELS": {
+          "LABEL": "標籤",
+          "SEARCH": "搜尋標籤",
+          "EMPTY": "尚未建立標籤"
+        },
+        "COMPANY": {
+          "LABEL": "公司",
+          "PLACEHOLDER": "公司名稱包含"
+        },
+        "COUNTRY": {
+          "LABEL": "國家",
+          "SEARCH": "搜尋國家"
+        },
+        "CONTACT_METHOD": {
+          "LABEL": "聯絡方式",
+          "EMAIL": "有 email",
+          "PHONE": "有電話",
+          "BOTH": "兩者都有"
+        },
+        "TWENTY_STATUS": {
+          "LABEL": "Twenty 狀態",
+          "LINKED": "已連結",
+          "NEEDS_ATTENTION": "需要處理",
+          "UNLINKED": "未連結"
+        },
+        "NO_MATCHES": "找不到符合的項目",
+        "APPLY": "套用",
+        "CLEAR": "清除",
+        "CLEAR_PILL": "清除{label}",
+        "MORE": "篩選",
+        "MORE_COUNT": "篩選 · {count}",
+        "ADVANCED": "條件",
+        "ADVANCED_COUNT": "條件 · {count}",
+        "SAVE_SEGMENT": "存成區段",
+        "CLEAR_ALL": "清除全部",
+        "OR_LOCKED": "進階條件用了 OR，請在「條件」裡編輯"
       }
     },
     "CARD": {

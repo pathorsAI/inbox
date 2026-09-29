@@ -145,6 +145,8 @@ contacts:
       - "contains"
       - "does_not_contain"
       - "starts_with"
+      - "is_present"
+      - "is_not_present"
   email:
     attribute_type: "standard"
     data_type: "text_case_insensitive"
@@ -153,6 +155,8 @@ contacts:
       - "not_equal_to"
       - "contains"
       - "does_not_contain"
+      - "is_present"
+      - "is_not_present"
   identifier:
     attribute_type: "standard"
     data_type: "text_case_insensitive"
@@ -213,6 +217,17 @@ contacts:
 ### ----- End of Contact Filters ----- ###
 
 ### ----- Message Filters ----- ###
+
+  # Fork: whether the contact is linked to a Twenty CRM person, or has sync
+  # conflicts waiting (see Crm::Twenty). Not a column; Contacts::FilterService
+  # builds its condition from additional_attributes.external.
+  twenty_status:
+    attribute_type: "standard"
+    data_type: "twenty_status"
+    filter_operators:
+      - "equal_to"
+      - "not_equal_to"
+
 messages:
   message_type:
     attribute_type: "standard"

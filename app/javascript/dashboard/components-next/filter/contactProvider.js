@@ -1,13 +1,17 @@
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useOperators } from './operators';
-import { useMapGetter } from 'dashboard/composables/store.js';
+import {
+  useFunctionGetter,
+  useMapGetter,
+} from 'dashboard/composables/store.js';
 import {
   buildAttributesFilterTypes,
   CONTACT_ATTRIBUTES,
 } from './helper/filterHelper.js';
 import { groupFilterTypes } from './helper/filterAttributeIcons.js';
 import countries from 'shared/constants/countries.js';
+import { TWENTY_STATUSES } from 'dashboard/routes/dashboard/contacts/contactFilterItems';
 
 /**
  * @typedef {Object} FilterOption
@@ -52,13 +56,45 @@ export function useContactFilterContext() {
 
   const contactAttributes = useMapGetter('attributes/getContactAttributes');
   const labels = useMapGetter('labels/getLabels');
+  const twentyIntegration = useFunctionGetter(
+    'integrations/getIntegration',
+    'twenty'
+  );
 
   const {
     equalityOperators,
     containmentOperators,
+    textPresenceOperators,
     dateOperators,
     getOperatorTypes,
   } = useOperators();
+
+  /**
+   * Offered only while the Twenty integration is on.
+   * @type {import('vue').ComputedRef<FilterType[]>}
+   */
+  const twentyFilterTypes = computed(() => {
+    if (!twentyIntegration.value.enabled) return [];
+    const label = t('CONTACTS_LAYOUT.FILTER.QUICK.TWENTY_STATUS.LABEL');
+    return [
+      {
+        attributeKey: CONTACT_ATTRIBUTES.TWENTY_STATUS,
+        value: CONTACT_ATTRIBUTES.TWENTY_STATUS,
+        attributeName: label,
+        label,
+        inputType: 'searchSelect',
+        options: TWENTY_STATUSES.map(status => ({
+          id: status,
+          name: t(
+            `CONTACTS_LAYOUT.FILTER.QUICK.TWENTY_STATUS.${status.toUpperCase()}`
+          ),
+        })),
+        dataType: 'text',
+        filterOperators: equalityOperators.value,
+        attributeModel: 'standard',
+      },
+    ];
+  });
 
   /**
    * @type {import('vue').ComputedRef<FilterType[]>}
@@ -92,7 +128,7 @@ export function useContactFilterContext() {
       label: t('CONTACTS_LAYOUT.FILTER.EMAIL'),
       inputType: 'plainText',
       dataType: 'text',
-      filterOperators: containmentOperators.value,
+      filterOperators: textPresenceOperators.value,
       attributeModel: 'standard',
     },
     {
@@ -102,7 +138,7 @@ export function useContactFilterContext() {
       label: t('CONTACTS_LAYOUT.FILTER.PHONE_NUMBER'),
       inputType: 'plainText',
       dataType: 'text',
-      filterOperators: containmentOperators.value,
+      filterOperators: textPresenceOperators.value,
       attributeModel: 'standard',
     },
     {
@@ -200,6 +236,7 @@ export function useContactFilterContext() {
       filterOperators: equalityOperators.value,
       attributeModel: 'standard',
     },
+    ...twentyFilterTypes.value,
     ...customFilterTypes.value,
   ]);
 
