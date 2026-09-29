@@ -116,6 +116,18 @@ describe Whatsapp::OneoffCampaignService do
         described_class.new(campaign: campaign).perform
       end
 
+      it 'skips blocked contacts' do
+        blocked_contact, unblocked_contact = create_list(:contact, 2, :with_phone_number, account: account)
+        blocked_contact.update!(blocked: true)
+        blocked_contact.update_labels([label1.title])
+        unblocked_contact.update_labels([label1.title])
+
+        expect(whatsapp_channel).not_to receive(:send_template).with(blocked_contact.phone_number, anything, nil)
+        expect(whatsapp_channel).to receive(:send_template).with(unblocked_contact.phone_number, anything, nil).once
+
+        described_class.new(campaign: campaign).perform
+      end
+
       it 'sends to the contact BSUID when the contact has no phone number and exactly one WhatsApp identity' do
         contact = create(:contact, account: account, phone_number: nil)
         contact.update_labels([label1.title])

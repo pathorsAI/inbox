@@ -36,7 +36,7 @@ module Enterprise::Whatsapp::OneoffCampaignService
   end
 
   def create_recipients(audience_labels)
-    contacts = campaign.account.contacts.tagged_with(audience_labels, any: true)
+    contacts = campaign.account.contacts.where(blocked: false).tagged_with(audience_labels, any: true)
     Rails.logger.info "Processing #{contacts.count} contacts for campaign #{campaign.id}"
 
     contacts.find_each.map do |contact|
