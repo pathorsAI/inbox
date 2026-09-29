@@ -15,12 +15,7 @@ RSpec.describe 'Twenty Integration API', type: :request do
       'jobTitle' => 'Head of Support',
       'city' => 'Taipei',
       'linkedinLink' => { 'primaryLinkUrl' => '' },
-      'company' => {
-        'id' => 'company-1', 'name' => 'Acme', 'domainName' => { 'primaryLinkUrl' => 'acme.com' },
-        'opportunities' => { 'edges' => [{ 'node' => { 'id' => 'opp-1', 'name' => 'Acme voice agent', 'stage' => 'MEETING',
-                                                       'amount' => { 'amountMicros' => 120_000_000_000, 'currencyCode' => 'TWD' },
-                                                       'closeDate' => '2026-10-31T00:00:00Z', 'updatedAt' => '2026-09-01' } }] }
-      },
+      'company' => { 'id' => 'company-1', 'name' => 'Acme', 'domainName' => { 'primaryLinkUrl' => 'acme.com' } },
       'pointOfContactForOpportunities' => { 'edges' => [] },
       'noteTargets' => {
         'totalCount' => 2,
@@ -46,6 +41,10 @@ RSpec.describe 'Twenty Integration API', type: :request do
     stub_twenty('query Objects', data: { objects: { edges: [{ node: { nameSingular: 'opportunity', fieldsList: [
                   { name: 'stage', options: [{ value: 'MEETING', label: 'Meeting', color: 'sky' }] }
                 ] } }] } })
+    stub_twenty('query CompanyOpportunities', data: { opportunities: { edges: [{ node: {
+                  id: 'opp-1', name: 'Acme voice agent', stage: 'MEETING', amount: { amountMicros: 120_000_000_000, currencyCode: 'TWD' },
+                  closeDate: '2026-10-31T00:00:00Z', updatedAt: '2026-09-01'
+                } }] } })
     create(:integrations_hook, :twenty, account: account)
   end
 

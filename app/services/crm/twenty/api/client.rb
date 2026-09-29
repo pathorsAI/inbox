@@ -45,12 +45,14 @@ class Crm::Twenty::Api::Client
   OPPORTUNITY_FIELDS = 'id name stage closeDate updatedAt amount { amountMicros currencyCode }'.freeze
 
   # Nested connections ignore first/orderBy in v2.41, so they come back whole
-  # and are sorted by the caller.
+  # and are sorted by the caller. A one-to-many two levels down (person →
+  # company → opportunities) comes back empty, so the company's opportunities
+  # are a query of their own.
   PERSON_CARD_QUERY = <<~GRAPHQL.freeze
     query PersonCard($id: UUID!) {
       person(filter: { id: { eq: $id } }) {
         #{PERSON_SCALARS}
-        company { #{COMPANY_FIELDS} opportunities { edges { node { #{OPPORTUNITY_FIELDS} } } } }
+        company { #{COMPANY_FIELDS} }
         pointOfContactForOpportunities { edges { node { #{OPPORTUNITY_FIELDS} } } }
         noteTargets { totalCount edges { node { note { id title createdAt bodyV2 { markdown } createdBy { name } } } } }
       }
@@ -105,8 +107,20 @@ class Crm::Twenty::Api::Client
     GRAPHQL
   end
 
-  def person_card(id)
-    query(PERSON_CARD_QUERY, id: id)['person']
+  # The person with their company's latest opportunities under
+  # company.opportunities, as if Twenty had nested them.
+  def person_card(id, opportunity_limit: 5)
+    person = query(PERSON_CARD_QUERY, id: id)['person']
+    return person if person.nil? || person['company'].blank?
+
+    person['company']['opportunities'] = query(<<~GRAPHQL, id: person['company']['id'], first: opportunity_limit)['opportunities']
+      query CompanyOpportunities($id: UUID!, $first: Int) {
+        opportunities(filter: { companyId: { eq: $id } }, first: $first, orderBy: [{ updatedAt: DescNullsLast }]) {
+          edges { node { #{OPPORTUNITY_FIELDS} } }
+        }
+      }
+    GRAPHQL
+    person
   end
 
   def create_person(data)
