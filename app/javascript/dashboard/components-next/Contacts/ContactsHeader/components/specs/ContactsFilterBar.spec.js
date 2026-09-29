@@ -83,6 +83,32 @@ describe('ContactsFilterBar', () => {
     expect(buttonWithText(`${QUICK}.SAVE_SEGMENT`)).toBeUndefined();
   });
 
+  it('in compact mode keeps only the overflow and advanced buttons, with segment actions in the overflow menu', async () => {
+    mountBar({
+      compact: true,
+      filters: [
+        {
+          attributeKey: 'email',
+          filterOperator: 'is_present',
+          values: '',
+          queryOperator: 'and',
+        },
+      ],
+    });
+
+    // Only the invisible measuring copy renders the pill; the visible row has none.
+    const lastActivityButtons = wrapper
+      .findAll('button')
+      .filter(button => button.text() === `${QUICK}.LAST_ACTIVITY.LABEL`);
+    expect(lastActivityButtons).toHaveLength(1);
+    expect(buttonWithText(`${QUICK}.SAVE_SEGMENT`)).toBeUndefined();
+
+    await buttonWithText(`${QUICK}.MORE_COUNT`).trigger('click');
+    await flushPromises();
+    expect(buttonWithText(`${QUICK}.SAVE_SEGMENT`)).toBeDefined();
+    expect(buttonWithText(`${QUICK}.CLEAR_ALL`)).toBeDefined();
+  });
+
   it('leaves the Twenty pill out while the integration is off', () => {
     mountBar({ showTwenty: false });
     expect(buttonWithText(`${QUICK}.TWENTY_STATUS.LABEL`)).toBeUndefined();

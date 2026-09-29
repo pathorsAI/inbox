@@ -32,6 +32,9 @@ const props = defineProps({
   filters: { type: Array, default: () => [] },
   labels: { type: Array, default: () => [] },
   showTwenty: { type: Boolean, default: false },
+  // Rendered inside the header's action row on narrow screens: every pill
+  // lives in the overflow menu, and so do 存成區段 / 清除全部.
+  compact: { type: Boolean, default: false },
 });
 
 // `apply` carries the whole new condition list; an empty list means nothing is left applied.
@@ -138,7 +141,7 @@ const measure = () => {
 useResizeObserver([barRef, probeRef, actionsRef], measure);
 
 const visibleCount = computed(() => {
-  if (isBelowSm.value) return 0;
+  if (props.compact || isBelowSm.value) return 0;
   return measured.value ? fitPillCount(measured.value) : pills.value.length;
 });
 const visiblePills = computed(() => pills.value.slice(0, visibleCount.value));
@@ -287,6 +290,31 @@ const updateAndClose = (key, value, hide) => {
                   @clear="updateAndClose(pill.key, null, hide)"
                 />
               </div>
+              <div
+                v-if="compact && filters.length"
+                class="flex items-center gap-1 px-1 pt-2 mt-1 border-t border-n-weak"
+              >
+                <Button
+                  variant="ghost"
+                  color="slate"
+                  size="xs"
+                  :label="quickT('SAVE_SEGMENT')"
+                  @click="
+                    hide();
+                    emit('createSegment');
+                  "
+                />
+                <Button
+                  variant="ghost"
+                  color="slate"
+                  size="xs"
+                  :label="quickT('CLEAR_ALL')"
+                  @click="
+                    hide();
+                    emit('clearAll');
+                  "
+                />
+              </div>
             </div>
           </template>
         </Popover>
@@ -305,7 +333,7 @@ const updateAndClose = (key, value, hide) => {
     </div>
 
     <div
-      v-if="filters.length"
+      v-if="filters.length && !compact"
       ref="actionsRef"
       class="flex items-center gap-1 ms-auto shrink-0"
     >
