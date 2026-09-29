@@ -31,6 +31,20 @@ RSpec.describe Enterprise::Whatsapp::OneoffCampaignService do
     allow_any_instance_of(Whatsapp::OneoffCampaignService).to receive(:channel).and_return(whatsapp_channel) # rubocop:disable RSpec/AnyInstance
   end
 
+  it 'leaves blocked contacts out of the campaign recipients' do
+    blocked_contact, unblocked_contact = create_list(:contact, 2, :with_phone_number, account: account)
+    blocked_contact.update!(blocked: true)
+    blocked_contact.update_labels([label.title])
+    unblocked_contact.update_labels([label.title])
+
+    expect(whatsapp_channel).not_to receive(:send_template).with(blocked_contact.phone_number, anything, nil)
+    expect(whatsapp_channel).to receive(:send_template).with(unblocked_contact.phone_number, anything, nil).once
+
+    Whatsapp::OneoffCampaignService.new(campaign: campaign).perform
+
+    expect(CampaignRecipient.where(campaign: campaign).pluck(:contact_id)).to eq([unblocked_contact.id])
+  end
+
   it 'marks contacts without phone or BSUID as skipped' do
     contact = create(:contact, account: account, phone_number: nil)
     contact.update_labels([label.title])
