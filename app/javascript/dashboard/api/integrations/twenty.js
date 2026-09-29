@@ -21,6 +21,14 @@ class TwentyAPI extends ApiClient {
       { signal }
     );
   }
+
+  resolveConflict(payload, { signal } = {}) {
+    return axios.post(`${this.url}/conflicts/resolve`, payload, { signal });
+  }
+
+  getConflicts(page = 1) {
+    return axios.get(`${this.url}/conflicts`, { params: { page } });
+  }
 }
 
 export default new TwentyAPI();

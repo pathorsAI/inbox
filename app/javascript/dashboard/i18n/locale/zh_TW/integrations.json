@@ -41,6 +41,15 @@
         "ERROR": "無法更新此收件匣，請重試。"
       }
     },
+    "TWENTY": {
+      "CONFLICTS": {
+        "TITLE": "同步待處理",
+        "DESCRIPTION": "Inbox 與 Twenty 資料對不上的聯絡人。在這裡處理的結果會同時寫進兩邊。",
+        "EMPTY": "目前沒有待處理的項目",
+        "LOAD_ERROR": "無法載入同步待處理項目",
+        "LOAD_MORE": "載入更多"
+      }
+    },
     "SHOPIFY": {
       "HEADER": "Shopify",
       "DELETE": {

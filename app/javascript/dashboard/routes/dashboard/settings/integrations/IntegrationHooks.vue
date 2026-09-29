@@ -6,6 +6,7 @@ import { useIntegrationHook } from 'dashboard/composables/useIntegrationHook';
 import NewHook from './NewHook.vue';
 import SingleIntegrationHooks from './SingleIntegrationHooks.vue';
 import MultipleIntegrationHooks from './MultipleIntegrationHooks.vue';
+import TwentyConflictsSection from './TwentyConflictsSection.vue';
 import SettingsLayout from '../SettingsLayout.vue';
 import BaseSettingsHeader from '../components/BaseSettingsHeader.vue';
 
@@ -14,6 +15,7 @@ export default {
     NewHook,
     SingleIntegrationHooks,
     MultipleIntegrationHooks,
+    TwentyConflictsSection,
     SettingsLayout,
     BaseSettingsHeader,
   },
@@ -31,6 +33,7 @@ export default {
       isIntegrationMultiple,
       isIntegrationSingle,
       isHookTypeInbox,
+      hasConnectedHooks,
     } = useIntegrationHook(integrationId);
 
     return {
@@ -38,6 +41,7 @@ export default {
       isIntegrationMultiple,
       isIntegrationSingle,
       isHookTypeInbox,
+      hasConnectedHooks,
     };
   },
   data() {
@@ -141,6 +145,10 @@ export default {
             :integration-id="integrationId"
             @add="openAddHookModal"
             @delete="openDeletePopup"
+          />
+          <TwentyConflictsSection
+            v-if="integrationId === 'twenty' && hasConnectedHooks"
+            class="mt-6"
           />
         </div>
       </div>

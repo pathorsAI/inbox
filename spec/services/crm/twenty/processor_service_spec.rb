@@ -70,6 +70,19 @@ RSpec.describe Crm::Twenty::ProcessorService do
       end).to have_been_made
     end
 
+    it 'does not guess between several people sharing the phone, and asks instead' do
+      colleague = person.merge('id' => 'person-2', 'name' => { 'firstName' => 'Brandon', 'lastName' => 'Lu' }, 'emails' => { 'primaryEmail' => '' })
+      stub_twenty('query FindPeople', 'people' => { 'edges' => [{ 'node' => person }, { 'node' => colleague }] })
+
+      service.process('conversation.created', conversation: conversation)
+
+      external = contact.reload.additional_attributes['external']
+      expect(external).not_to have_key('twenty_id')
+      expect(external['twenty_conflicts']).to match([hash_including('type' => 'ambiguous')])
+      expect(external['twenty_conflicts'].first['candidates'].pluck('id')).to eq(%w[person-1 person-2])
+      expect(twenty_request('mutation CreatePerson')).not_to have_been_made
+    end
+
     it 'only links when adding new contacts is off' do
       hook.update!(settings: settings.merge('create_people' => false))
       stub_twenty('query FindPeople', 'people' => { 'edges' => [] })

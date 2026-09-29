@@ -45,9 +45,11 @@ class HookListener < BaseListener
   end
   alias note_updated note_created
 
+  # Deleting an account destroys its notes after the account row is gone.
   def note_deleted(event)
     note_data = event.data[:note_data]
-    execute_account_hooks(event, Account.find(note_data[:account_id]), note_data: note_data)
+    account = Account.find_by(id: note_data[:account_id])
+    execute_account_hooks(event, account, note_data: note_data) if account
   end
 
   private

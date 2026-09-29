@@ -97,6 +97,30 @@ RSpec.describe 'Twenty Integration API', type: :request do
     end
   end
 
+  describe 'GET /api/v1/accounts/:account_id/integrations/twenty/conflicts' do
+    it 'lists the contacts with something to resolve' do
+      conflict = { 'type' => 'field', 'field' => 'email', 'inbox' => 'anna@acme.com', 'twenty' => 'a.tsai@acme.com' }
+      contact.update!(additional_attributes: { 'external' => { 'twenty_id' => 'person-1', 'twenty_conflicts' => [conflict] } })
+      create(:contact, account: account, additional_attributes: { 'external' => { 'twenty_id' => 'person-2', 'twenty_conflicts' => [] } })
+
+      get "/api/v1/accounts/#{account.id}/integrations/twenty/conflicts", headers: agent.create_new_auth_token, as: :json
+
+      expect(response.parsed_body['count']).to eq(1)
+      expect(response.parsed_body['contacts'].first).to include('id' => contact.id, 'conflicts' => [conflict])
+    end
+  end
+
+  describe 'POST /api/v1/accounts/:account_id/integrations/twenty/conflicts/resolve' do
+    it 'answers 422 with the reason when the choice cannot be applied' do
+      post "/api/v1/accounts/#{account.id}/integrations/twenty/conflicts/resolve",
+           params: { contact_id: contact.id, type: 'field', choice: 'dismiss', field: 'email' },
+           headers: agent.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response.parsed_body['error']).to include('already been resolved')
+    end
+  end
+
   describe 'POST /api/v1/accounts/:account_id/integrations/twenty/person' do
     it 'creates the person and returns the card' do
       stub_twenty('query FindPeople', data: { people: { edges: [] } })

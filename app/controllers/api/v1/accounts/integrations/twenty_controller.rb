@@ -3,12 +3,23 @@
 # the hook itself (through the generic hooks endpoints).
 class Api::V1::Accounts::Integrations::TwentyController < Api::V1::Accounts::Integrations::BaseController
   LOCK_ATTEMPTS = 5
+  CONFLICTS_PER_PAGE = 25
 
-  before_action :fetch_hook, :fetch_contact
+  before_action :fetch_hook
+  before_action :fetch_contact, except: [:conflicts]
 
   rescue_from Crm::Twenty::Api::Client::ApiError do |error|
     Rails.logger.warn("Twenty request failed for hook #{@hook&.id}: #{error.message}")
     render json: { error: 'twenty_unavailable' }, status: :bad_gateway
+  end
+
+  # Declared after ApiError so it wins: a throttled request is "try again shortly", not an outage.
+  rescue_from Crm::Twenty::Api::Client::RateLimitError do
+    render json: { error: 'twenty_rate_limited' }, status: :too_many_requests
+  end
+
+  rescue_from Crm::Twenty::ConflictResolver::Error, ActiveRecord::RecordInvalid do |error|
+    render json: { error: error.message }, status: :unprocessable_entity
   end
 
   def person
@@ -20,6 +31,29 @@ class Api::V1::Accounts::Integrations::TwentyController < Api::V1::Accounts::Int
 
     # Same lock as the sync jobs, so a click racing a job cannot create the person twice.
     with_contact_lock { render json: card_service.perform(create: true) }
+  end
+
+  # Contacts whose Inbox and Twenty records disagree, newest first.
+  def conflicts
+    scope = Current.account.contacts.where(
+      "jsonb_array_length(COALESCE(contacts.additional_attributes #> '{external,twenty_conflicts}', '[]'::jsonb)) > 0"
+    )
+    contacts = scope.order(updated_at: :desc).page(params[:page]).per(CONFLICTS_PER_PAGE)
+    render json: {
+      count: scope.count,
+      contacts: contacts.map do |contact|
+        { id: contact.id, name: contact.name, email: contact.email, phone_number: contact.phone_number, thumbnail: contact.avatar_url,
+          conflicts: Crm::Twenty::Conflicts.new(contact).stored }
+      end
+    }
+  end
+
+  def resolve_conflict
+    resolver = Crm::Twenty::ConflictResolver.new(hook: @hook, contact: @contact)
+    options = params.permit(:field, :person_id, :other_contact_id).to_h.symbolize_keys
+    with_contact_lock do
+      render json: resolver.perform(type: params.require(:type), choice: params.require(:choice), **options)
+    end
   end
 
   private

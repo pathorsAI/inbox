@@ -54,7 +54,7 @@ RSpec.describe Crm::Twenty::PersonMapper do
   describe '#create_attributes' do
     it 'maps the contact onto Twenty person fields' do
       expect(mapper.create_attributes).to eq(
-        name: { firstName: 'Anna Tsai', lastName: '' },
+        name: { firstName: 'Anna', lastName: 'Tsai' },
         emails: { primaryEmail: 'anna@acme.com' },
         phones: { primaryPhoneNumber: '912345678', primaryPhoneCountryCode: 'TW', primaryPhoneCallingCode: '+886' },
         city: 'Taipei',
@@ -78,7 +78,7 @@ RSpec.describe Crm::Twenty::PersonMapper do
     it 'replaces a Twenty name that is only a phone number' do
       person['name'] = { 'firstName' => '0912345678', 'lastName' => '' }
 
-      expect(mapper.person_updates(person)[:name]).to eq(firstName: 'Anna Tsai', lastName: '')
+      expect(mapper.person_updates(person)[:name]).to eq(firstName: 'Anna', lastName: 'Tsai')
     end
   end
 

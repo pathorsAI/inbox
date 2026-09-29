@@ -1,16 +1,22 @@
-import { flushPromises, mount } from '@vue/test-utils';
+import { flushPromises, mount, RouterLinkStub } from '@vue/test-utils';
+import { useAlert } from 'dashboard/composables';
 import TwentyPersonPanel from '../TwentyPersonPanel.vue';
 
-const { getPerson, createPerson } = vi.hoisted(() => ({
+const { getPerson, createPerson, resolveConflict } = vi.hoisted(() => ({
   getPerson: vi.fn(),
   createPerson: vi.fn(),
+  resolveConflict: vi.fn(),
 }));
 
 vi.mock('dashboard/api/integrations/twenty', () => ({
-  default: { getPerson, createPerson },
+  default: { getPerson, createPerson, resolveConflict },
 }));
 
 vi.mock('dashboard/composables', () => ({ useAlert: vi.fn() }));
+
+vi.mock('vue-router', () => ({
+  useRoute: () => ({ params: { accountId: '7' } }),
+}));
 
 const linkedRecord = {
   linked: true,
@@ -56,6 +62,7 @@ const linkedRecord = {
     },
   ],
   notes_count: 6,
+  conflicts: [],
 };
 
 const unlinkedRecord = {
@@ -65,10 +72,26 @@ const unlinkedRecord = {
   opportunities: [],
   notes: [],
   notes_count: 0,
+  conflicts: [],
 };
 
+const emailConflict = {
+  type: 'field',
+  field: 'email',
+  inbox: 'anna@acme.com',
+  twenty: 'anna.tsai@acme.io',
+};
+
+// Buttons render through the global NextButton stub, which keeps the label
+// as an attribute.
+const clickButton = (wrapper, label) =>
+  wrapper.find(`button[label="${label}"]`).trigger('click');
+
 const mountPanel = (contactId = 1) =>
-  mount(TwentyPersonPanel, { props: { contactId } });
+  mount(TwentyPersonPanel, {
+    props: { contactId },
+    global: { stubs: { RouterLink: RouterLinkStub } },
+  });
 
 describe('TwentyPersonPanel', () => {
   it('renders the linked person, opportunities and notes', async () => {
@@ -130,5 +153,60 @@ describe('TwentyPersonPanel', () => {
     expect(getPerson).toHaveBeenLastCalledWith(2, {
       signal: expect.any(AbortSignal),
     });
+  });
+
+  it('resolves a field conflict and re-renders from the response', async () => {
+    getPerson.mockResolvedValue({
+      data: { ...linkedRecord, conflicts: [emailConflict] },
+    });
+    resolveConflict.mockResolvedValue({ data: linkedRecord });
+    const wrapper = mountPanel();
+    await flushPromises();
+
+    expect(wrapper.text()).toContain(
+      'CONVERSATION_SIDEBAR.TWENTY.CONFLICTS.HEADING'
+    );
+    expect(wrapper.text()).toContain('anna.tsai@acme.io');
+
+    await clickButton(
+      wrapper,
+      'CONVERSATION_SIDEBAR.TWENTY.CONFLICTS.USE_TWENTY'
+    );
+    await flushPromises();
+
+    expect(resolveConflict).toHaveBeenCalledWith(
+      { contact_id: 1, type: 'field', field: 'email', choice: 'twenty' },
+      { signal: expect.any(AbortSignal) }
+    );
+    expect(wrapper.text()).not.toContain(
+      'CONVERSATION_SIDEBAR.TWENTY.CONFLICTS.HEADING'
+    );
+    expect(wrapper.text()).toContain('Anna Tsai');
+  });
+
+  it('shows the reason when a resolution is rejected', async () => {
+    getPerson.mockResolvedValue({
+      data: { ...unlinkedRecord, conflicts: [emailConflict] },
+    });
+    resolveConflict.mockRejectedValue({
+      response: {
+        status: 422,
+        data: { error: 'Another contact already has this email' },
+      },
+    });
+    const wrapper = mountPanel();
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('CONVERSATION_SIDEBAR.TWENTY.NOT_LINKED');
+    await clickButton(
+      wrapper,
+      'CONVERSATION_SIDEBAR.TWENTY.CONFLICTS.USE_TWENTY'
+    );
+    await flushPromises();
+
+    expect(useAlert).toHaveBeenCalledWith(
+      'Another contact already has this email'
+    );
+    expect(wrapper.text()).toContain('anna.tsai@acme.io');
   });
 });

@@ -344,7 +344,10 @@ onMounted(() => {
                 value => toggleSidebarUIState('is_twenty_crm_open', value)
               "
             >
-              <TwentyPersonPanel :contact-id="contactId" />
+              <TwentyPersonPanel
+                :contact-id="contactId"
+                :contact-name="contact.name"
+              />
             </AccordionItem>
           </div>
           <div v-else-if="element.name === 'contact_notes'">

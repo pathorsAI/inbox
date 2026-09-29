@@ -166,6 +166,12 @@ zh_TW:
     twenty:
       invalid_credentials: '無法用這組網址與 API key 連上 Twenty（%{reason}）。請確認網址是你開啟 Twenty 的位址，並到 Twenty 的 設定 → APIs & Webhooks 重新建立 API key。'
       contact_not_identifiable: '請先為這位聯絡人加上 email 或電話號碼，Twenty 才能比對。'
+      person_not_found: '這位人員已經不在 Twenty 裡了，請重新整理側欄再選一次。'
+      conflict_not_found: '這一項已經處理過了，請重新整理看看還剩哪些。'
+      resolve_failed: 'Twenty 沒有接受這個變更（%{reason}）。'
+      email_taken: '已經有另一位聯絡人使用這個 email，請先合併這兩位聯絡人。'
+      phone_number_taken: '已經有另一位聯絡人使用這個電話號碼，請先合併這兩位聯絡人。'
+      invalid_phone: 'Twenty 上這支號碼沒有國碼，無法複製過來。請在 Twenty 修正，或兩邊都保留。'
     openai:
       invalid_api_key: 'OpenAI API key is invalid or revoked. Please check your key in your OpenAI dashboard.'
     inboxes:

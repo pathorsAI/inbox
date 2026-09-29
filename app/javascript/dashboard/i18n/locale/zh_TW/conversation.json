@@ -502,7 +502,36 @@
       "CLOSE_DATE": "預計成交 {date}",
       "NOTES": "備註",
       "UNTITLED_NOTE": "未命名備註",
-      "VIEW_ALL_NOTES": "在 Twenty 查看全部"
+      "VIEW_ALL_NOTES": "在 Twenty 查看全部",
+      "CONFLICTS": {
+        "HEADING": "需要處理",
+        "FIELD_TITLE": {
+          "NAME": "姓名不一致",
+          "EMAIL": "Email 不一致",
+          "PHONE": "電話不一致",
+          "COMPANY": "公司不一致"
+        },
+        "INBOX": "Inbox",
+        "TWENTY": "Twenty",
+        "USE_INBOX": "用 Inbox 的",
+        "USE_TWENTY": "用 Twenty 的",
+        "KEEP_BOTH": "兩邊都保留",
+        "AMBIGUOUS_TITLE": "Twenty 有 {count} 位人員對得上",
+        "LINK": "連到這位",
+        "CREATE_NEW": "都不是，新增一位",
+        "DONT_LINK": "先不要連",
+        "DUPLICATE_TITLE": "另一位聯絡人是同一個人",
+        "OPEN_CONTACT": "開啟聯絡人",
+        "MERGE": "合併到這位聯絡人",
+        "KEEP_SEPARATE": "分開保留",
+        "THIS_CONTACT": "這位聯絡人",
+        "MERGE_DIALOG": {
+          "TITLE": "要合併這兩位聯絡人嗎？",
+          "DESCRIPTION": "{other} 會合併到 {current}：對話與資料都會移過去，{other} 本身會被刪除。此動作無法復原。",
+          "CONFIRM": "合併"
+        },
+        "RESOLVE_ERROR": "無法處理這筆不一致，請再試一次。"
+      }
     }
   },
   "CONVERSATION_CUSTOM_ATTRIBUTES": {

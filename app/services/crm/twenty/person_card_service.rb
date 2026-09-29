@@ -17,9 +17,9 @@ class Crm::Twenty::PersonCardService
 
   def perform(create: false)
     card = linked_card(create)
-    if card.nil? && contact.additional_attributes&.dig('external', 'twenty_id').present?
+    if card.nil? && Crm::Twenty::Linker.person_id(contact)
       # The person was deleted or merged away in Twenty since it was linked.
-      processor.unlink(contact)
+      linker.unlink(contact)
       card = linked_card(create)
     end
     card ? present(card) : unlinked
@@ -27,12 +27,12 @@ class Crm::Twenty::PersonCardService
 
   private
 
-  def processor
-    @processor ||= Crm::Twenty::ProcessorService.new(hook)
+  def linker
+    @linker ||= Crm::Twenty::ProcessorService.new(hook).linker
   end
 
   def client
-    processor.client
+    linker.client
   end
 
   def linked_card(create)
@@ -43,22 +43,22 @@ class Crm::Twenty::PersonCardService
   end
 
   def linked_person_id(create)
-    return processor.person_id_for(contact, create: true) if create
+    return linker.person_id_for(contact, create: true) if create
 
-    stored = contact.additional_attributes&.dig('external', 'twenty_id')
-    return stored if stored.present?
+    stored = Crm::Twenty::Linker.person_id(contact)
+    return stored if stored
 
     miss = ['miss', contact.id, Digest::SHA256.hexdigest("#{contact.email}|#{contact.phone_number}")]
     return if Crm::Twenty::Cache.read(hook, *miss)
 
-    processor.person_id_for(contact, create: false).tap do |person_id|
+    linker.person_id_for(contact, create: false).tap do |person_id|
       Crm::Twenty::Cache.write(hook, *miss, value: true, ttl: MISS_TTL) if person_id.blank?
     end
   end
 
   def unlinked
     { linked: false, can_create: contact.email.present? || contact.phone_number.present?,
-      person: nil, opportunities: [], notes: [], notes_count: 0 }
+      person: nil, opportunities: [], notes: [], notes_count: 0, conflicts: Crm::Twenty::Conflicts.new(contact).stored }
   end
 
   def present(card)
@@ -66,11 +66,18 @@ class Crm::Twenty::PersonCardService
     {
       linked: true,
       can_create: true,
+      conflicts: current_conflicts(card),
       person: person(card),
       opportunities: opportunities(card).map { |opportunity| present_opportunity(opportunity) },
       notes: notes.sort_by { |note| note['createdAt'].to_s }.reverse.first(NOTE_LIMIT).map { |note| present_note(note) },
       notes_count: card.dig('noteTargets', 'totalCount') || notes.size
     }
+  end
+
+  # Twenty may have changed since the last sync; the card is the freshest view of it.
+  def current_conflicts(card)
+    linker.record_conflicts(contact, Crm::Twenty::Conflicts.new(contact).for_person(card))
+    Crm::Twenty::Conflicts.new(contact).stored
   end
 
   def person(card)

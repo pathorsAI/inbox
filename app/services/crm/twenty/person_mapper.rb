@@ -84,6 +84,16 @@ class Crm::Twenty::PersonMapper
     updates.compact.merge(additional_attribute_updates(person))
   end
 
+  # "Anna Tsai" with no last name on the contact splits into first and last
+  # name; a Chinese name, written without spaces, stays whole.
+  def name_attributes
+    name = contact.name.to_s.strip
+    return { firstName: name, lastName: contact.last_name.to_s } if contact.last_name.present? || name.match?(HAN) || name.exclude?(' ')
+
+    first, _, last = name.rpartition(' ')
+    { firstName: first, lastName: last }
+  end
+
   private
 
   def attribute(key)
@@ -93,10 +103,6 @@ class Crm::Twenty::PersonMapper
   def name_for_person?(person)
     self.class.placeholder_name?(self.class.full_name(person), person.dig('emails', 'primaryEmail')) &&
       !self.class.placeholder_name?(contact.name, contact.email)
-  end
-
-  def name_attributes
-    { firstName: contact.name.to_s, lastName: contact.last_name.to_s }
   end
 
   def email_attributes

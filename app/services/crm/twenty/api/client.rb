@@ -33,7 +33,7 @@ class Crm::Twenty::Api::Client
     id
     name { firstName lastName }
     emails { primaryEmail additionalEmails }
-    phones { primaryPhoneNumber primaryPhoneCountryCode primaryPhoneCallingCode }
+    phones { primaryPhoneNumber primaryPhoneCountryCode primaryPhoneCallingCode additionalPhones }
     jobTitle
     city
     linkedinLink { primaryLinkUrl }
@@ -128,6 +128,12 @@ class Crm::Twenty::Api::Client
     GRAPHQL
     matches = nodes(data['companies'])
     matches.first['id'] if matches.one?
+  end
+
+  def create_company(name)
+    query(<<~GRAPHQL, data: { name: name })['createCompany']
+      mutation CreateCompany($data: CompanyCreateInput!) { createCompany(data: $data) { id name } }
+    GRAPHQL
   end
 
   # The note and its link to the person go in one request: GraphQL runs

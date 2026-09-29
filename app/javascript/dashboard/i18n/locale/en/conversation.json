@@ -549,7 +549,36 @@
       "CLOSE_DATE": "Closes {date}",
       "NOTES": "Notes",
       "UNTITLED_NOTE": "Untitled note",
-      "VIEW_ALL_NOTES": "View all in Twenty"
+      "VIEW_ALL_NOTES": "View all in Twenty",
+      "CONFLICTS": {
+        "HEADING": "Needs attention",
+        "FIELD_TITLE": {
+          "NAME": "Name differs",
+          "EMAIL": "Email differs",
+          "PHONE": "Phone differs",
+          "COMPANY": "Company differs"
+        },
+        "INBOX": "Inbox",
+        "TWENTY": "Twenty",
+        "USE_INBOX": "Use Inbox",
+        "USE_TWENTY": "Use Twenty",
+        "KEEP_BOTH": "Keep both",
+        "AMBIGUOUS_TITLE": "{count} people in Twenty match this contact",
+        "LINK": "Link",
+        "CREATE_NEW": "None of these — add new",
+        "DONT_LINK": "Don't link",
+        "DUPLICATE_TITLE": "Another contact is the same person",
+        "OPEN_CONTACT": "Open contact",
+        "MERGE": "Merge into this contact",
+        "KEEP_SEPARATE": "Keep separate",
+        "THIS_CONTACT": "this contact",
+        "MERGE_DIALOG": {
+          "TITLE": "Merge these contacts?",
+          "DESCRIPTION": "{other} will be merged into {current}: its conversations and details move over, and {other} is deleted. This cannot be undone.",
+          "CONFIRM": "Merge"
+        },
+        "RESOLVE_ERROR": "Could not resolve this conflict. Try again."
+      }
     }
   },
   "CONVERSATION_CUSTOM_ATTRIBUTES": {
