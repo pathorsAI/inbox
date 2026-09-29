@@ -193,6 +193,15 @@ en:
         sdp_offer_required: 'sdp_offer is required'
         contact_phone_required: 'Contact phone number is required'
         permission_request_failed: 'Failed to send call permission request'
+    twenty:
+      invalid_credentials: 'Could not connect to Twenty with this URL and API key (%{reason}). Check the address you open Twenty at and create a new API key under Settings → APIs & Webhooks.'
+      contact_not_identifiable: 'Add an email address or phone number to this contact first, so Twenty can match them.'
+      person_not_found: 'That person is no longer in Twenty. Reload the sidebar and choose again.'
+      conflict_not_found: 'This has already been resolved. Reload to see what is left.'
+      resolve_failed: 'Twenty did not accept the change (%{reason}).'
+      email_taken: 'Another contact already has this email. Merge the two contacts first.'
+      phone_number_taken: 'Another contact already has this phone number. Merge the two contacts first.'
+      invalid_phone: 'Twenty has this number without a country code, so it cannot be copied. Fix it in Twenty or keep both.'
     openai:
       invalid_api_key: 'OpenAI API key is invalid or revoked. Please check your key in your OpenAI dashboard.'
     inboxes:
@@ -490,6 +499,18 @@ en:
         ticket_type: 'Ticket type'
         due_at: 'Due'
         conversation: 'Conversation'
+    twenty:
+      name: 'Twenty'
+      short_description: 'Link contacts to people in Twenty CRM and keep their notes in sync.'
+      description: 'Work from one customer record. Contacts are linked to the matching person in your Twenty workspace by email or phone, blank fields on either side are filled in from the other, and contact notes are copied onto the person in Twenty. The conversation sidebar shows the person, their company''s opportunities and their latest notes from Twenty.'
+      untitled_note: 'Note'
+      contact_note_footer: '%{author} · %{brand_name} · [Open contact](%{url})'
+      conversation_note:
+        title: '%{brand_name} #%{display_id} · %{inbox_name}'
+        header: '[Open conversation #%{display_id}](%{url}) · %{inbox_name} · %{started_at} – %{resolved_at}'
+        internal_note: 'internal note'
+        attachment: '[Attachment: %{type}]'
+        omitted: '%{count} earlier messages not shown.'
   captain:
     copilot_message_required: Message is required
     copilot_error: 'Please connect an assistant to this inbox to use Copilot'

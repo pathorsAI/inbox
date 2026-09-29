@@ -217,4 +217,48 @@ RSpec.describe HookJob do
       end
     end
   end
+
+  context 'with a twenty hook' do
+    let(:contact) { create(:contact, account: account, email: 'anna@acme.com') }
+    let(:note) { create(:note, account: account, contact: contact) }
+    let(:twenty_hook) do
+      stub_request(:post, 'https://crm.example.com/graphql')
+        .to_return(status: 200, body: { data: { workspaceMembers: { totalCount: 1 } } }.to_json, headers: { 'Content-Type' => 'application/json' })
+      create(:integrations_hook, :twenty, account: account)
+    end
+    let(:processor) { instance_double(Crm::Twenty::ProcessorService, contact_id_for: contact.id) }
+
+    before { allow(Crm::Twenty::ProcessorService).to receive(:new).with(twenty_hook).and_return(processor) }
+
+    it 'processes the event under a per-contact lock' do
+      job_instance = described_class.new
+      allow(job_instance).to receive(:with_lock).with("CRM_PROCESS_MUTEX::#{twenty_hook.id}::#{contact.id}", 30.seconds).and_yield
+      expect(processor).to receive(:process).with('note.created', { note: note })
+
+      job_instance.perform(twenty_hook, 'note.created', { note: note })
+    end
+
+    # The generic rescue in #perform used to swallow these, so retry_on never ran.
+    it 'lets a throttled request escape so the job is retried' do
+      allow(processor).to receive(:process).and_raise(Crm::Twenty::Api::Client::RateLimitError, 'Limit reached')
+
+      expect { described_class.new.perform(twenty_hook, 'note.created', { note: note }) }
+        .to raise_error(Crm::Twenty::Api::Client::RateLimitError)
+    end
+
+    it 'lets a lock conflict escape so the job is retried' do
+      job_instance = described_class.new
+      allow(job_instance).to receive(:with_lock).and_raise(MutexApplicationJob::LockAcquisitionError)
+
+      expect { job_instance.perform(twenty_hook, 'note.created', { note: note }) }
+        .to raise_error(MutexApplicationJob::LockAcquisitionError)
+    end
+
+    it 'retries a throttled job a minute later' do
+      allow(processor).to receive(:process).and_raise(Crm::Twenty::Api::Client::RateLimitError, 'Limit reached')
+
+      expect { described_class.perform_now(twenty_hook, 'note.created', { note: note }) }
+        .to have_enqueued_job(described_class).with(twenty_hook, 'note.created', { note: note })
+    end
+  end
 end

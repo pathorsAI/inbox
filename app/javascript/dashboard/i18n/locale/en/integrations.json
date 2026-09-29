@@ -41,6 +41,15 @@
         "ERROR": "The inbox could not be updated, please try again."
       }
     },
+    "TWENTY": {
+      "CONFLICTS": {
+        "TITLE": "Sync conflicts",
+        "DESCRIPTION": "Contacts whose Inbox and Twenty records disagree. Resolving here writes to both systems.",
+        "EMPTY": "Nothing to resolve",
+        "LOAD_ERROR": "Could not load sync conflicts",
+        "LOAD_MORE": "Load more"
+      }
+    },
     "SHOPIFY": {
       "HEADER": "Shopify",
       "DELETE": {

@@ -18,7 +18,7 @@ class HookListener < BaseListener
 
   def contact_updated(event)
     contact = extract_contact_and_account(event)[0]
-    execute_account_hooks(event, contact.account, contact: contact)
+    execute_account_hooks(event, contact.account, contact: contact, changed_attributes: event.data[:changed_attributes])
   end
 
   def conversation_created(event)
@@ -37,6 +37,19 @@ class HookListener < BaseListener
   def ticket_created(event)
     ticket = event.data[:ticket]
     execute_account_hooks(event, ticket.conversation.account, ticket: ticket)
+  end
+
+  def note_created(event)
+    note = event.data[:note]
+    execute_account_hooks(event, note.account, note: note)
+  end
+  alias note_updated note_created
+
+  # Deleting an account destroys its notes after the account row is gone.
+  def note_deleted(event)
+    note_data = event.data[:note_data]
+    account = Account.find_by(id: note_data[:account_id])
+    execute_account_hooks(event, account, note_data: note_data) if account
   end
 
   private
@@ -69,7 +82,8 @@ class HookListener < BaseListener
       'google_translate' => ['message.created'],
       'leadsquared' => ['contact.updated', 'conversation.created', 'conversation.resolved'],
       'linear' => ['message.created'],
-      'github' => ['ticket.created']
+      'github' => ['ticket.created'],
+      'twenty' => ['contact.updated', 'conversation.created', 'conversation.resolved', 'note.created', 'note.updated', 'note.deleted']
     }
 
     return false unless supported_events_map.key?(hook.app_id)

@@ -56,6 +56,11 @@ FactoryBot.define do
       reference_id { 'test-store.myshopify.com' }
     end
 
+    trait :twenty do
+      app_id { 'twenty' }
+      settings { { 'api_url' => 'https://crm.example.com', 'api_key' => 'twenty-api-key' } }
+    end
+
     trait :leadsquared do
       app_id { 'leadsquared' }
       settings do

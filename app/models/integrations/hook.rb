@@ -36,6 +36,7 @@ class Integrations::Hook < ApplicationRecord
   validate :ensure_feature_enabled
   validate :validate_openai_api_key, if: :validate_openai_api_key?
   validate :validate_cloudflare_realtimekit_credentials, if: :validate_cloudflare_realtimekit_credentials?
+  validate :validate_twenty_credentials, if: :validate_twenty_credentials?
   validates :app_id, uniqueness: { scope: [:account_id], unless: -> { app.present? && app.params[:allow_multiple_hooks].present? } }
 
   # TODO: This seems to be only used for slack at the moment
@@ -83,6 +84,10 @@ class Integrations::Hook < ApplicationRecord
 
   def shopify?
     app_id == 'shopify'
+  end
+
+  def twenty?
+    app_id == 'twenty'
   end
 
   def disable
@@ -138,6 +143,18 @@ class Integrations::Hook < ApplicationRecord
   def validate_cloudflare_realtimekit_credentials?
     dyte? && enabled? && !legacy_dyte_settings_unchanged? &&
       (new_record? || cloudflare_realtimekit_credentials_changed? || will_save_change_to_status?)
+  end
+
+  def validate_twenty_credentials?
+    twenty? && enabled? && errors.empty? && (new_record? || will_save_change_to_settings?)
+  end
+
+  # Connecting with a wrong URL or key would otherwise fail silently in every
+  # sync job; checking once here puts the reason on the form instead.
+  def validate_twenty_credentials
+    Crm::Twenty::Api::Client.new(api_url: settings['api_url'], api_key: settings['api_key']).verify!
+  rescue Crm::Twenty::Api::Client::ApiError => e
+    errors.add(:base, I18n.t('errors.twenty.invalid_credentials', reason: e.message))
   end
 
   def openai_api_key_changed?

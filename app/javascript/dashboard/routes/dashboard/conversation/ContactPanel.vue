@@ -23,6 +23,7 @@ import MacrosList from './Macros/List.vue';
 import ShopifyOrdersList from 'dashboard/components/widgets/conversation/ShopifyOrdersList.vue';
 import SidebarActionsHeader from 'dashboard/components-next/SidebarActionsHeader.vue';
 import LinearIssuesList from 'dashboard/components/widgets/conversation/linear/IssuesList.vue';
+import TwentyPersonPanel from 'dashboard/components/widgets/conversation/twenty/TwentyPersonPanel.vue';
 import LinearSetupCTA from 'dashboard/components/widgets/conversation/linear/LinearSetupCTA.vue';
 import TicketPanel from 'dashboard/components-next/Tickets/TicketPanel.vue';
 import CustomerContextCard from 'dashboard/components-next/Tickets/CustomerContextCard.vue';
@@ -56,6 +57,13 @@ const shopifyIntegration = useFunctionGetter(
 const isShopifyFeatureEnabled = computed(
   () => shopifyIntegration.value.enabled
 );
+
+const twentyIntegration = useFunctionGetter(
+  'integrations/getIntegration',
+  'twenty'
+);
+
+const isTwentyFeatureEnabled = computed(() => twentyIntegration.value.enabled);
 
 const { isCloudFeatureEnabled } = useAccount();
 
@@ -323,6 +331,23 @@ onMounted(() => {
               "
             >
               <ShopifyOrdersList :contact-id="contactId" />
+            </AccordionItem>
+          </div>
+          <div
+            v-else-if="element.name === 'twenty_crm' && isTwentyFeatureEnabled"
+          >
+            <AccordionItem
+              :title="$t('CONVERSATION_SIDEBAR.ACCORDION.TWENTY_CRM')"
+              :is-open="isContactSidebarItemOpen('is_twenty_crm_open')"
+              compact
+              @toggle="
+                value => toggleSidebarUIState('is_twenty_crm_open', value)
+              "
+            >
+              <TwentyPersonPanel
+                :contact-id="contactId"
+                :contact-name="contact.name"
+              />
             </AccordionItem>
           </div>
           <div v-else-if="element.name === 'contact_notes'">

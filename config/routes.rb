@@ -452,6 +452,14 @@ Rails.application.routes.draw do
               end
             end
             resource :pathors, controller: 'pathors', only: [:destroy]
+            resource :twenty, controller: 'twenty', only: [] do
+              collection do
+                get :person
+                post :person, action: :create_person
+                get :conflicts
+                post 'conflicts/resolve', action: :resolve_conflict
+              end
+            end
           end
           resources :portals do
             member do

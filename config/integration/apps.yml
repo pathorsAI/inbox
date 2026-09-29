@@ -414,3 +414,62 @@ github:
       },
     ]
   visible_properties: ['repository', 'label']
+
+# Twenty CRM (fork). Links contacts to Twenty people, keeps both sides' blank
+# fields filled from the other, and copies contact notes (and, optionally,
+# resolved conversations) onto the person's timeline. The conversation sidebar
+# reads the person, their company's opportunities and recent notes live.
+twenty:
+  id: twenty
+  logo: twenty.png
+  i18n_key: twenty
+  hook_type: account
+  allow_multiple_hooks: false
+  settings_json_schema:
+    {
+      'type': 'object',
+      'properties':
+        {
+          'api_url':
+            {
+              'type': 'string',
+              'pattern': '^https://[A-Za-z0-9][A-Za-z0-9.-]*\.[A-Za-z]{2,24}(:[0-9]{2,5})?/?$',
+            },
+          'api_key': { 'type': 'string', 'minLength': 1 },
+          'create_people': { 'type': 'boolean' },
+          'log_conversations': { 'type': 'boolean' },
+        },
+      'required': ['api_url', 'api_key'],
+      'additionalProperties': false,
+    }
+  settings_form_schema:
+    [
+      {
+        'label': 'Twenty URL',
+        'type': 'text',
+        'name': 'api_url',
+        'validation': 'required',
+        'placeholder': 'https://crm.example.com',
+        'help': 'The https address you open Twenty at, e.g. https://crm.example.com. Twenty Cloud is https://api.twenty.com.',
+      },
+      {
+        'label': 'API key',
+        'type': 'password',
+        'name': 'api_key',
+        'validation': 'required',
+        'help': 'In Twenty: Settings → APIs & Webhooks → Create API key. Twenty shows it only once.',
+      },
+      {
+        'label': 'Add new contacts to Twenty',
+        'type': 'checkbox',
+        'name': 'create_people',
+        'help': 'When a conversation starts with someone who is not in Twenty yet, create them. Filtered mail (newsletters, notifications, blocklisted senders) never creates anyone. Off: contacts are only linked to people who already exist, and agents can add them from the conversation sidebar.',
+      },
+      {
+        'label': 'Log resolved conversations as notes',
+        'type': 'checkbox',
+        'name': 'log_conversations',
+        'help': 'When a conversation is resolved, add its transcript to the person in Twenty. Voice calls are skipped: the Pathors platform logs calls itself.',
+      },
+    ]
+  visible_properties: ['api_url', 'create_people', 'log_conversations']
