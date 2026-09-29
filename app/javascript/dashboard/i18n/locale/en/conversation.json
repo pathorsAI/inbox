@@ -540,6 +540,7 @@
     },
     "TWENTY": {
       "LOAD_ERROR": "Could not load Twenty CRM data",
+      "UNAVAILABLE": "Twenty is not responding right now. Try again in a minute.",
       "NOT_LINKED": "Not in Twenty yet",
       "ADD_TO_TWENTY": "Add to Twenty",
       "CREATE_ERROR": "Could not add this contact to Twenty",

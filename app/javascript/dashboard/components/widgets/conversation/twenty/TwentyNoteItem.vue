@@ -26,7 +26,7 @@ const timeAgo = computed(() =>
 </script>
 
 <template>
-  <li class="flex flex-col gap-0.5">
+  <div class="flex flex-col gap-0.5">
     <a
       :href="note.url"
       :title="heading"
@@ -47,5 +47,5 @@ const timeAgo = computed(() =>
       <span v-if="note.author">·</span>
       <span class="flex-shrink-0">{{ timeAgo }}</span>
     </p>
-  </li>
+  </div>
 </template>

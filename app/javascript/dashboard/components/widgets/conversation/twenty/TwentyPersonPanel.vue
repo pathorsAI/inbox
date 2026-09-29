@@ -19,7 +19,7 @@ const props = defineProps({
 const { t } = useI18n();
 
 const record = ref(null);
-const hasError = ref(false);
+const errorMessage = ref('');
 
 // Each request keeps only its latest call alive, so switching conversations
 // never renders a CRM record fetched or created for the previous contact.
@@ -56,14 +56,18 @@ const hasMoreNotes = computed(
 
 const fetchRecord = async () => {
   record.value = null;
-  hasError.value = false;
+  errorMessage.value = '';
   try {
     const response = await runFetch(signal =>
       TwentyAPI.getPerson(props.contactId, { signal })
     );
     if (response) record.value = response.data;
   } catch (error) {
-    hasError.value = true;
+    // 502 means Twenty itself is down or rate-limited, not this inbox.
+    errorMessage.value =
+      error.response?.status === 502
+        ? t('CONVERSATION_SIDEBAR.TWENTY.UNAVAILABLE')
+        : t('CONVERSATION_SIDEBAR.TWENTY.LOAD_ERROR');
   }
 };
 
@@ -74,7 +78,12 @@ const createPerson = async () => {
     );
     if (response) record.value = response.data;
   } catch (error) {
-    useAlert(t('CONVERSATION_SIDEBAR.TWENTY.CREATE_ERROR'));
+    // A 422 carries a translated reason (e.g. the contact has no email or phone).
+    useAlert(
+      error.response?.status === 422
+        ? error.response.data.error
+        : t('CONVERSATION_SIDEBAR.TWENTY.CREATE_ERROR')
+    );
   }
 };
 
@@ -90,8 +99,8 @@ watch(
 
 <template>
   <div class="px-4 py-3">
-    <p v-if="hasError" class="mb-0 text-sm text-center text-n-slate-11">
-      {{ t('CONVERSATION_SIDEBAR.TWENTY.LOAD_ERROR') }}
+    <p v-if="errorMessage" class="mb-0 text-sm text-center text-n-slate-11">
+      {{ errorMessage }}
     </p>
     <div v-else-if="!record" class="flex justify-center p-4">
       <Spinner class="text-n-brand" />
@@ -179,11 +188,9 @@ watch(
           </span>
         </h4>
         <ul class="flex flex-col gap-3 m-0 list-none">
-          <TwentyOpportunityItem
-            v-for="opportunity in record.opportunities"
-            :key="opportunity.id"
-            :opportunity="opportunity"
-          />
+          <li v-for="opportunity in record.opportunities" :key="opportunity.id">
+            <TwentyOpportunityItem :opportunity="opportunity" />
+          </li>
         </ul>
       </section>
 
@@ -202,11 +209,9 @@ watch(
           </span>
         </h4>
         <ul class="flex flex-col gap-3 m-0 list-none">
-          <TwentyNoteItem
-            v-for="note in record.notes"
-            :key="note.id"
-            :note="note"
-          />
+          <li v-for="note in record.notes" :key="note.id">
+            <TwentyNoteItem :note="note" />
+          </li>
         </ul>
         <a
           v-if="hasMoreNotes"

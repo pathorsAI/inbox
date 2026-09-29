@@ -2,7 +2,7 @@
 import { computed } from 'vue';
 import { format, parseISO } from 'date-fns';
 import { useLocale } from 'shared/composables/useLocale';
-import Label from 'dashboard/components-next/label/Label.vue';
+import StageChip from 'dashboard/components-next/label/Label.vue';
 
 const props = defineProps({
   opportunity: {
@@ -53,7 +53,7 @@ const formattedCloseDate = computed(() => {
 </script>
 
 <template>
-  <li class="flex flex-col gap-1">
+  <div class="flex flex-col gap-1">
     <div class="flex items-center justify-between min-w-0 gap-2">
       <a
         :href="opportunity.url"
@@ -64,7 +64,7 @@ const formattedCloseDate = computed(() => {
       >
         {{ opportunity.name }}
       </a>
-      <Label
+      <StageChip
         v-if="opportunity.stage"
         :label="opportunity.stage.label"
         :color="stageColor"
@@ -87,5 +87,5 @@ const formattedCloseDate = computed(() => {
         }}
       </span>
     </div>
-  </li>
+  </div>
 </template>

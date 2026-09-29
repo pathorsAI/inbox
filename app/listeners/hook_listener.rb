@@ -43,11 +43,7 @@ class HookListener < BaseListener
     note = event.data[:note]
     execute_account_hooks(event, note.account, note: note)
   end
-
-  def note_updated(event)
-    note = event.data[:note]
-    execute_account_hooks(event, note.account, note: note)
-  end
+  alias note_updated note_created
 
   def note_deleted(event)
     note_data = event.data[:note_data]

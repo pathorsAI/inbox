@@ -29,6 +29,7 @@ class Crm::Twenty::ProcessorService < Crm::BaseProcessorService
     when 'conversation.created', 'conversation.resolved' then event_data[:conversation].contact_id
     when 'note.created', 'note.updated' then event_data[:note].contact_id
     when 'note.deleted' then event_data[:note_data][:contact_id]
+    else raise ArgumentError, "Twenty does not handle #{event_name}"
     end
   end
 
@@ -39,6 +40,7 @@ class Crm::Twenty::ProcessorService < Crm::BaseProcessorService
     when 'conversation.resolved' then handle_conversation_resolved(event_data[:conversation])
     when 'note.created', 'note.updated' then handle_note_saved(event_data[:note])
     when 'note.deleted' then handle_note_deleted(event_data[:note_data])
+    else raise ArgumentError, "Twenty does not handle #{event_name}"
     end
   end
 

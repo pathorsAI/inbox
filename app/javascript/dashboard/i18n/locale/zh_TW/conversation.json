@@ -493,6 +493,7 @@
     },
     "TWENTY": {
       "LOAD_ERROR": "無法載入 Twenty CRM 資料",
+      "UNAVAILABLE": "Twenty 暫時沒有回應，請稍後再試。",
       "NOT_LINKED": "尚未加入 Twenty",
       "ADD_TO_TWENTY": "加入 Twenty",
       "CREATE_ERROR": "無法將此聯絡人加入 Twenty",

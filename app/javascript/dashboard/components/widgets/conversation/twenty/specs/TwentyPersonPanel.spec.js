@@ -116,7 +116,7 @@ describe('TwentyPersonPanel', () => {
     const wrapper = mountPanel();
     await flushPromises();
 
-    expect(wrapper.text()).toContain('CONVERSATION_SIDEBAR.TWENTY.LOAD_ERROR');
+    expect(wrapper.text()).toContain('CONVERSATION_SIDEBAR.TWENTY.UNAVAILABLE');
   });
 
   it('refetches when the contact changes', async () => {
