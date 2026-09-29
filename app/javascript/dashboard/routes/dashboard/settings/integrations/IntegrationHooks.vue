@@ -7,8 +7,13 @@ import NewHook from './NewHook.vue';
 import SingleIntegrationHooks from './SingleIntegrationHooks.vue';
 import MultipleIntegrationHooks from './MultipleIntegrationHooks.vue';
 import TwentyConflictsSection from './TwentyConflictsSection.vue';
+import CrmSyncStatus from './CrmSyncStatus.vue';
 import SettingsLayout from '../SettingsLayout.vue';
 import BaseSettingsHeader from '../components/BaseSettingsHeader.vue';
+
+// CRM apps whose hook exposes the generic sync log and match-all backfill.
+const CRM_APP_IDS = new Set(['twenty']);
+const CONFLICTS_ANCHOR = 'crm-conflicts';
 
 export default {
   components: {
@@ -16,6 +21,7 @@ export default {
     SingleIntegrationHooks,
     MultipleIntegrationHooks,
     TwentyConflictsSection,
+    CrmSyncStatus,
     SettingsLayout,
     BaseSettingsHeader,
   },
@@ -57,6 +63,15 @@ export default {
     ...mapGetters({ uiFlags: 'integrations/getUIFlags' }),
     showIntegrationHooks() {
       return !this.uiFlags.isFetching && !isEmptyObject(this.integration);
+    },
+    crmHookId() {
+      return CRM_APP_IDS.has(this.integrationId)
+        ? this.integration.hooks[0]?.id
+        : null;
+    },
+    // Only Twenty has a conflicts section on this page.
+    conflictsAnchor() {
+      return this.integrationId === 'twenty' ? CONFLICTS_ANCHOR : '';
     },
     showAddButton() {
       return this.showIntegrationHooks && this.isIntegrationMultiple;
@@ -146,9 +161,17 @@ export default {
             @add="openAddHookModal"
             @delete="openDeletePopup"
           />
+          <CrmSyncStatus
+            v-if="crmHookId"
+            :key="crmHookId"
+            :hook-id="crmHookId"
+            :conflicts-anchor="conflictsAnchor"
+            class="mt-6"
+          />
           <TwentyConflictsSection
             v-if="integrationId === 'twenty' && hasConnectedHooks"
-            class="mt-6"
+            :id="conflictsAnchor"
+            class="mt-6 scroll-mt-4"
           />
         </div>
       </div>

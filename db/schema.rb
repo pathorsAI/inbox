@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_09_12_170559) do
+ActiveRecord::Schema[7.2].define(version: 2026_09_30_120000) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -950,6 +950,20 @@ ActiveRecord::Schema[7.2].define(version: 2026_09_12_170559) do
     t.index ["account_id"], name: "index_copilot_threads_on_account_id"
     t.index ["assistant_id"], name: "index_copilot_threads_on_assistant_id"
     t.index ["user_id"], name: "index_copilot_threads_on_user_id"
+  end
+
+  create_table "crm_sync_events", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "hook_id", null: false
+    t.string "provider", null: false
+    t.bigint "contact_id"
+    t.string "action", null: false
+    t.string "status", null: false
+    t.text "message"
+    t.jsonb "details", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.index ["hook_id", "created_at"], name: "index_crm_sync_events_on_hook_id_and_created_at", order: { created_at: :desc }
+    t.index ["hook_id", "status", "created_at"], name: "index_crm_sync_events_on_hook_id_and_status_and_created_at", order: { created_at: :desc }
   end
 
   create_table "csat_survey_responses", force: :cascade do |t|

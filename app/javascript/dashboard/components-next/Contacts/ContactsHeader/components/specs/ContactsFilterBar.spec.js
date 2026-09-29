@@ -25,13 +25,15 @@ const condition = (attributeKey, filterOperator, values, queryOperator) => ({
 });
 
 const city = condition('city', 'contains', 'Taipei');
+// The crm_status definition's attribute_values, in the account's locale.
+const CRM_STATUSES = ['已連結', '需要處理', '未連結'];
 
 describe('ContactsFilterBar', () => {
   let wrapper;
 
   const mountBar = props => {
     wrapper = mount(ContactsFilterBar, {
-      props: { showTwenty: true, ...props },
+      props: { crmStatuses: CRM_STATUSES, ...props },
       slots: {
         advanced: '<div data-test="advanced-panel" />',
       },
@@ -77,7 +79,7 @@ describe('ContactsFilterBar', () => {
       `${QUICK}.COMPANY.LABEL`,
       `${QUICK}.COUNTRY.LABEL`,
       `${QUICK}.CONTACT_METHOD.LABEL`,
-      `${QUICK}.TWENTY_STATUS.LABEL`,
+      `${QUICK}.CRM_STATUS.LABEL`,
       `${QUICK}.ADVANCED`,
     ]);
     expect(buttonWithText(`${QUICK}.SAVE_SEGMENT`)).toBeUndefined();
@@ -109,20 +111,37 @@ describe('ContactsFilterBar', () => {
     expect(buttonWithText(`${QUICK}.CLEAR_ALL`)).toBeDefined();
   });
 
-  it('leaves the Twenty pill out while the integration is off', () => {
-    mountBar({ showTwenty: false });
-    expect(buttonWithText(`${QUICK}.TWENTY_STATUS.LABEL`)).toBeUndefined();
+  it('leaves the CRM status pill out while the account has no crm_status attribute', () => {
+    mountBar({ crmStatuses: [] });
+    expect(buttonWithText(`${QUICK}.CRM_STATUS.LABEL`)).toBeUndefined();
   });
 
-  it('applies a choice as soon as it is clicked', async () => {
+  it('offers the crm_status values and filters the custom attribute on click', async () => {
     mountBar({ filters: [city] });
-    await openPill('TWENTY_STATUS');
-    await buttonWithText(`${QUICK}.TWENTY_STATUS.LINKED`).trigger('click');
+    await openPill('CRM_STATUS');
+    await buttonWithText('需要處理').trigger('click');
 
     expect(lastApply()).toEqual([
       city,
-      condition('twenty_status', 'equal_to', { id: 'linked', name: 'linked' }),
+      {
+        ...condition('crm_status', 'equal_to', {
+          id: '需要處理',
+          name: '需要處理',
+        }),
+        attributeModel: 'customAttributes',
+      },
     ]);
+  });
+
+  it('counts a legacy Twenty status condition as advanced', () => {
+    mountBar({
+      filters: [
+        condition('twenty_status', 'equal_to', { id: 'linked', name: 'x' }),
+      ],
+    });
+
+    expect(buttonWithText(`${QUICK}.ADVANCED_COUNT`)).toBeDefined();
+    expect(buttonWithText(`${QUICK}.CRM_STATUS.LABEL`)).toBeDefined();
   });
 
   it('applies both contact methods as two AND conditions', async () => {

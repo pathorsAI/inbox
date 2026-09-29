@@ -50,6 +50,73 @@
         "LOAD_MORE": "載入更多"
       }
     },
+    "CRM_SYNC": {
+      "TITLE": "同步狀況",
+      "LAST_SUCCESS": "最後成功 {time}",
+      "NEVER_SYNCED": "尚未同步",
+      "STATS": {
+        "SYNCED_24H": "24 小時內同步",
+        "FAILURE": "失敗",
+        "RATE_LIMITED": "限流後重試",
+        "PENDING_CONFLICTS": "待處理衝突"
+      },
+      "BACKFILL": {
+        "BUTTON": "全部比對一次",
+        "DESCRIPTION": "只連結既有的人員，不會新建；會同時更新已連結聯絡人的 CRM 屬性。",
+        "CONFIRM": "每分鐘約比對 20 位聯絡人，跑的時候可以離開這頁。",
+        "START": "開始比對",
+        "CANCEL": "取消",
+        "RUNNING": "比對中 {processed} / {total}",
+        "FINISHED": "完成於 {time}",
+        "ALREADY_RUNNING": "已經在跑了",
+        "START_ERROR": "無法開始比對",
+        "COUNTS": "已連結 {linked} · 更新 {refreshed} · 待處理 {ambiguous} · 對不到 {no_match} · 錯誤 {errors}"
+      },
+      "EVENTS": {
+        "TITLE": "同步紀錄",
+        "ONLY_FAILURES": "只看失敗",
+        "EMPTY": "還沒有同步紀錄",
+        "EMPTY_FAILURES": "沒有失敗紀錄",
+        "LOAD_ERROR": "無法載入同步紀錄",
+        "LOAD_MORE": "載入更多"
+      },
+      "STATUS": {
+        "SUCCESS": "成功",
+        "FAILURE": "失敗",
+        "CONFLICT": "衝突",
+        "NOTE": "備註",
+        "RATE_LIMITED": "限流"
+      },
+      "ACTIONS": {
+        "LINKED": "連結到 CRM 既有人員",
+        "CREATED_PERSON": "在 CRM 建立人員",
+        "FILLED_FIELDS": "補上{fields}",
+        "NOTE_SYNCED": "備註同步到 CRM",
+        "NOTE_DELETED": "刪除 CRM 上的備註",
+        "CONVERSATION_LOGGED": "對話記錄寫入 CRM",
+        "CONFLICT_RAISED": {
+          "FIELD": "{field}兩邊不一致",
+          "AMBIGUOUS": "CRM 有多位人員符合",
+          "DUPLICATE_CONTACT": "跟另一位聯絡人重複"
+        },
+        "CONFLICT_RESOLVED": "衝突已處理",
+        "ATTRIBUTES_REFRESHED": "更新 CRM 屬性",
+        "FAILED": "同步失敗",
+        "RATE_LIMITED": "CRM 限流，稍後重試",
+        "BACKFILL_STARTED": "開始全部比對",
+        "BACKFILL_FINISHED": "全部比對完成：已連結 {linked} · 對不到 {no_match} · 待處理 {ambiguous} · 錯誤 {errors}"
+      },
+      "FIELDS": {
+        "NAME": "姓名",
+        "EMAIL": "Email",
+        "PHONE": "電話",
+        "COMPANY": "公司",
+        "CITY": "城市",
+        "LINKEDIN": "LinkedIn",
+        "JOB_TITLE": "職稱"
+      },
+      "LIST_SEPARATOR": "、"
+    },
     "SHOPIFY": {
       "HEADER": "Shopify",
       "DELETE": {

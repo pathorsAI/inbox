@@ -1,11 +1,7 @@
 <script setup>
-import { ref, computed, unref, onMounted } from 'vue';
+import { ref, computed, unref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import {
-  useStore,
-  useMapGetter,
-  useFunctionGetter,
-} from 'dashboard/composables/store';
+import { useStore, useMapGetter } from 'dashboard/composables/store';
 import { useRouter } from 'vue-router';
 import { breakpointsTailwind, useBreakpoints } from '@vueuse/core';
 import { useAlert, useTrack } from 'dashboard/composables';
@@ -31,6 +27,7 @@ import ContactImportDialog from 'dashboard/components-next/Contacts/ContactsForm
 import CreateSegmentDialog from 'dashboard/components-next/Contacts/ContactsForm/CreateSegmentDialog.vue';
 import DeleteSegmentDialog from 'dashboard/components-next/Contacts/ContactsForm/DeleteSegmentDialog.vue';
 import ContactsFilter from 'dashboard/components-next/filter/ContactsFilter.vue';
+import { findCrmStatusDefinition } from 'dashboard/components-next/Contacts/crmAttributes';
 
 const props = defineProps({
   showSearch: { type: Boolean, default: true },
@@ -70,9 +67,8 @@ const segmentsQuery = ref({});
 const appliedFilters = useMapGetter('contacts/getAppliedContactFiltersV4');
 const contactAttributes = useMapGetter('attributes/getContactAttributes');
 const labels = useMapGetter('labels/getLabels');
-const twentyIntegration = useFunctionGetter(
-  'integrations/getIntegration',
-  'twenty'
+const crmStatuses = computed(
+  () => findCrmStatusDefinition(contactAttributes.value)?.attributeValues ?? []
 );
 const hasActiveSegments = computed(
   () => props.activeSegment && props.segmentsId !== 0
@@ -86,8 +82,6 @@ const isBelowSm = useBreakpoints(breakpointsTailwind).smaller('sm');
 const isListView = computed(
   () => !props.segmentsId && !props.isLabelView && !props.isActiveView
 );
-
-onMounted(() => store.dispatch('integrations/get'));
 
 const openCreateNewContactDialog = () => {
   createNewContactDialogRef.value?.dialogRef.open();
@@ -328,7 +322,7 @@ defineExpose({
         compact
         :filters="appliedFilters"
         :labels="labels"
-        :show-twenty="!!twentyIntegration.enabled"
+        :crm-statuses="crmStatuses"
         @apply="applyConditions"
         @open-advanced="prepareFilterDraft"
         @create-segment="openCreateSegmentDialog"
@@ -361,7 +355,7 @@ defineExpose({
       class="w-full mx-auto max-w-5xl"
       :filters="appliedFilters"
       :labels="labels"
-      :show-twenty="!!twentyIntegration.enabled"
+      :crm-statuses="crmStatuses"
       @apply="applyConditions"
       @open-advanced="prepareFilterDraft"
       @create-segment="openCreateSegmentDialog"

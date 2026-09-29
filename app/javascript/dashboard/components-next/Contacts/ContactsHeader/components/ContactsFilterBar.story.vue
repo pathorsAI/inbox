@@ -7,6 +7,8 @@ const labels = ['newsletter', 'notification', 'vip', 'lead', 'churn-risk'].map(
   title => ({ title })
 );
 
+const crmStatuses = ['已連結', '需要處理', '未連結'];
+
 const condition = (attributeKey, filterOperator, values, queryOperator) => ({
   attributeKey,
   filterOperator,
@@ -21,7 +23,7 @@ const threePills = () => [
     { id: 'newsletter', name: 'newsletter' },
     { id: 'notification', name: 'notification' },
   ]),
-  condition('twenty_status', 'equal_to', { id: 'linked', name: 'linked' }),
+  condition('crm_status', 'equal_to', { id: '已連結', name: '已連結' }),
   condition('city', 'contains', 'Taipei'),
 ];
 
@@ -46,7 +48,7 @@ const onCreateSegment = () => console.log('Save as segment');
       <ContactsFilterBar
         :filters="empty"
         :labels="labels"
-        show-twenty
+        :crm-statuses="crmStatuses"
         @apply="empty = $event"
         @clear-all="empty = []"
         @create-segment="onCreateSegment"
@@ -63,7 +65,7 @@ const onCreateSegment = () => console.log('Save as segment');
       <ContactsFilterBar
         :filters="withPills"
         :labels="labels"
-        show-twenty
+        :crm-statuses="crmStatuses"
         @apply="withPills = $event"
         @clear-all="withPills = []"
         @create-segment="onCreateSegment"
@@ -80,7 +82,7 @@ const onCreateSegment = () => console.log('Save as segment');
       <ContactsFilterBar
         :filters="withOr"
         :labels="labels"
-        show-twenty
+        :crm-statuses="crmStatuses"
         @apply="withOr = $event"
         @clear-all="withOr = []"
         @create-segment="onCreateSegment"
@@ -98,7 +100,7 @@ const onCreateSegment = () => console.log('Save as segment');
         <ContactsFilterBar
           :filters="narrow"
           :labels="labels"
-          show-twenty
+          :crm-statuses="crmStatuses"
           @apply="narrow = $event"
           @clear-all="narrow = []"
           @create-segment="onCreateSegment"

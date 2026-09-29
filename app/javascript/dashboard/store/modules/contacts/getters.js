@@ -8,7 +8,11 @@ export const getters = {
     const contacts = $state.sortOrder.map(
       contactId => $state.records[contactId]
     );
-    return camelcaseKeys(contacts, { deep: true });
+    // Custom attribute keys stay as defined, so they match their definitions' attribute_key.
+    return camelcaseKeys(contacts, {
+      deep: true,
+      stopPaths: ['custom_attributes'],
+    });
   },
   getUIFlags($state) {
     return $state.uiFlags;

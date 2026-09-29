@@ -719,6 +719,21 @@ zh_TW:
 
       紀錄內容：
       %{format_messages}
+    contact_attributes:
+      description: '由 CRM 同步'
+      statuses:
+        linked: '已連結'
+        needs_attention: '需要處理'
+        unlinked: '未連結'
+      names:
+        crm_status: 'CRM 狀態'
+        crm_provider: 'CRM'
+        crm_job_title: '職稱'
+        crm_stage: '商機階段'
+        crm_opportunity: '商機'
+        crm_owner: '商機負責人'
+        crm_url: 'CRM 紀錄'
+        crm_synced_at: 'CRM 同步時間'
   agent_capacity_policy:
     inbox_already_assigned: '收件匣已被分配給此策略'
   portals:

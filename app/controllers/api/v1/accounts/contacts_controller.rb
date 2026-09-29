@@ -131,24 +131,17 @@ class Api::V1::Accounts::ContactsController < Api::V1::Accounts::BaseController
   end
 
   def fetch_contacts(contacts)
-    # Build includes hash to avoid separate query when contact_inboxes are needed
-    includes_hash = { avatar_attachment: [:blob] }
-    includes_hash[:contact_inboxes] = { inbox: :channel } if @include_contact_inboxes
-
     filtrate(contacts)
-      .includes(includes_hash)
+      .includes(list_includes)
       .page(@current_page)
       .per(RESULTS_PER_PAGE)
   end
 
   def fetch_contacts_with_has_more(contacts)
-    includes_hash = { avatar_attachment: [:blob] }
-    includes_hash[:contact_inboxes] = { inbox: :channel } if @include_contact_inboxes
-
     # Calculate offset manually to fetch one extra record for has_more check
     offset = (@current_page.to_i - 1) * RESULTS_PER_PAGE
     results = filtrate(contacts)
-              .includes(includes_hash)
+              .includes(list_includes)
               .offset(offset)
               .limit(RESULTS_PER_PAGE + 1)
               .to_a
@@ -157,6 +150,12 @@ class Api::V1::Accounts::ContactsController < Api::V1::Accounts::BaseController
     results = results.first(RESULTS_PER_PAGE) if @has_more
     @contacts_count = results.size
     results
+  end
+
+  # The list shows labels and the inbox each contact came from (the earliest
+  # contact inbox); the full contact inboxes only when asked for.
+  def list_includes
+    { avatar_attachment: [:blob], labels: [], contact_inboxes: { inbox: @include_contact_inboxes ? :channel : [] } }
   end
 
   def build_contact_inbox

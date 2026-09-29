@@ -47,7 +47,8 @@ class Crm::Twenty::ProcessorService < Crm::BaseProcessorService
     return unless relevant_change?(changed_attributes)
 
     contact.reload
-    linker.link(contact, linker.linked_person(contact) || linker.resolve_person(contact, create: create_for_contact?(contact)))
+    person = linker.linked_person(contact) || linker.resolve_person(contact, create: create_for_contact?(contact))
+    person ? linker.link(contact, person) : linker.mark_unlinked(contact)
   end
 
   def handle_conversation_created(conversation)
@@ -71,6 +72,7 @@ class Crm::Twenty::ProcessorService < Crm::BaseProcessorService
       store_conversation_metadata(conversation, 'note_id' => client.create_person_note(person_id: person_id, created_by: linker.actor, **note))
     end
     linker.expire_card(person_id)
+    log('conversation_logged', conversation.contact_id, conversation_id: conversation.display_id, operation: note_id ? 'updated' : 'created')
   end
 
   def handle_note_saved(note)
@@ -79,13 +81,9 @@ class Crm::Twenty::ProcessorService < Crm::BaseProcessorService
 
     content = Crm::Twenty::NoteBuilder.new(@account).contact_note(note)
     note_id = note_ids(note.contact)[note.id.to_s]
-    if note_id
-      client.update_note(note_id, **content)
-    else
-      twenty_note_id = client.create_person_note(person_id: person_id, created_by: linker.actor(note.user), **content)
-      Crm::Twenty::ExternalStore.merge(note.contact_id, Crm::Twenty::Linker::NOTES_KEY, note.id.to_s => twenty_note_id)
-    end
+    note_id ? client.update_note(note_id, **content) : create_note(note, person_id, content)
     linker.expire_card(person_id)
+    log('note_synced', note.contact_id, note_id: note.id, operation: note_id ? 'updated' : 'created')
   end
 
   def handle_note_deleted(note_data)
@@ -96,6 +94,7 @@ class Crm::Twenty::ProcessorService < Crm::BaseProcessorService
     client.delete_note(note_id)
     Crm::Twenty::ExternalStore.delete(contact.id, Crm::Twenty::Linker::NOTES_KEY, note_data[:id].to_i)
     linker.expire_card(Crm::Twenty::Linker.person_id(contact))
+    log('note_deleted', contact, note_id: note_data[:id])
   end
 
   private
@@ -123,6 +122,15 @@ class Crm::Twenty::ProcessorService < Crm::BaseProcessorService
 
     before, after = changed_attributes['additional_attributes']
     before.to_h.slice(*ADDITIONAL_FIELDS) != after.to_h.slice(*ADDITIONAL_FIELDS)
+  end
+
+  def create_note(note, person_id, content)
+    twenty_note_id = client.create_person_note(person_id: person_id, created_by: linker.actor(note.user), **content)
+    Crm::Twenty::ExternalStore.merge(note.contact_id, Crm::Twenty::Linker::NOTES_KEY, note.id.to_s => twenty_note_id)
+  end
+
+  def log(action, contact, **details)
+    Crm::SyncLog.record(hook: @hook, action: action, contact: contact, details: details)
   end
 
   def note_ids(contact)

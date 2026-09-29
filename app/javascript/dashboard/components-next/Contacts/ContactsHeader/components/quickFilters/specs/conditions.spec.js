@@ -43,10 +43,12 @@ describe('quick filter conditions', () => {
         condition('company_name', 'contains', 'Acme'),
         condition('country_code', 'equal_to', { id: 'TW', name: 'Taiwan' }),
         condition('email', 'is_present', ''),
-        condition('twenty_status', 'equal_to', {
-          id: 'needs_attention',
-          name: 'Needs attention',
-        }),
+        condition(
+          'crm_status',
+          'equal_to',
+          { id: '需要處理', name: '需要處理' },
+          { attributeModel: 'customAttributes' }
+        ),
         city,
       ];
 
@@ -57,7 +59,7 @@ describe('quick filter conditions', () => {
           COMPANY: 'Acme',
           COUNTRY: 'TW',
           CONTACT_METHOD: CONTACT_METHOD.EMAIL,
-          TWENTY_STATUS: 'needs_attention',
+          CRM_STATUS: '需要處理',
         },
         counts: {
           LAST_ACTIVITY: 1,
@@ -65,7 +67,7 @@ describe('quick filter conditions', () => {
           COMPANY: 1,
           COUNTRY: 1,
           CONTACT_METHOD: 1,
-          TWENTY_STATUS: 1,
+          CRM_STATUS: 1,
         },
         advancedCount: 1,
       });
@@ -90,15 +92,29 @@ describe('quick filter conditions', () => {
 
     it('counts conditions of a pill that is not on the bar as advanced', () => {
       const pills = QUICK_FILTER_ORDER.filter(
-        pill => pill !== QUICK_FILTER.TWENTY_STATUS
+        pill => pill !== QUICK_FILTER.CRM_STATUS
       );
       const conditions = [
-        condition('twenty_status', 'equal_to', { id: 'linked', name: 'x' }),
+        condition('crm_status', 'equal_to', { id: 'Linked', name: 'Linked' }),
       ];
 
       const { values, advancedCount } = readQuickFilters(conditions, pills);
 
-      expect(values).not.toHaveProperty(QUICK_FILTER.TWENTY_STATUS);
+      expect(values).not.toHaveProperty(QUICK_FILTER.CRM_STATUS);
+      expect(advancedCount).toBe(1);
+    });
+
+    it('reads a legacy Twenty status condition as advanced', () => {
+      const conditions = [
+        condition('twenty_status', 'equal_to', { id: 'linked', name: 'x' }),
+      ];
+
+      const { values, advancedCount } = readQuickFilters(
+        conditions,
+        QUICK_FILTER_ORDER
+      );
+
+      expect(values[QUICK_FILTER.CRM_STATUS]).toBeNull();
       expect(advancedCount).toBe(1);
     });
 
@@ -196,19 +212,22 @@ describe('quick filter conditions', () => {
         ],
       ],
       [
-        QUICK_FILTER.TWENTY_STATUS,
-        'linked',
+        QUICK_FILTER.CRM_STATUS,
+        'Linked',
         [
-          condition('twenty_status', 'equal_to', {
-            id: 'linked',
-            name: 'linked',
-          }),
+          condition(
+            'crm_status',
+            'equal_to',
+            { id: 'Linked', name: 'Linked' },
+            { attributeModel: 'customAttributes' }
+          ),
         ],
         [
           {
-            attribute_key: 'twenty_status',
+            attribute_key: 'crm_status',
             filter_operator: 'equal_to',
-            values: ['linked'],
+            values: ['Linked'],
+            attribute_model: 'customAttributes',
           },
         ],
       ],

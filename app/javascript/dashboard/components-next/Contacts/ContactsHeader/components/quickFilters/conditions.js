@@ -7,6 +7,7 @@
  */
 import { format, subDays } from 'date-fns';
 import countries from 'shared/constants/countries';
+import { CRM_ATTRIBUTE } from 'dashboard/components-next/Contacts/crmAttributes';
 
 // Each key doubles as its i18n group under CONTACTS_LAYOUT.FILTER.QUICK.
 export const QUICK_FILTER = {
@@ -15,7 +16,7 @@ export const QUICK_FILTER = {
   COMPANY: 'COMPANY',
   COUNTRY: 'COUNTRY',
   CONTACT_METHOD: 'CONTACT_METHOD',
-  TWENTY_STATUS: 'TWENTY_STATUS',
+  CRM_STATUS: 'CRM_STATUS',
 };
 
 // Bar order is priority order: pills collapse into the overflow menu from the end.
@@ -25,7 +26,7 @@ export const QUICK_FILTER_ORDER = [
   QUICK_FILTER.COMPANY,
   QUICK_FILTER.COUNTRY,
   QUICK_FILTER.CONTACT_METHOD,
-  QUICK_FILTER.TWENTY_STATUS,
+  QUICK_FILTER.CRM_STATUS,
 ];
 
 // "Today" is anything after yesterday.
@@ -45,7 +46,7 @@ const ATTRIBUTE = {
   COUNTRY: 'country_code',
   EMAIL: 'email',
   PHONE: 'phone_number',
-  TWENTY_STATUS: 'twenty_status',
+  CRM_STATUS: CRM_ATTRIBUTE.STATUS,
 };
 
 const patternOf = ({ attributeKey, filterOperator }) =>
@@ -62,9 +63,7 @@ const OWNED_PATTERNS = {
     `${ATTRIBUTE.EMAIL}:is_present`,
     `${ATTRIBUTE.PHONE}:is_present`,
   ]),
-  [QUICK_FILTER.TWENTY_STATUS]: new Set([
-    `${ATTRIBUTE.TWENTY_STATUS}:equal_to`,
-  ]),
+  [QUICK_FILTER.CRM_STATUS]: new Set([`${ATTRIBUTE.CRM_STATUS}:equal_to`]),
 };
 
 export const ownsCondition = (pill, condition) =>
@@ -104,15 +103,20 @@ const READERS = {
   [QUICK_FILTER.COMPANY]: firstId,
   [QUICK_FILTER.COUNTRY]: firstId,
   [QUICK_FILTER.CONTACT_METHOD]: readContactMethod,
-  [QUICK_FILTER.TWENTY_STATUS]: firstId,
+  [QUICK_FILTER.CRM_STATUS]: firstId,
 };
 
-const condition = (attributeKey, filterOperator, values) => ({
+const condition = (
+  attributeKey,
+  filterOperator,
+  values,
+  attributeModel = 'standard'
+) => ({
   attributeKey,
   filterOperator,
   values,
   queryOperator: 'and',
-  attributeModel: 'standard',
+  attributeModel,
 });
 
 const option = (id, name = id) => ({ id, name });
@@ -143,8 +147,14 @@ const BUILDERS = {
     condition(ATTRIBUTE.COUNTRY, 'equal_to', option(code, countryName(code))),
   ],
   [QUICK_FILTER.CONTACT_METHOD]: buildContactMethod,
-  [QUICK_FILTER.TWENTY_STATUS]: status => [
-    condition(ATTRIBUTE.TWENTY_STATUS, 'equal_to', option(status)),
+  // A contact custom attribute of the list type, shaped as the advanced panel keeps one.
+  [QUICK_FILTER.CRM_STATUS]: status => [
+    condition(
+      ATTRIBUTE.CRM_STATUS,
+      'equal_to',
+      option(status),
+      'customAttributes'
+    ),
   ],
 };
 

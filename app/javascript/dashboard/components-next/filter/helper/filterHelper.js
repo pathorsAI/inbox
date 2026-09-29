@@ -36,7 +36,6 @@ export const CONTACT_ATTRIBUTES = {
   REFERER: 'referer',
   BLOCKED: 'blocked',
   LABELS: 'labels',
-  TWENTY_STATUS: 'twenty_status',
 };
 
 /**

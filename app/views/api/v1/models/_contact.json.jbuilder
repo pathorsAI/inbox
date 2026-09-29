@@ -19,3 +19,9 @@ if defined?(with_contact_inboxes) && with_contact_inboxes.present?
     end
   end
 end
+# the contacts list (index, search, filter, active) also shows labels and where the contact first came from
+if defined?(with_list_fields) && with_list_fields.present?
+  json.labels resource.labels.map(&:name)
+  source_inbox = resource.contact_inboxes.min_by { |contact_inbox| [contact_inbox.created_at, contact_inbox.id] }&.inbox
+  json.source_inbox source_inbox && { id: source_inbox.id, name: source_inbox.name, channel_type: source_inbox.channel_type }
+end

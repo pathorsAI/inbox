@@ -14,4 +14,17 @@ class HookPolicy < ApplicationPolicy
   def destroy?
     @account_user.administrator?
   end
+
+  # CRM sync log and backfill (Integrations::CrmSyncController)
+  def sync_events?
+    @account_user.administrator?
+  end
+
+  def backfill_status?
+    @account_user.administrator?
+  end
+
+  def start_backfill?
+    @account_user.administrator?
+  end
 end

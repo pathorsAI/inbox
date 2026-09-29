@@ -67,8 +67,9 @@ const currentOperator = computed(() =>
   getOperator(currentFilter.value, filterOperator.value)
 );
 
+// A condition on an attribute no longer offered (a legacy key) has neither.
 const getInputType = (operator, filter) =>
-  operator.inputOverride ?? filter.inputType;
+  operator?.inputOverride ?? filter?.inputType;
 
 const inputType = computed(() =>
   getInputType(currentOperator.value, currentFilter.value)

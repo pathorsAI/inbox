@@ -85,6 +85,16 @@ class HookJob < MutexApplicationJob
 
     key = format(::Redis::Alfred::CRM_CONTACT_PROCESS_MUTEX, hook_id: hook.id, contact_id: contact_id)
     with_lock(key, 30.seconds) { processor.process(event_name, event_data) }
+  rescue LockAcquisitionError
+    raise
+  rescue Crm::Twenty::Api::Client::RateLimitError => e
+    Crm::SyncLog.record(hook: hook, action: 'rate_limited', status: 'failure', contact: contact_id, message: e.message,
+                        details: { event: event_name, attempt: executions })
+    raise
+  rescue StandardError => e
+    Crm::SyncLog.record(hook: hook, action: 'failed', status: 'failure', contact: contact_id, message: e.message,
+                        details: { event: event_name, error_class: e.class.name })
+    raise
   end
 
   def process_leadsquared_integration_with_lock(hook, event_name, event_data)

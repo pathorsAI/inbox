@@ -15,7 +15,6 @@ const ATTRIBUTE_ICONS = {
   city: 'i-lucide-map-pin',
   company_name: 'i-lucide-building-2',
   blocked: 'i-lucide-ban',
-  twenty_status: 'i-lucide-link-2',
   // Conversation attributes
   status: 'i-lucide-circle-dot',
   priority: 'i-lucide-signal-high',
