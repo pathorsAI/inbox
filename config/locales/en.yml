@@ -100,6 +100,13 @@ en:
       binding_rejected: 'Pathors no longer recognises this phone number or agent. Reload the page and try again.'
       agent_bot_required: 'Choose a Pathors agent to answer calls on this inbox.'
       request_failed: 'Could not reach Pathors to set up this phone number. Please try again.'
+      connect:
+        account_forbidden: 'Only an administrator of this account can connect it to Pathors.'
+        invalid_organization_id: 'The Pathors organization in this link is not valid. Go back to Pathors and try again.'
+        connected_to_other_organization: 'This account is connected to another Pathors organization. Disconnect it on its Pathors integration page first.'
+        unavailable: 'The Pathors connection is not set up on this deployment.'
+        account_creation_disabled: 'Creating accounts is turned off on this deployment.'
+        account_name_required: 'Enter a name for the new account.'
     assignment_policy:
       not_found: Assignment policy not found
     attachments:
