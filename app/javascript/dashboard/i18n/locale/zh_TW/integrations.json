@@ -113,7 +113,9 @@
         "COMPANY": "公司",
         "CITY": "城市",
         "LINKEDIN": "LinkedIn",
-        "JOB_TITLE": "職稱"
+        "JOB_TITLE": "職稱",
+        "LINE_ID": "LINE ID",
+        "LINE_USER_ID": "LINE User ID"
       },
       "LIST_SEPARATOR": "、"
     },

@@ -556,7 +556,9 @@
           "NAME": "Name differs",
           "EMAIL": "Email differs",
           "PHONE": "Phone differs",
-          "COMPANY": "Company differs"
+          "COMPANY": "Company differs",
+          "LINE_ID": "LINE ID differs",
+          "LINE_USER_ID": "LINE User ID differs"
         },
         "INBOX": "Inbox",
         "TWENTY": "Twenty",

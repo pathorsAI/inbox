@@ -195,13 +195,16 @@ en:
         permission_request_failed: 'Failed to send call permission request'
     twenty:
       invalid_credentials: 'Could not connect to Twenty with this URL and API key (%{reason}). Check the address you open Twenty at and create a new API key under Settings → APIs & Webhooks.'
-      contact_not_identifiable: 'Add an email address or phone number to this contact first, so Twenty can match them.'
+      contact_not_identifiable: 'Add an email address, phone number or LINE ID to this contact first, so Twenty can match them.'
       person_not_found: 'That person is no longer in Twenty. Reload the sidebar and choose again.'
       conflict_not_found: 'This has already been resolved. Reload to see what is left.'
       resolve_failed: 'Twenty did not accept the change (%{reason}).'
       email_taken: 'Another contact already has this email. Merge the two contacts first.'
       phone_number_taken: 'Another contact already has this phone number. Merge the two contacts first.'
       invalid_phone: 'Twenty has this number without a country code, so it cannot be copied. Fix it in Twenty or keep both.'
+      line_id_taken: 'Another contact already has this LINE ID. Merge the two contacts first.'
+      line_user_id_taken: 'Another contact already has this LINE User ID. Merge the two contacts first.'
+      invalid_line_user_id: 'The LINE User ID in Twenty is not one LINE issues (U followed by 32 characters), so it cannot be copied. Fix it in Twenty or keep both.'
     openai:
       invalid_api_key: 'OpenAI API key is invalid or revoked. Please check your key in your OpenAI dashboard.'
     inboxes:

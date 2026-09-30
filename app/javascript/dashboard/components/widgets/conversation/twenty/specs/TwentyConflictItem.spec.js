@@ -89,6 +89,15 @@ describe('TwentyConflictItem', () => {
     ]);
   });
 
+  it('titles LINE ID and LINE User ID conflicts', () => {
+    ['line_id', 'line_user_id'].forEach(field => {
+      const wrapper = mountItem({ ...fieldConflict, field });
+      expect(wrapper.text()).toContain(
+        `CONVERSATION_SIDEBAR.TWENTY.CONFLICTS.FIELD_TITLE.${field.toUpperCase()}`
+      );
+    });
+  });
+
   it('lists ambiguous candidates and emits the chosen person', async () => {
     const wrapper = mountItem(ambiguousConflict);
 

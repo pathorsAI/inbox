@@ -46,18 +46,23 @@ class Crm::Twenty::PersonCardService
     stored = Crm::Twenty::Linker.person_id(contact)
     return stored if stored
 
-    miss = ['miss', contact.id, Digest::SHA256.hexdigest("#{contact.email}|#{contact.phone_number}")]
-    return if Crm::Twenty::Cache.read(hook, *miss)
+    return if Crm::Twenty::Cache.read(hook, *miss_key)
 
     linker.person_id_for(contact, create: false).tap do |person_id|
-      Crm::Twenty::Cache.write(hook, *miss, value: true, ttl: MISS_TTL) if person_id.blank?
+      Crm::Twenty::Cache.write(hook, *miss_key, value: true, ttl: MISS_TTL) if person_id.blank?
     end
+  end
+
+  # Changes with anything the contact could be matched by.
+  def miss_key
+    identity = Crm::Twenty::PersonMapper.new(contact)
+    ['miss', contact.id, Digest::SHA256.hexdigest([contact.email, contact.phone_number, identity.line_user_id, identity.line_id].join('|'))]
   end
 
   # Its status may have changed since the last sync: a conflict dismissed, or a cached miss.
   def unlinked
     linker.mark_unlinked(contact)
-    { linked: false, can_create: contact.email.present? || contact.phone_number.present?,
+    { linked: false, can_create: Crm::Twenty::PersonMapper.new(contact).matchable?,
       person: nil, opportunities: [], notes: [], notes_count: 0, conflicts: Crm::Twenty::Conflicts.new(contact).stored }
   end
 
@@ -93,6 +98,8 @@ class Crm::Twenty::PersonCardService
       email: card.dig('emails', 'primaryEmail').presence,
       phone: phone && "#{card.dig('phones', 'primaryPhoneCallingCode')}#{phone}",
       linkedin_url: card.dig('linkedinLink', 'primaryLinkUrl').presence,
+      line_id: card['lineId'].presence,
+      line_user_id: card['lineUserId'].presence,
       company: company(card['company'])
     }
   end

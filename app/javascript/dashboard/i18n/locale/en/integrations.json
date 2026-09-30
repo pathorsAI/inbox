@@ -113,7 +113,9 @@
         "COMPANY": "Company",
         "CITY": "City",
         "LINKEDIN": "LinkedIn",
-        "JOB_TITLE": "Job title"
+        "JOB_TITLE": "Job title",
+        "LINE_ID": "LINE ID",
+        "LINE_USER_ID": "LINE User ID"
       },
       "LIST_SEPARATOR": ", "
     },

@@ -509,7 +509,9 @@
           "NAME": "姓名不一致",
           "EMAIL": "Email 不一致",
           "PHONE": "電話不一致",
-          "COMPANY": "公司不一致"
+          "COMPANY": "公司不一致",
+          "LINE_ID": "LINE ID 不一致",
+          "LINE_USER_ID": "LINE User ID 不一致"
         },
         "INBOX": "Inbox",
         "TWENTY": "Twenty",

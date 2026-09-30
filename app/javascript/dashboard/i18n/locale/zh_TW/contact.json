@@ -59,7 +59,9 @@
       "CONTACT_LABELS": "聯絡人標籤",
       "PREVIOUS_CONVERSATIONS": "歷史對話",
       "NO_RECORDS_FOUND": "查無屬性"
-    }
+    },
+    "LINE_ID": "LINE ID",
+    "LINE_USER_ID": "LINE User ID"
   },
   "EDIT_CONTACT": {
     "BUTTON_LABEL": "編輯聯絡人",
@@ -478,7 +480,8 @@
       },
       "JOB_TITLE": "· {title}",
       "MORE_LABELS": "+{count}",
-      "EMPTY_CELL": "—"
+      "EMPTY_CELL": "—",
+      "LINE": "LINE"
     },
     "CARD": {
       "OF": "/",
@@ -540,8 +543,13 @@
           },
           "TWITTER": {
             "PLACEHOLDER": "新增 Twitter"
+          },
+          "LINE": {
+            "PLACEHOLDER": "新增 LINE ID"
           }
-        }
+        },
+        "LINE_USER_ID": "LINE User ID",
+        "COPY_LINE_USER_ID": "複製 LINE User ID"
       },
       "DELETE_CONTACT": {
         "MESSAGE": "此操作為永久性且不可復原。",

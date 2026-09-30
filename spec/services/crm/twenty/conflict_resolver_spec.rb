@@ -20,7 +20,7 @@ RSpec.describe Crm::Twenty::ConflictResolver do
   let(:resolver) { described_class.new(hook: hook, contact: contact) }
 
   def stub_twenty(operation, data)
-    stub_request(:post, graphql_url)
+    stub_request(:post, %r{\Ahttps://crm\.example\.com/(graphql|metadata)\z})
       .with { |request| JSON.parse(request.body)['query'].include?(operation) }
       .to_return(status: 200, body: { data: data }.to_json, headers: { 'Content-Type' => 'application/json' })
   end
@@ -37,7 +37,9 @@ RSpec.describe Crm::Twenty::ConflictResolver do
     stub_twenty('query Verify', 'workspaceMembers' => { 'totalCount' => 1 })
     stub_twenty('query Person(', 'person' => person)
     stub_twenty('query PersonCard', 'person' => person.merge('noteTargets' => { 'edges' => [] }))
-    stub_twenty('query Objects', 'objects' => { 'edges' => [] })
+    stub_twenty('query Objects', 'objects' => { 'edges' => [{ 'node' => {
+                  'nameSingular' => 'person', 'fieldsList' => %w[lineUserId lineId].map { |name| { 'name' => name, 'isActive' => true } }
+                } }] })
     hook
   end
 
@@ -76,6 +78,72 @@ RSpec.describe Crm::Twenty::ConflictResolver do
       expect(result[:conflicts]).to eq([])
       expect(contact.reload.email).to eq('anna@acme.com')
       expect(contact.additional_attributes.dig('external', 'twenty_dismissed').size).to eq(1)
+    end
+  end
+
+  describe 'a LINE conflict' do
+    let(:line_user_id) { "U#{'4af49806' * 4}" }
+    let(:contact) do
+      create(:contact, account: account, name: 'Anna Tsai', email: 'a.tsai@acme.com',
+                       additional_attributes: { 'social_profiles' => { 'line' => 'Anna_T' }, 'social_line_user_id' => line_user_id,
+                                                'external' => { 'twenty_id' => 'person-1' } })
+    end
+    let(:person) do
+      { 'id' => 'person-1', 'name' => { 'firstName' => 'Anna', 'lastName' => 'Tsai' }, 'emails' => { 'primaryEmail' => 'a.tsai@acme.com' },
+        'phones' => { 'primaryPhoneNumber' => '' }, 'company' => nil, 'lineId' => 'annatsai', 'lineUserId' => "U#{'0' * 32}" }
+    end
+
+    it 'is raised for each LINE id the two sides hold differently' do
+      result = Crm::Twenty::PersonCardService.new(hook: hook, contact: contact).perform
+
+      expect(result[:conflicts]).to contain_exactly(
+        { 'type' => 'field', 'field' => 'line_id', 'inbox' => 'Anna_T', 'twenty' => 'annatsai' },
+        { 'type' => 'field', 'field' => 'line_user_id', 'inbox' => line_user_id, 'twenty' => "U#{'0' * 32}" }
+      )
+      expect(result[:person]).to include(line_id: 'annatsai', line_user_id: "U#{'0' * 32}")
+    end
+
+    it 'writes the Inbox LINE ID into Twenty in lower case' do
+      stub_twenty('mutation UpdatePerson', 'updatePerson' => person.merge('lineId' => 'anna_t'))
+
+      resolver.perform(type: 'field', choice: 'inbox', field: 'line_id')
+
+      expect(twenty_request('mutation UpdatePerson').with do |request|
+        request.body.include?('UpdatePerson') && JSON.parse(request.body).dig('variables', 'data') == { 'lineId' => 'anna_t' }
+      end).to have_been_made
+    end
+
+    it 'writes the Twenty LINE ID and LINE User ID into the contact' do
+      resolver.perform(type: 'field', choice: 'twenty', field: 'line_id')
+      resolver.perform(type: 'field', choice: 'twenty', field: 'line_user_id')
+
+      contact.reload
+      expect(contact.additional_attributes.dig('social_profiles', 'line')).to eq('annatsai')
+      expect(contact.additional_attributes['social_line_user_id']).to eq("U#{'0' * 32}")
+    end
+
+    it 'refuses a LINE User ID that LINE could not have issued' do
+      stub_twenty('query Person(', 'person' => person.merge('lineUserId' => 'annatsai'))
+
+      expect { resolver.perform(type: 'field', choice: 'twenty', field: 'line_user_id') }
+        .to raise_error(described_class::Error, /not one LINE issues/)
+      expect(contact.reload.additional_attributes['social_line_user_id']).to eq(line_user_id)
+    end
+
+    it 'refuses a LINE ID another contact already has' do
+      create(:contact, account: account, additional_attributes: { 'social_profiles' => { 'line' => 'AnnaTsai' } })
+
+      expect { resolver.perform(type: 'field', choice: 'twenty', field: 'line_id') }
+        .to raise_error(described_class::Error, /already has this LINE ID/)
+    end
+
+    it 'keeps both values when dismissed' do
+      Crm::Twenty::PersonCardService.new(hook: hook, contact: contact).perform
+
+      result = resolver.perform(type: 'field', choice: 'dismiss', field: 'line_user_id')
+
+      expect(result[:conflicts].pluck('field')).to eq(['line_id'])
+      expect(contact.reload.additional_attributes['social_line_user_id']).to eq(line_user_id)
     end
   end
 

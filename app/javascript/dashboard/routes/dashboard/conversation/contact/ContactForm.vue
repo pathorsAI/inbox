@@ -68,6 +68,8 @@ export default {
         { key: 'telegram', prefixURL: 'https://t.me/' },
         { key: 'whatsapp', prefixURL: '@' },
         { key: 'tiktok', prefixURL: 'https://tiktok.com/@' },
+        // A LINE ID has no profile URL, so the prefix only names the network.
+        { key: 'line', prefixURL: 'LINE' },
       ],
     };
   },

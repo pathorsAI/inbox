@@ -155,13 +155,35 @@ const companyCell = contact => {
   };
 };
 
+const LINE_ICON = 'i-ri-line-fill';
+
+// Email, then phone, then LINE. A bare LINE User ID is a system id: show only "LINE".
+const reachCell = contact => {
+  if (contact.email) return { text: contact.email, icon: 'i-lucide-mail' };
+  if (contact.phoneNumber) {
+    return { text: contact.phoneNumber, icon: 'i-lucide-phone' };
+  }
+  const { socialProfiles, socialLineUserId } =
+    contact.additionalAttributes ?? {};
+  if (socialProfiles?.line) {
+    return { text: socialProfiles.line, icon: LINE_ICON };
+  }
+  if (socialLineUserId) {
+    return {
+      text: t('CONTACTS_LAYOUT.TABLE.LINE'),
+      icon: LINE_ICON,
+      muted: true,
+    };
+  }
+  return null;
+};
+
 const toRow = contact => ({
   contact,
   name: contact.name || contact.email || contact.phoneNumber,
   isUnknown: isUnknownName(contact),
   ...companyCell(contact),
-  reach: contact.email || contact.phoneNumber,
-  reachIcon: contact.email ? 'i-lucide-mail' : 'i-lucide-phone',
+  reach: reachCell(contact),
   labels: labelsCell(contact.labels),
   activity: contact.lastActivityAt && {
     text: dynamicTime(contact.lastActivityAt),
@@ -294,10 +316,12 @@ const openContact = id => {
           <td :class="CELL">
             <span
               v-if="row.reach"
-              class="flex items-center gap-1.5 max-w-[16rem] text-n-slate-11"
+              data-test="contact-reach"
+              class="flex items-center gap-1.5 max-w-[16rem]"
+              :class="row.reach.muted ? 'text-n-slate-10' : 'text-n-slate-11'"
             >
-              <span class="size-3.5 shrink-0" :class="row.reachIcon" />
-              <span class="truncate">{{ row.reach }}</span>
+              <span class="size-3.5 shrink-0" :class="row.reach.icon" />
+              <span class="truncate">{{ row.reach.text }}</span>
             </span>
           </td>
           <td :class="[CELL, WIDE_ONLY]">

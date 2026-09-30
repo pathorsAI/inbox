@@ -31,6 +31,8 @@ RSpec.describe Crm::BackfillJob do
 
   before do
     stub_twenty('query Verify') { { 'workspaceMembers' => { 'totalCount' => 1 } } }
+    stub_request(:post, 'https://crm.example.com/metadata')
+      .to_return(status: 200, body: { data: { objects: { edges: [] } } }.to_json, headers: { 'Content-Type' => 'application/json' })
     stub_twenty('query FindPeople') do |variables|
       emails = variables.dig('filter', 'or').filter_map { |condition| condition.dig('emails', 'primaryEmail', 'eq') }
       { 'people' => { 'edges' => emails.include?('anna@acme.com') ? [{ 'node' => anna }] : [] } }

@@ -30,6 +30,8 @@ const linkedRecord = {
     email: 'anna@acme.com',
     phone: null,
     linkedin_url: null,
+    line_id: 'anna-line',
+    line_user_id: 'U4af4980629f1e8b0e5c9a1b2c3d4e5f6',
     company: {
       id: 'c1',
       name: 'Acme',
@@ -107,6 +109,10 @@ describe('TwentyPersonPanel', () => {
     expect(text).toContain('Investment Analyst');
     expect(text).toContain('Acme');
     expect(text).toContain('anna@acme.com');
+    // The LINE ID is a contact row; the LINE User ID is a system id and stays out.
+    expect(text).toContain('anna-line');
+    expect(wrapper.find('.i-ri-line-fill').exists()).toBe(true);
+    expect(text).not.toContain(linkedRecord.person.line_user_id);
     expect(text).toContain('Acme voice agent');
     expect(text).toContain('Pricing Discussion');
     expect(text).toContain('NT$120,000');

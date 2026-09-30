@@ -8,10 +8,11 @@ class Crm::Twenty::Provider
     hook.account.contacts.where(CONFLICTED).count
   end
 
-  # Contacts Twenty could match (by email or phone), and those already linked.
+  # Contacts Twenty could match (by email, phone or LINE ids), and those already linked.
   def backfill_scope
     hook.account.contacts.where(
-      "contacts.email <> '' OR contacts.phone_number <> '' OR contacts.additional_attributes #>> '{external,twenty_id}' IS NOT NULL"
+      "contacts.email <> '' OR contacts.phone_number <> '' OR contacts.additional_attributes ->> 'social_line_user_id' <> '' OR " \
+      "contacts.additional_attributes #>> '{social_profiles,line}' <> '' OR contacts.additional_attributes #>> '{external,twenty_id}' IS NOT NULL"
     )
   end
 

@@ -1,9 +1,10 @@
 # Links an Inbox contact to its Twenty person.
 #
 # The person id lives under additional_attributes.external.twenty_id. A
-# contact is matched by email (unique in Twenty) or by any spelling of its
-# phone. Several phone matches with no email match is not guessed at: the
-# contact stays unlinked and the candidates are raised as a conflict. Linking
+# contact is matched by email (unique in Twenty), LINE User ID, LINE ID or any
+# spelling of its phone, in that order of trust. Several matches with none
+# settled by those is not guessed at: the contact stays unlinked and the
+# candidates are raised as a conflict. Linking
 # fills each side's blanks from the other and records what they disagree on
 # (Crm::Twenty::Conflicts). A new link also queues the contact's notes that
 # never reached Twenty, such as those written while it was ambiguous. The
@@ -16,7 +17,10 @@ class Crm::Twenty::Linker
   NOTES_KEY = 'twenty_notes'.freeze
   # Twenty field → the Inbox field it corresponds to, for the sync log.
   PERSON_FIELD_NAMES = { name: 'name', emails: 'email', phones: 'phone_number', city: 'city', linkedinLink: 'social_profiles',
-                         companyId: 'company_name' }.freeze
+                         companyId: 'company_name', lineUserId: 'line_user_id', lineId: 'line_id' }.freeze
+  # Inbox additional attributes (social profiles one level down) as the sync log names them.
+  CONTACT_FIELD_NAMES = { 'social_line_user_id' => 'line_user_id', 'social_profiles.line' => 'line_id',
+                          'social_profiles.linkedin' => 'social_profiles' }.freeze
 
   attr_reader :hook, :client
 
@@ -42,7 +46,7 @@ class Crm::Twenty::Linker
     return unless identifiable?(contact)
 
     people = find_people(contact)
-    match = best_match(contact, people)
+    match = Crm::Twenty::PersonMapper.new(contact).match(people)
     return match if match
     return flag_ambiguous(contact, people) if people.many?
 
@@ -78,7 +82,7 @@ class Crm::Twenty::Linker
   def create_person(contact)
     return unless identifiable?(contact)
 
-    attributes = Crm::Twenty::PersonMapper.new(contact).create_attributes
+    attributes = mapper(contact).create_attributes
     client.create_person(attributes.merge(createdBy: actor, companyId: company_id_for(contact)).compact).tap do |person|
       Crm::SyncLog.record(hook: hook, action: 'created_person', contact: contact, details: { person_id: person['id'] }) if person
     end
@@ -131,20 +135,18 @@ class Crm::Twenty::Linker
 
   private
 
+  def mapper(contact)
+    Crm::Twenty::PersonMapper.new(contact, line_fields: client.line_fields)
+  end
+
   def identifiable?(contact)
-    contact.email.present? || contact.phone_number.present? || contact.additional_attributes&.dig('social_profiles').present?
+    Crm::Twenty::PersonMapper.new(contact).matchable? || contact.additional_attributes&.dig('social_profiles').present?
   end
 
   def find_people(contact)
-    mapper = Crm::Twenty::PersonMapper.new(contact)
-    client.find_people(emails: mapper.lookup_emails, phones: mapper.lookup_phones)
-  end
-
-  # Emails are unique in Twenty and phones are not: an email match wins, and
-  # a phone settles it only when a single person has that number.
-  def best_match(contact, people)
-    by_email = people.find { |person| contact.email.present? && person.dig('emails', 'primaryEmail').to_s.downcase == contact.email }
-    by_email || (people.first if people.one?)
+    identity = Crm::Twenty::PersonMapper.new(contact)
+    client.find_people(emails: identity.lookup_emails, phones: identity.lookup_phones, line_user_id: identity.line_user_id,
+                       line_id: identity.line_id)
   end
 
   def flag_ambiguous(contact, people)
@@ -156,16 +158,26 @@ class Crm::Twenty::Linker
   def save_contact(contact, person)
     changes = Crm::Twenty::PersonMapper.new(contact).contact_updates(person)
     additional = changes.delete(:additional_attributes) || contact.additional_attributes
-    filled = changes.keys.map(&:to_s) + additional.keys.reject { |key| additional[key] == contact.additional_attributes[key] }
+    filled = changes.keys.map(&:to_s) + filled_additional(contact.additional_attributes, additional)
     external = (additional['external'] || {}).merge(EXTERNAL_ID => person['id'])
     contact.assign_attributes(changes.merge(additional_attributes: additional.merge('external' => external)))
     contact.save! if contact.changed?
     filled
   end
 
+  def filled_additional(before, after)
+    before = flat_attributes(before)
+    flat_attributes(after).reject { |key, value| before[key] == value }.keys.map { |key| CONTACT_FIELD_NAMES.fetch(key, key) }.uniq
+  end
+
+  def flat_attributes(attributes)
+    profiles = (attributes['social_profiles'] || {}).transform_keys { |profile| "social_profiles.#{profile}" }
+    attributes.except('social_profiles').merge(profiles)
+  end
+
   # Returns the person as it now is, and the fields filled on it.
   def fill_person(contact, person)
-    updates = Crm::Twenty::PersonMapper.new(contact).person_updates(person)
+    updates = mapper(contact).person_updates(person)
     updates[:companyId] = company_id_for(contact) if person['company'].blank?
     updates.compact!
     return [person, []] if updates.blank?

@@ -8,7 +8,9 @@
 # external.twenty_notes so edits and deletes follow.
 class Crm::Twenty::ProcessorService < Crm::BaseProcessorService
   CONTACT_FIELDS = %w[name last_name email phone_number].freeze
-  ADDITIONAL_FIELDS = %w[company_name city social_profiles].freeze
+  ADDITIONAL_FIELDS = %w[company_name city social_profiles social_line_user_id].freeze
+  # Custom fields are added rarely; without the cache every job would read them.
+  PERSON_FIELDS_TTL = 12.hours
 
   attr_reader :client, :linker
 
@@ -18,7 +20,10 @@ class Crm::Twenty::ProcessorService < Crm::BaseProcessorService
 
   def initialize(hook)
     super
-    @client = Crm::Twenty::Api::Client.new(api_url: hook.settings['api_url'], api_key: hook.settings['api_key'])
+    @client = Crm::Twenty::Api::Client.new(
+      api_url: hook.settings['api_url'], api_key: hook.settings['api_key'],
+      person_fields: -> { Crm::Twenty::Cache.fetch(hook, 'person_fields', ttl: PERSON_FIELDS_TTL) { @client.person_field_names } }
+    )
     @linker = Crm::Twenty::Linker.new(hook, @client)
   end
 

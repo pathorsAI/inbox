@@ -179,6 +179,38 @@ describe('ContactsTable', () => {
     expect(isMuted(2)).toBe(true);
   });
 
+  it('falls back to LINE when a contact has no email or phone', () => {
+    const lineUserId = 'U4af4980629f1e8b0e5c9a1b2c3d4e5f6';
+    mountTable({
+      contacts: [
+        {
+          id: 4,
+          name: 'Kai',
+          additionalAttributes: {
+            socialProfiles: { line: 'kai.line' },
+            socialLineUserId: lineUserId,
+          },
+        },
+        {
+          id: 5,
+          name: 'Lin',
+          additionalAttributes: { socialLineUserId: lineUserId },
+        },
+      ],
+    });
+    const reach = index => rows()[index].find('[data-test="contact-reach"]');
+
+    expect(reach(0).text()).toBe('kai.line');
+    expect(reach(0).find('.i-ri-line-fill').exists()).toBe(true);
+    expect(reach(0).classes()).toContain('text-n-slate-11');
+
+    // A LINE User ID alone never shows its raw value.
+    expect(reach(1).text()).toBe(`${TABLE}.LINE`);
+    expect(reach(1).find('.i-ri-line-fill').exists()).toBe(true);
+    expect(reach(1).classes()).toContain('text-n-slate-10');
+    expect(wrapper.text()).not.toContain(lineUserId);
+  });
+
   it('maps crm_status to a state by its position in the definition', () => {
     getters['attributes/getContactAttributes'].value = [
       crmStatus(['Linked', 'Needs attention', 'Not linked']),

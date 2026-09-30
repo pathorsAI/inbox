@@ -1,7 +1,7 @@
 # GraphQL client for one Twenty workspace (verified against v2.41).
 #
-# GraphQL rather than REST because every lookup here is a small OR over email
-# and phone spellings, which variables keep out of Twenty's filter-string
+# GraphQL rather than REST because every lookup here is a small OR over email,
+# phone spellings and LINE ids, which variables keep out of Twenty's filter-string
 # grammar, and because a person, their company and its opportunities come back
 # in one request. That matters: Twenty rate-limits API keys per workspace
 # (100 requests a minute, shared with every other integration on it), and it
@@ -29,35 +29,18 @@ class Crm::Twenty::Api::Client
   # for self-hosted workspaces, where both share an origin.
   CLOUD_API_HOST = 'api.twenty.com'.freeze
 
-  PERSON_SCALARS = <<~GRAPHQL.freeze
-    id
-    name { firstName lastName }
-    emails { primaryEmail additionalEmails }
-    phones { primaryPhoneNumber primaryPhoneCountryCode primaryPhoneCallingCode additionalPhones }
-    jobTitle
-    city
-    linkedinLink { primaryLinkUrl }
-  GRAPHQL
+  PERSON_SCALARS = 'id name { firstName lastName } emails { primaryEmail additionalEmails } ' \
+                   'phones { primaryPhoneNumber primaryPhoneCountryCode primaryPhoneCallingCode additionalPhones } ' \
+                   'jobTitle city linkedinLink { primaryLinkUrl }'.freeze
+
+  # Custom TEXT fields on person that only some workspaces add (see #line_fields).
+  LINE_FIELDS = %w[lineUserId lineId].freeze
 
   COMPANY_FIELDS = 'id name domainName { primaryLinkUrl }'.freeze
-  PERSON_FIELDS = "#{PERSON_SCALARS} company { #{COMPANY_FIELDS} }".freeze
 
   OPPORTUNITY_FIELDS = 'id name stage closeDate updatedAt amount { amountMicros currencyCode } owner { name { firstName lastName } }'.freeze
 
-  # Nested connections ignore first/orderBy in v2.41, so they come back whole
-  # and are sorted by the caller. A one-to-many two levels down (person →
-  # company → opportunities) comes back empty, so the company's opportunities
-  # are a query of their own.
-  PERSON_CARD_QUERY = <<~GRAPHQL.freeze
-    query PersonCard($id: UUID!) {
-      person(filter: { id: { eq: $id } }) {
-        #{PERSON_SCALARS}
-        company { #{COMPANY_FIELDS} }
-        pointOfContactForOpportunities { edges { node { #{OPPORTUNITY_FIELDS} } } }
-        noteTargets { totalCount edges { node { note { id title createdAt bodyV2 { markdown } createdBy { name } } } } }
-      }
-    }
-  GRAPHQL
+  OBJECTS_QUERY = 'query Objects { objects(paging: { first: 200 }) { edges { node { nameSingular fieldsList { name isActive options } } } } }'.freeze
 
   attr_reader :origin
 
@@ -76,26 +59,36 @@ class Crm::Twenty::Api::Client
     false
   end
 
-  def initialize(api_url:, api_key:)
+  # person_fields: returns the workspace's person field names, typically
+  # #person_field_names cached by the caller; read at most once per client.
+  def initialize(api_url:, api_key:, person_fields: -> { person_field_names })
     raise ApiError, 'Twenty URL must be a public https address' unless self.class.valid_origin?(api_url)
 
     @origin = api_url.to_s.strip.chomp('/').downcase
     @api_key = api_key
+    @person_fields = person_fields
   end
+
+  # The LINE fields this workspace's people have. Other workspaces lack them,
+  # and a query naming a field the workspace lacks fails as a whole.
+  def line_fields = @line_fields ||= LINE_FIELDS & @person_fields.call
 
   # Raises unless the key can read the workspace.
   def verify!
     query('query Verify { workspaceMembers(first: 1) { totalCount } }')
   end
 
-  def find_people(emails:, phones:)
+  # A LINE ID is matched case-insensitively: people type it by hand.
+  def find_people(emails:, phones:, line_user_id: nil, line_id: nil)
     conditions = emails.map { |email| { emails: { primaryEmail: { eq: email } } } }
     conditions << { phones: { primaryPhoneNumber: { in: phones } } } if phones.any?
+    conditions << { lineUserId: { eq: line_user_id } } if line_field?('lineUserId', line_user_id)
+    conditions << { lineId: { ilike: ilike_exact(line_id) } } if line_field?('lineId', line_id)
     return [] if conditions.empty?
 
     data = query(<<~GRAPHQL, filter: { or: conditions })
       query FindPeople($filter: PersonFilterInput) {
-        people(filter: $filter, first: 5) { edges { node { #{PERSON_FIELDS} } } }
+        people(filter: $filter, first: 5) { edges { node { #{person_fields} } } }
       }
     GRAPHQL
     nodes(data['people'])
@@ -103,14 +96,28 @@ class Crm::Twenty::Api::Client
 
   def person(id)
     query(<<~GRAPHQL, id: id)['person']
-      query Person($id: UUID!) { person(filter: { id: { eq: $id } }) { #{PERSON_FIELDS} } }
+      query Person($id: UUID!) { person(filter: { id: { eq: $id } }) { #{person_fields} } }
     GRAPHQL
   end
 
   # The person with their company's latest opportunities under
   # company.opportunities, as if Twenty had nested them.
+  #
+  # Nested connections ignore first/orderBy in v2.41, so they come back whole
+  # and are sorted by the caller. A one-to-many two levels down (person →
+  # company → opportunities) comes back empty, so the company's opportunities
+  # are a query of their own.
   def person_card(id, opportunity_limit: 5)
-    person = query(PERSON_CARD_QUERY, id: id)['person']
+    person = query(<<~GRAPHQL, id: id)['person']
+      query PersonCard($id: UUID!) {
+        person(filter: { id: { eq: $id } }) {
+          #{person_scalars}
+          company { #{COMPANY_FIELDS} }
+          pointOfContactForOpportunities { edges { node { #{OPPORTUNITY_FIELDS} } } }
+          noteTargets { totalCount edges { node { note { id title createdAt bodyV2 { markdown } createdBy { name } } } } }
+        }
+      }
+    GRAPHQL
     return person if person.nil? || person['company'].blank?
 
     person['company']['opportunities'] = query(<<~GRAPHQL, id: person['company']['id'], first: opportunity_limit)['opportunities']
@@ -125,19 +132,18 @@ class Crm::Twenty::Api::Client
 
   def create_person(data)
     query(<<~GRAPHQL, data: data)['createPerson']
-      mutation CreatePerson($data: PersonCreateInput!) { createPerson(data: $data) { #{PERSON_FIELDS} } }
+      mutation CreatePerson($data: PersonCreateInput!) { createPerson(data: $data) { #{person_fields} } }
     GRAPHQL
   end
 
   def update_person(id, data)
     query(<<~GRAPHQL, id: id, data: data)['updatePerson']
-      mutation UpdatePerson($id: UUID!, $data: PersonUpdateInput!) { updatePerson(id: $id, data: $data) { #{PERSON_FIELDS} } }
+      mutation UpdatePerson($id: UUID!, $data: PersonUpdateInput!) { updatePerson(id: $id, data: $data) { #{person_fields} } }
     GRAPHQL
   end
 
   def find_company_id(name)
-    # ilike without wildcards is a case-insensitive equals, once % and _ are escaped.
-    data = query(<<~GRAPHQL, name: name.gsub(/[\\%_]/) { |char| "\\#{char}" })
+    data = query(<<~GRAPHQL, name: ilike_exact(name))
       query FindCompany($name: String) { companies(filter: { name: { ilike: $name } }, first: 2) { edges { node { id } } } }
     GRAPHQL
     matches = nodes(data['companies'])
@@ -184,10 +190,13 @@ class Crm::Twenty::Api::Client
   # { 'MEETING' => { 'label' => 'Meeting', 'color' => 'sky' }, … } from the
   # workspace's own field metadata, so renamed or custom stages read right.
   def opportunity_stages
-    data = request('/metadata', 'query Objects { objects(paging: { first: 200 }) { edges { node { nameSingular fieldsList { name options } } } } }')
-    opportunity = nodes(data['objects']).find { |object| object['nameSingular'] == 'opportunity' }
-    stage = opportunity&.dig('fieldsList')&.find { |field| field['name'] == 'stage' }
+    stage = object_fields('opportunity').find { |field| field['name'] == 'stage' }
     Array(stage&.dig('options')).to_h { |option| [option['value'], option.slice('label', 'color')] }
+  end
+
+  # Every active field on person, custom ones included.
+  def person_field_names
+    object_fields('person').select { |field| field['isActive'] }.pluck('name')
   end
 
   def record_url(object, id)
@@ -197,6 +206,20 @@ class Crm::Twenty::Api::Client
   end
 
   private
+
+  def person_scalars = [PERSON_SCALARS, *line_fields].join(' ')
+  def person_fields = "#{person_scalars} company { #{COMPANY_FIELDS} }"
+
+  # A value to look up by, in a field the workspace has.
+  def line_field?(field, value) = value.present? && line_fields.include?(field)
+
+  def object_fields(name)
+    objects = nodes(request('/metadata', OBJECTS_QUERY)['objects'])
+    objects.find { |object| object['nameSingular'] == name }&.dig('fieldsList') || []
+  end
+
+  # ilike without wildcards is a case-insensitive equals, once % and _ are escaped.
+  def ilike_exact(value) = value.gsub(/[\\%_]/) { |char| "\\#{char}" }
 
   def note_data(title, markdown)
     { title: title, bodyV2: { markdown: markdown } }

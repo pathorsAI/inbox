@@ -1,8 +1,8 @@
 # Applies a person's decision on one conflict (see Crm::Twenty::Conflicts)
 # and returns the contact's refreshed sidebar card.
 #
-#   field             inbox   write the Inbox value into Twenty (the value it replaces is kept
-#                             as an additional email or phone)
+#   field             inbox   write the Inbox value into Twenty (a replaced email or phone is kept
+#                             as an additional one)
 #                     twenty  write the Twenty value into the Inbox contact
 #   ambiguous         person  link to the chosen candidate
 #                     new     none of them: create a new person
@@ -50,14 +50,20 @@ class Crm::Twenty::ConflictResolver
   end
 
   def write_to_twenty(field:, **)
-    updates = case field
-              when 'name' then { name: Crm::Twenty::PersonMapper.new(contact).name_attributes }
-              when 'email' then { emails: emails_with(contact.email) }
-              when 'phone' then { phones: phones_with(contact.phone_number) }
-              when 'company' then { companyId: company_id(contact.additional_attributes['company_name']) }
-              else raise Error, t('conflict_not_found')
-              end
-    linker.link(contact, client.update_person(person['id'], updates))
+    linker.link(contact, client.update_person(person['id'], twenty_attributes(field)))
+  end
+
+  def twenty_attributes(field)
+    identity = Crm::Twenty::PersonMapper.new(contact)
+    case field
+    when 'name' then { name: identity.name_attributes }
+    when 'email' then { emails: emails_with(contact.email) }
+    when 'phone' then { phones: phones_with(contact.phone_number) }
+    when 'company' then { companyId: company_id(contact.additional_attributes['company_name']) }
+    when 'line_id' then { lineId: identity.line_id }
+    when 'line_user_id' then { lineUserId: identity.line_user_id }
+    else raise Error, t('conflict_not_found')
+    end
   end
 
   def write_to_inbox(field:, **)
@@ -71,8 +77,30 @@ class Crm::Twenty::ConflictResolver
     when 'email' then { email: unused(:email, person.dig('emails', 'primaryEmail').downcase) }
     when 'phone' then { phone_number: unused(:phone_number, e164(Crm::Twenty::Conflicts.person_phone(person))) }
     when 'company' then { additional_attributes: contact.additional_attributes.merge('company_name' => person.dig('company', 'name')) }
+    when 'line_id' then { additional_attributes: contact.additional_attributes.merge('social_profiles' => social_profiles_with_line_id) }
+    when 'line_user_id' then { additional_attributes: contact.additional_attributes.merge('social_line_user_id' => line_user_id) }
     else raise Error, t('conflict_not_found')
     end
+  end
+
+  def social_profiles_with_line_id
+    line_id = Crm::Twenty::PersonMapper.line_id(person['lineId'])
+    raise Error, t('line_id_taken') if line_id.nil? || Crm::Twenty::PersonMapper.with_line_id(other_contacts, line_id).exists?
+
+    (contact.additional_attributes['social_profiles'] || {}).merge('line' => line_id)
+  end
+
+  # A LINE User ID is only ever issued by LINE, so anything else was mistyped in Twenty.
+  def line_user_id
+    line_user_id = person['lineUserId'].to_s.strip
+    raise Error, t('invalid_line_user_id') unless line_user_id.match?(Crm::Twenty::PersonMapper::LINE_USER_ID)
+    raise Error, t('line_user_id_taken') if Crm::Twenty::PersonMapper.with_line_user_id(other_contacts, line_user_id).exists?
+
+    line_user_id
+  end
+
+  def other_contacts
+    contact.account.contacts.where.not(id: contact.id)
   end
 
   def link_to_candidate(person_id:, **)
@@ -108,7 +136,7 @@ class Crm::Twenty::ConflictResolver
 
   # Email and phone are unique per account; the holder is a duplicate contact to merge first.
   def unused(attribute, value)
-    raise Error, t("#{attribute}_taken") if value.blank? || contact.account.contacts.where.not(id: contact.id).exists?(attribute => value)
+    raise Error, t("#{attribute}_taken") if value.blank? || other_contacts.exists?(attribute => value)
 
     value
   end
