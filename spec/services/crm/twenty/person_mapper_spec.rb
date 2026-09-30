@@ -63,6 +63,31 @@ RSpec.describe Crm::Twenty::PersonMapper do
     end
   end
 
+  describe 'LINE ids' do
+    let(:line_user_id) { "U#{'4af49806' * 4}" }
+    let(:contact) do
+      create(:contact, account: account, name: 'Anna Tsai',
+                       additional_attributes: { 'social_line_user_id' => line_user_id, 'social_profiles' => { 'line' => ' Anna_Tsai ' } })
+    end
+
+    it 'writes them to Twenty only where the workspace has the fields, the LINE ID in lower case' do
+      expect(mapper.create_attributes.keys).not_to include(:lineUserId, :lineId)
+      expect(described_class.new(contact, line_fields: %w[lineUserId lineId]).create_attributes)
+        .to include(lineUserId: line_user_id, lineId: 'anna_tsai')
+      expect(described_class.new(contact, line_fields: ['lineId']).person_updates(person.merge('lineId' => 'annatsai')).keys)
+        .not_to include(:lineId, :lineUserId)
+    end
+
+    it 'fills the contact\'s blank LINE ids from Twenty, but only a LINE User ID LINE could have issued' do
+      contact.update!(additional_attributes: {})
+      person.merge!('lineId' => 'Anna_Tsai', 'lineUserId' => line_user_id)
+
+      expect(mapper.contact_updates(person)[:additional_attributes])
+        .to eq('social_line_user_id' => line_user_id, 'social_profiles' => { 'line' => 'anna_tsai' })
+      expect(mapper.contact_updates(person.merge('lineUserId' => 'anna'))[:additional_attributes]).not_to have_key('social_line_user_id')
+    end
+  end
+
   describe '#person_updates' do
     it 'fills every blank on the person' do
       expect(mapper.person_updates(person).keys).to contain_exactly(:name, :emails, :phones, :city, :linkedinLink)

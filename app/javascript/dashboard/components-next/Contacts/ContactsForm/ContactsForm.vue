@@ -1,5 +1,5 @@
 <script setup>
-import { computed, reactive, watch } from 'vue';
+import { computed, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { required, email } from '@vuelidate/validators';
 import { useVuelidate } from '@vuelidate/core';
@@ -7,10 +7,13 @@ import { splitName } from '@chatwoot/utils';
 import countries from 'shared/constants/countries.js';
 import { FEATURE_FLAGS } from 'dashboard/featureFlags';
 import { useAccount } from 'dashboard/composables/useAccount';
+import { useAlert } from 'dashboard/composables';
+import { copyTextToClipboard } from 'shared/helpers/clipboard';
 import Input from 'dashboard/components-next/input/Input.vue';
 import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 import CompanySelector from 'dashboard/components-next/Companies/CompanySelector.vue';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
+import Button from 'dashboard/components-next/button/Button.vue';
 import PhoneNumberInput from 'dashboard/components-next/phonenumberinput/PhoneNumberInput.vue';
 
 const props = defineProps({
@@ -53,6 +56,8 @@ const SOCIAL_CONFIG = {
   TIKTOK: 'i-ri-tiktok-fill',
   TWITTER: 'i-ri-twitter-x-fill',
   GITHUB: 'i-ri-github-fill',
+  // The LINE ID people add friends with; it has no public profile URL.
+  LINE: 'i-ri-line-fill',
 };
 
 const defaultState = {
@@ -78,6 +83,7 @@ const defaultState = {
       linkedin: '',
       twitter: '',
       whatsapp: '',
+      line: '',
     },
   },
 };
@@ -92,6 +98,9 @@ const validationRules = {
 const v$ = useVuelidate(validationRules, state);
 
 const isFormInvalid = computed(() => v$.value.$invalid);
+// Set by the LINE channel when the contact messages our Official Account; not editable.
+// Kept apart from the state, whose updates replace the parent's additionalAttributes.
+const lineUserId = ref('');
 const normalizeWhatsAppUsername = value => value?.toString().replace(/^@+/, '');
 const hasCompaniesFeature = computed(
   () =>
@@ -134,7 +143,9 @@ const prepareStateBasedOnProps = () => {
     socialTelegramUserName = '',
     socialWhatsappUserName = '',
     socialProfiles = {},
+    socialLineUserId = '',
   } = additionalAttributes || {};
+  lineUserId.value = socialLineUserId;
 
   const telegramUsername =
     socialProfiles?.telegram || socialTelegramUserName || '';
@@ -265,6 +276,11 @@ const handleSocialProfileInput = item => {
   emit('update', state);
 };
 
+const copyLineUserId = async () => {
+  await copyTextToClipboard(lineUserId.value);
+  useAlert(t('CONTACT_PANEL.COPY_SUCCESSFUL'));
+};
+
 const resetValidation = () => {
   v$.value.$reset();
 };
@@ -375,6 +391,30 @@ defineExpose({
             @input="handleSocialProfileInput(item)"
           />
         </div>
+      </div>
+      <div
+        v-if="lineUserId"
+        data-test="line-user-id"
+        class="flex items-center max-w-full min-w-0 gap-2 text-sm text-n-slate-11"
+      >
+        <Icon icon="i-ri-line-fill" class="flex-shrink-0 size-4" />
+        <span class="flex-shrink-0">
+          {{ t('CONTACTS_LAYOUT.CARD.SOCIAL_MEDIA.LINE_USER_ID') }}
+        </span>
+        <span class="font-mono truncate text-n-slate-12" :title="lineUserId">
+          {{ lineUserId }}
+        </span>
+        <Button
+          v-tooltip.top="
+            t('CONTACTS_LAYOUT.CARD.SOCIAL_MEDIA.COPY_LINE_USER_ID')
+          "
+          icon="i-lucide-copy"
+          ghost
+          slate
+          xs
+          class="flex-shrink-0"
+          @click="copyLineUserId"
+        />
       </div>
     </div>
   </div>

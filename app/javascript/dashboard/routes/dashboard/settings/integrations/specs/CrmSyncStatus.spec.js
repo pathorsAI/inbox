@@ -1,4 +1,6 @@
-import { flushPromises, mount, RouterLinkStub } from '@vue/test-utils';
+import { config, flushPromises, mount, RouterLinkStub } from '@vue/test-utils';
+import { createI18n } from 'vue-i18n';
+import integrations from 'dashboard/i18n/locale/zh_TW/integrations.json';
 import { useAlert } from 'dashboard/composables';
 import CrmSyncStatus from '../CrmSyncStatus.vue';
 
@@ -131,6 +133,30 @@ describe('CrmSyncStatus', () => {
 
     expect(rows[2].text()).toContain(`${KEY}.ACTIONS.FILLED_FIELDS`);
     expect(rows[2].findComponent(RouterLinkStub).exists()).toBe(false);
+  });
+
+  it('names filled LINE fields in words', async () => {
+    getEvents.mockResolvedValue(
+      eventsPage([
+        { ...filledEvent, details: { fields: ['line_id', 'line_user_id'] } },
+      ])
+    );
+    // Swaps the global empty i18n for one with the real zh_TW strings.
+    const { plugins } = config.global;
+    config.global.plugins = [
+      createI18n({
+        legacy: false,
+        locale: 'zh_TW',
+        messages: { zh_TW: integrations },
+      }),
+      ...plugins.filter(plugin => !plugin.global),
+    ];
+    const wrapper = await mountStatus();
+    config.global.plugins = plugins;
+
+    const row = wrapper.find('li').text();
+    expect(row).toContain('LINE ID、LINE User ID');
+    expect(row).not.toContain('line_user_id');
   });
 
   it('shows the never-synced state', async () => {

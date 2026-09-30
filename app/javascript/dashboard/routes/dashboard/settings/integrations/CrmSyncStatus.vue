@@ -120,6 +120,8 @@ const fieldLabels = computed(() => ({
   city: t('INTEGRATION_SETTINGS.CRM_SYNC.FIELDS.CITY'),
   linkedin: t('INTEGRATION_SETTINGS.CRM_SYNC.FIELDS.LINKEDIN'),
   job_title: t('INTEGRATION_SETTINGS.CRM_SYNC.FIELDS.JOB_TITLE'),
+  line_id: t('INTEGRATION_SETTINGS.CRM_SYNC.FIELDS.LINE_ID'),
+  line_user_id: t('INTEGRATION_SETTINGS.CRM_SYNC.FIELDS.LINE_USER_ID'),
 }));
 
 // Fields outside the map show their raw key rather than nothing.

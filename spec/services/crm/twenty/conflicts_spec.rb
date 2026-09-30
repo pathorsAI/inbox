@@ -58,6 +58,39 @@ RSpec.describe Crm::Twenty::Conflicts do
     )
   end
 
+  describe 'LINE ids' do
+    let(:line_user_id) { "U#{'4af49806' * 4}" }
+
+    before do
+      contact.update!(additional_attributes: contact.additional_attributes.merge('social_profiles' => { 'line' => 'Anna_Tsai' },
+                                                                                 'social_line_user_id' => line_user_id))
+    end
+
+    it 'agrees on a LINE ID written in another case' do
+      person.merge!('lineId' => 'anna_tsai', 'lineUserId' => line_user_id)
+
+      expect(conflicts.for_person(person)).to eq([])
+    end
+
+    it 'raises a field conflict for each LINE id the two sides hold differently' do
+      person.merge!('lineId' => 'annatsai', 'lineUserId' => "U#{'0' * 32}")
+
+      expect(conflicts.for_person(person)).to contain_exactly(
+        { 'type' => 'field', 'field' => 'line_id', 'inbox' => 'Anna_Tsai', 'twenty' => 'annatsai' },
+        { 'type' => 'field', 'field' => 'line_user_id', 'inbox' => line_user_id, 'twenty' => "U#{'0' * 32}" }
+      )
+    end
+
+    it 'flags another contact holding the person\'s LINE User ID or LINE ID' do
+      by_user_id = create(:contact, account: account, name: 'Anna (LINE)', additional_attributes: { 'social_line_user_id' => "U#{'1' * 32}" })
+      by_line_id = create(:contact, account: account, name: 'Anna (friend)', additional_attributes: { 'social_profiles' => { 'line' => 'Anna.T' } })
+      person.merge!('lineUserId' => "U#{'1' * 32}", 'lineId' => 'anna.t')
+
+      duplicates = conflicts.for_person(person).select { |conflict| conflict['type'] == 'duplicate_contact' }
+      expect(duplicates.map { |conflict| conflict.dig('contact', 'id') }).to eq([by_user_id.id, by_line_id.id])
+    end
+  end
+
   it 'stops raising a dismissed conflict until one of the values changes' do
     person['emails']['primaryEmail'] = 'a.tsai@acme.com'
     conflict = conflicts.for_person(person).first

@@ -60,7 +60,9 @@
       "CONTACT_LABELS": "Contact Labels",
       "PREVIOUS_CONVERSATIONS": "Previous Conversations",
       "NO_RECORDS_FOUND": "No attributes found"
-    }
+    },
+    "LINE_ID": "LINE ID",
+    "LINE_USER_ID": "LINE User ID"
   },
   "EDIT_CONTACT": {
     "BUTTON_LABEL": "Edit Contact",
@@ -480,7 +482,8 @@
       },
       "JOB_TITLE": "· {title}",
       "MORE_LABELS": "+{count}",
-      "EMPTY_CELL": "—"
+      "EMPTY_CELL": "—",
+      "LINE": "LINE"
     },
     "CARD": {
       "OF": "of",
@@ -545,8 +548,13 @@
           },
           "TWITTER": {
             "PLACEHOLDER": "Add Twitter"
+          },
+          "LINE": {
+            "PLACEHOLDER": "Add LINE ID"
           }
-        }
+        },
+        "LINE_USER_ID": "LINE User ID",
+        "COPY_LINE_USER_ID": "Copy LINE User ID"
       },
       "DELETE_CONTACT": {
         "MESSAGE": "This action is permanent and irreversible.",

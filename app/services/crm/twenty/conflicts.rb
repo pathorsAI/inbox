@@ -2,11 +2,12 @@
 #
 # Sync only ever fills blanks, so a real disagreement would otherwise pass
 # silently. Three kinds are raised:
-#   field             both sides hold a different value for name, email, phone or company
+#   field             both sides hold a different value for name, email, phone, company,
+#                     LINE ID (line_id, case-insensitive) or LINE User ID (line_user_id)
 #   ambiguous         several Twenty people match the contact's phone and none its email,
 #                     so the contact is left unlinked rather than linked to a guess
 #   duplicate_contact another Inbox contact is the same Twenty person, or already holds
-#                     that person's email or phone
+#                     that person's email, phone, LINE User ID or LINE ID
 #
 # They live on the contact (additional_attributes.external.twenty_conflicts),
 # so the sidebar and the settings list read them without a Twenty request. A
@@ -15,7 +16,7 @@
 class Crm::Twenty::Conflicts
   KEY = 'twenty_conflicts'.freeze
   DISMISSED_KEY = 'twenty_dismissed'.freeze
-  FIELDS = %w[name email phone company].freeze
+  FIELDS = %w[name email phone company line_id line_user_id].freeze
   CANDIDATE_LIMIT = 5
   DUPLICATE_LIMIT = 3
 
@@ -89,6 +90,8 @@ class Crm::Twenty::Conflicts
     when 'email' then twenty_emails(person).include?(inbox)
     when 'phone' then twenty_numbers(person).intersect?(Crm::Twenty::PersonMapper.phone(inbox)[:variants])
     when 'company' then inbox.downcase.squish == twenty.downcase.squish
+    when 'line_id' then inbox.casecmp?(twenty)
+    when 'line_user_id' then inbox == twenty
     else raise ArgumentError, "Unknown Twenty conflict field #{field}"
     end
   end
@@ -128,6 +131,14 @@ class Crm::Twenty::Conflicts
     [contact.additional_attributes&.dig('company_name').presence, person.dig('company', 'name').presence]
   end
 
+  def line_id_values(person)
+    [contact.additional_attributes&.dig('social_profiles', 'line'), person['lineId']].map { |value| value.to_s.strip.presence }
+  end
+
+  def line_user_id_values(person)
+    [contact.additional_attributes&.dig('social_line_user_id'), person['lineUserId']].map { |value| value.to_s.strip.presence }
+  end
+
   def duplicate_contacts(person)
     same_person(person).order(:id).limit(DUPLICATE_LIMIT).map do |other|
       { 'type' => 'duplicate_contact',
@@ -135,7 +146,7 @@ class Crm::Twenty::Conflicts
     end
   end
 
-  # Other contacts linked to the person, or holding its email or phone.
+  # Other contacts linked to the person, or holding its email, phone or LINE ids.
   def same_person(person)
     others = contact.account.contacts.where.not(id: contact.id)
     email = person.dig('emails', 'primaryEmail').presence&.downcase
@@ -143,6 +154,13 @@ class Crm::Twenty::Conflicts
     scopes = [others.where("contacts.additional_attributes #>> '{external,twenty_id}' = ?", person['id'])]
     scopes << others.where(email: email) if email
     scopes << others.where(phone_number: phone) if phone&.start_with?('+')
-    scopes.reduce(:or)
+    (scopes + line_holders(others, person)).reduce(:or)
+  end
+
+  def line_holders(others, person)
+    line_user_id = person['lineUserId'].to_s.strip.presence
+    line_id = Crm::Twenty::PersonMapper.line_id(person['lineId'])
+    [(Crm::Twenty::PersonMapper.with_line_user_id(others, line_user_id) if line_user_id),
+     (Crm::Twenty::PersonMapper.with_line_id(others, line_id) if line_id)].compact
   end
 end

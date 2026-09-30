@@ -67,6 +67,7 @@ const contactRows = computed(() =>
       value: person.value.phone,
       href: `tel:${person.value.phone}`,
     },
+    { icon: 'i-ri-line-fill', value: person.value.line_id },
   ].filter(row => row.value)
 );
 

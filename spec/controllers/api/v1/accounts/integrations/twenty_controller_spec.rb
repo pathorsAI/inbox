@@ -38,9 +38,12 @@ RSpec.describe 'Twenty Integration API', type: :request do
 
   before do
     stub_twenty('query Verify', data: { workspaceMembers: { totalCount: 1 } })
-    stub_twenty('query Objects', data: { objects: { edges: [{ node: { nameSingular: 'opportunity', fieldsList: [
-                  { name: 'stage', options: [{ value: 'MEETING', label: 'Meeting', color: 'sky' }] }
-                ] } }] } })
+    stub_twenty('query Objects', data: { objects: { edges: [
+                  { node: { nameSingular: 'opportunity', fieldsList: [
+                    { name: 'stage', isActive: true, options: [{ value: 'MEETING', label: 'Meeting', color: 'sky' }] }
+                  ] } },
+                  { node: { nameSingular: 'person', fieldsList: [{ name: 'lineUserId', isActive: true }, { name: 'lineId', isActive: true }] } }
+                ] } })
     stub_twenty('query CompanyOpportunities', data: { opportunities: { edges: [{ node: {
                   id: 'opp-1', name: 'Acme voice agent', stage: 'MEETING', amount: { amountMicros: 120_000_000_000, currencyCode: 'TWD' },
                   closeDate: '2026-10-31T00:00:00Z', updatedAt: '2026-09-01'
@@ -59,7 +62,7 @@ RSpec.describe 'Twenty Integration API', type: :request do
       body = response.parsed_body
       expect(body['linked']).to be(true)
       expect(body['person']).to include('name' => 'Anna Tsai', 'url' => 'https://crm.example.com/object/person/person-1',
-                                        'phone' => '+886912345678', 'job_title' => 'Head of Support')
+                                        'phone' => '+886912345678', 'job_title' => 'Head of Support', 'line_id' => nil, 'line_user_id' => nil)
       expect(body['person']['company']).to include('name' => 'Acme', 'domain' => 'acme.com')
       expect(body['opportunities'].first).to include('stage' => { 'value' => 'MEETING', 'label' => 'Meeting', 'color' => 'sky' },
                                                      'amount' => { 'value' => 120_000.0, 'currency' => 'TWD' },
@@ -132,6 +135,24 @@ RSpec.describe 'Twenty Integration API', type: :request do
       expect(response).to have_http_status(:ok)
       expect(response.parsed_body['linked']).to be(true)
       expect(contact.reload.additional_attributes.dig('external', 'twenty_id')).to eq('person-1')
+    end
+
+    it 'creates a person for a contact known only by LINE' do
+      line_user_id = "U#{'4af49806' * 4}"
+      line_contact = create(:contact, account: account, name: 'Anna Tsai', additional_attributes: { 'social_line_user_id' => line_user_id })
+      stub_twenty('query FindPeople', data: { people: { edges: [] } })
+      stub_twenty('query Members', data: { workspaceMembers: { edges: [] } })
+      created = card.except('noteTargets', 'pointOfContactForOpportunities').merge('lineUserId' => line_user_id, 'lineId' => 'anna_tsai')
+      stub_twenty('mutation CreatePerson', data: { createPerson: created })
+      stub_twenty('query PersonCard', data: { person: card.merge(created) })
+
+      post path, params: { contact_id: line_contact.id }, headers: agent.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:ok)
+      expect(response.parsed_body['person']).to include('line_user_id' => line_user_id, 'line_id' => 'anna_tsai')
+      expect(a_request(:post, graphql_url).with do |request|
+        request.body.include?('CreatePerson') && JSON.parse(request.body).dig('variables', 'data', 'lineUserId') == line_user_id
+      end).to have_been_made
     end
 
     it 'refuses a contact Twenty could never match' do

@@ -71,7 +71,7 @@ class Api::V1::Accounts::Integrations::TwentyController < Api::V1::Accounts::Int
   end
 
   def identifiable?
-    @contact.email.present? || @contact.phone_number.present?
+    Crm::Twenty::PersonMapper.new(@contact).matchable?
   end
 
   def with_contact_lock

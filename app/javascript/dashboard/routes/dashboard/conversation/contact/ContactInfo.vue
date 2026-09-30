@@ -292,6 +292,24 @@ export default {
             show-copy
           />
           <ContactInfoRow
+            v-if="socialProfiles.line"
+            v-tooltip.top-start="$t('CONTACT_PANEL.LINE_ID')"
+            :value="socialProfiles.line"
+            icon="brand-line"
+            emoji=""
+            :title="$t('CONTACT_PANEL.LINE_ID')"
+            show-copy
+          />
+          <ContactInfoRow
+            v-if="additionalAttributes.social_line_user_id"
+            v-tooltip.top-start="$t('CONTACT_PANEL.LINE_USER_ID')"
+            :value="additionalAttributes.social_line_user_id"
+            icon="brand-line"
+            emoji=""
+            :title="$t('CONTACT_PANEL.LINE_USER_ID')"
+            show-copy
+          />
+          <ContactInfoRow
             v-if="contact.identifier"
             :value="contact.identifier"
             icon="contact-identify"
