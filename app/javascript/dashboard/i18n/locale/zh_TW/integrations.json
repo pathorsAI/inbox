@@ -1340,5 +1340,28 @@
         "SUBTITLE": "連接收件匣可讓助理在轉接給您之前，先處理客戶的初始問題。"
       }
     }
+  },
+  "PATHORS_CONNECT": {
+    "TITLE": "將帳號連接到 Pathors",
+    "DESCRIPTION": "選擇你的 Pathors 組織要使用的帳號，下一步會在 Pathors 確認。",
+    "INVALID_LINK": "這個連結沒有有效的 Pathors 組織，請回到 Pathors 重新開啟。",
+    "LOAD_ERROR": "無法載入你的帳號，請重新整理頁面再試一次。",
+    "NO_ACCOUNTS": "你不是這裡任何帳號的管理員，請由該帳號的管理員進行連接。",
+    "STATUS": {
+      "NOT_CONNECTED": "尚未連接 Pathors",
+      "SAME_ORGANIZATION": "已連接此組織，繼續會重新連接。",
+      "OTHER_ORGANIZATION": "已連接其他組織"
+    },
+    "OTHER_ORGANIZATION_HINT": "已連接到其他 Pathors 組織，請先在該帳號的 Pathors 整合頁面解除連接。",
+    "ORGANIZATION_ID": "組織 {id}",
+    "OPEN_INTEGRATION": "開啟整合頁面",
+    "NEW_ACCOUNT": {
+      "LABEL": "建立新帳號",
+      "DESCRIPTION": "你會成為這個帳號的管理員。",
+      "NAME_LABEL": "帳號名稱",
+      "NAME_PLACEHOLDER": "輸入帳號名稱"
+    },
+    "CONTINUE": "前往 Pathors",
+    "ERROR": "無法開始連接，請重試。"
   }
 }

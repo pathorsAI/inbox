@@ -83,6 +83,8 @@ RSpec.describe Integrations::App do
         payload = JWT.decode(connect_token, connect_secret, true, algorithm: 'HS256').first
         expect(payload['account_id']).to eq(account.id)
         expect(payload['account_name']).to eq(account.name)
+        # the organization claim belongs to the Pathors-initiated flow only
+        expect(payload).not_to have_key('organization_id')
         expect(payload['exp']).to be > Time.current.to_i
 
         # state carries the same signed token so the callback can recover the

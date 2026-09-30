@@ -30,6 +30,52 @@ describe('#validateRouteAccess', () => {
     expect(next).toHaveBeenCalledTimes(1);
   });
 
+  it('keeps a safe return_to from an SSO link for after the login', () => {
+    window.sessionStorage.clear();
+
+    validateRouteAccess(
+      {
+        name: 'login',
+        query: {
+          sso_auth_token: 'random_token',
+          email: 'random@email.com',
+          return_to: '/app/pathors/connect?organization_id=org-1',
+        },
+      },
+      next
+    );
+
+    expect(window.sessionStorage.getItem('loginReturnPath')).toBe(
+      '/app/pathors/connect?organization_id=org-1'
+    );
+  });
+
+  it('ignores an unsafe return_to', () => {
+    window.sessionStorage.clear();
+
+    validateRouteAccess(
+      { name: 'login', query: { return_to: '//evil.test/app/x' } },
+      next
+    );
+
+    expect(window.sessionStorage.getItem('loginReturnPath')).toBeNull();
+  });
+
+  it('keeps return_to when a session already exists and goes on to the dashboard', () => {
+    window.sessionStorage.clear();
+    vi.spyOn(Cookies, 'get').mockReturnValueOnce(true);
+
+    validateRouteAccess(
+      { name: 'login', query: { return_to: '/app/accounts/1/dashboard' } },
+      next
+    );
+
+    expect(window.sessionStorage.getItem('loginReturnPath')).toBe(
+      '/app/accounts/1/dashboard'
+    );
+    expect(replaceRouteWithReload).toHaveBeenCalledWith('/app/');
+  });
+
   it('ignore session and continue to the page if the ignoreSession is present in route definition', () => {
     validateRouteAccess(
       {

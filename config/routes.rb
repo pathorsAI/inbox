@@ -522,6 +522,13 @@ Rails.application.routes.draw do
 
       resource :notification_subscriptions, only: [:create, :destroy]
 
+      # Pathors-initiated connect: user-scoped, the account is picked on the page
+      namespace :pathors do
+        resource :connection, only: [:show, :create] do
+          post :accounts, action: :create_account
+        end
+      end
+
       namespace :widget do
         resource :direct_uploads, only: [:create]
         resource :config, only: [:create]

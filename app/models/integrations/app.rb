@@ -146,21 +146,7 @@ class Integrations::App
   # card then falls back to its plain "open Pathors" link instead of sending
   # the user into an authorize request that can only fail.
   def build_pathors_action
-    client_id = GlobalConfigService.load('PATHORS_OAUTH_CLIENT_ID', nil)
-    connect_token = generate_pathors_token(Current.account)
-    return if client_id.blank? || connect_token.blank?
-
-    api_url = GlobalConfigService.load('PATHORS_API_URL', 'https://api.pathors.com')
-    [
-      "#{api_url}/oauth/authorize?response_type=code",
-      "client_id=#{client_id}",
-      "redirect_uri=#{CGI.escape(self.class.pathors_integration_url)}",
-      'scope=chatwoot%3Aconnect',
-      # The signed token proves which account this is about; it doubles as
-      # `state` so the callback can recover the account statelessly.
-      "connect_token=#{connect_token}",
-      "state=#{connect_token}"
-    ].join('&')
+    pathors_authorize_url(Current.account)
   end
 
   def self.pathors_integration_url
