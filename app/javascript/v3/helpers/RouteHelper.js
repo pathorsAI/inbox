@@ -3,6 +3,7 @@ import { clearBrowserSessionCookies } from 'dashboard/store/utils/api';
 import { hasAuthCookie } from './AuthHelper';
 import { DEFAULT_REDIRECT_URL } from 'dashboard/constants/globals';
 import { replaceRouteWithReload } from './CommonHelper';
+import { rememberLoginReturnPath } from 'dashboard/helper/loginReturnPath';
 
 const validateSSOLoginParams = to => {
   const isLoginRoute = to.name === 'login';
@@ -12,6 +13,13 @@ const validateSSOLoginParams = to => {
 };
 
 export const validateRouteAccess = (to, next, chatwootConfig = {}) => {
+  // `/app/login?return_to=/app/...`: kept for the dashboard router to resume
+  // after whichever login follows — an SSO link, the form, or an existing
+  // session that is sent straight on to the dashboard below.
+  if (to.name === 'login' && to.query?.return_to) {
+    rememberLoginReturnPath(to.query.return_to);
+  }
+
   // Pages with ignoreSession:true would be rendered
   // even if there is an active session
   // Used for confirmation or password reset pages

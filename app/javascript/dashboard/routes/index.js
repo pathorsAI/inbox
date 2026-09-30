@@ -6,8 +6,10 @@ import store from 'dashboard/store';
 import { validateLoggedInRoutes } from '../helper/routeHelpers';
 import { isOnOnboardingView } from 'v3/helpers/RouteHelper';
 import AnalyticsHelper from '../helper/AnalyticsHelper';
-import SessionStorage from 'shared/helpers/sessionStorage';
-import { SESSION_STORAGE_KEYS } from 'dashboard/constants/sessionStorage';
+import {
+  consumeLoginReturnPath,
+  rememberLoginReturnPath,
+} from '../helper/loginReturnPath';
 
 const ONBOARDING_STEPS = ['account_details', 'enrichment', 'inbox_setup'];
 const routes = [...dashboard.routes];
@@ -21,22 +23,19 @@ export const validateAuthenticateRoutePermission = async (to, next) => {
   const { isLoggedIn, getCurrentUser: user } = store.getters;
 
   if (!isLoggedIn) {
-    // Login never carries a return address: every login method (password,
-    // MFA, Google, SAML) lands on the dashboard root. A route that is entered
-    // from a link outside the app (meta.resumeAfterLogin) leaves its full path
-    // here instead, and the first navigation after login resumes it.
-    if (to.meta?.resumeAfterLogin) {
-      SessionStorage.set(SESSION_STORAGE_KEYS.LOGIN_RETURN_PATH, to.fullPath);
-    }
+    // Every login method lands on the dashboard root. A route entered from a
+    // link outside the app (meta.resumeAfterLogin) leaves its full path behind,
+    // and the first navigation after login resumes it.
+    if (to.meta?.resumeAfterLogin) rememberLoginReturnPath(to.fullPath);
     window.location.assign('/app/login');
     return '';
   }
 
-  const returnPath = SessionStorage.get(SESSION_STORAGE_KEYS.LOGIN_RETURN_PATH);
-  if (returnPath) {
-    SessionStorage.remove(SESSION_STORAGE_KEYS.LOGIN_RETURN_PATH);
-    if (returnPath !== to.fullPath) return next(returnPath);
-  }
+  // Taken before the account checks below, so a user without any account
+  // yet (e.g. created for a Pathors SSO link) reaches it instead of the
+  // no-accounts page.
+  const returnPath = consumeLoginReturnPath();
+  if (returnPath && returnPath !== to.fullPath) return next(returnPath);
 
   // Pages that are about the user rather than one account (e.g. picking the
   // account to connect) skip the account checks below — they work even for a

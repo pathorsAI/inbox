@@ -1,4 +1,6 @@
 import { validateAuthenticateRoutePermission } from './index';
+import { validateRouteAccess } from 'v3/helpers/RouteHelper';
+import { getLoginRedirectURL } from 'v3/helpers/AuthHelper';
 import store from '../store'; // This import will be mocked
 import { vi } from 'vitest';
 
@@ -36,7 +38,7 @@ describe('#validateAuthenticateRoutePermission', () => {
       // Mock window.location.assign
       const mockAssign = vi.fn();
       delete window.location;
-      window.location = { assign: mockAssign };
+      window.location = { assign: mockAssign, origin: 'http://localhost' };
 
       validateAuthenticateRoutePermission(to, next);
 
@@ -54,7 +56,7 @@ describe('#validateAuthenticateRoutePermission', () => {
       store.getters.isLoggedIn = false;
       const mockAssign = vi.fn();
       delete window.location;
-      window.location = { assign: mockAssign };
+      window.location = { assign: mockAssign, origin: 'http://localhost' };
 
       validateAuthenticateRoutePermission(to, next);
 
@@ -84,6 +86,49 @@ describe('#validateAuthenticateRoutePermission', () => {
         '/app/pathors/connect?organization_id=org-1'
       );
       expect(window.sessionStorage.getItem('loginReturnPath')).toBeNull();
+    });
+
+    it('lands a user without accounts from an SSO link with return_to on it', async () => {
+      window.sessionStorage.clear();
+      const connectPath =
+        '/app/pathors/connect?organization_id=3f1c2d4e-5a6b-4c7d-8e9f-0a1b2c3d4e5f';
+
+      // 1. /app/login?email=…&sso_auth_token=…&return_to=… (v3 app)
+      validateRouteAccess(
+        {
+          name: 'login',
+          query: {
+            email: 'new@customer.test',
+            sso_auth_token: 'sso-token',
+            return_to: connectPath,
+          },
+        },
+        vi.fn()
+      );
+      // 2. the SSO login sends a user without accounts to the dashboard root
+      const landing = getLoginRedirectURL({
+        user: store.getters.getCurrentUser,
+      });
+      expect(landing).toBe('/app/');
+
+      // 3. the dashboard router's first navigation resumes the stored path…
+      await validateAuthenticateRoutePermission(
+        { fullPath: landing, params: {} },
+        next
+      );
+      expect(next).toHaveBeenCalledWith(connectPath);
+
+      // 4. …which renders even though the user has no account
+      await validateAuthenticateRoutePermission(
+        {
+          name: 'pathors_connect',
+          fullPath: connectPath,
+          params: {},
+          meta: { accountAgnostic: true, resumeAfterLogin: true },
+        },
+        next
+      );
+      expect(next).toHaveBeenLastCalledWith();
     });
 
     it('lets an account-agnostic route through for a user without accounts', async () => {
