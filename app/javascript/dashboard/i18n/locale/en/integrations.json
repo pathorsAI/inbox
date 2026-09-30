@@ -1656,5 +1656,28 @@
         "SUBTITLE": "Connecting an inbox allows the assistant to handle initial questions from your customers before transferring them to you."
       }
     }
+  },
+  "PATHORS_CONNECT": {
+    "TITLE": "Connect an account to Pathors",
+    "DESCRIPTION": "Choose the account your Pathors organization will work in. You will confirm on Pathors next.",
+    "INVALID_LINK": "This link has no valid Pathors organization. Go back to Pathors and open it again.",
+    "LOAD_ERROR": "Your accounts could not be loaded. Reload the page to try again.",
+    "NO_ACCOUNTS": "You are not an administrator of any account here. Ask an administrator of the account to connect it.",
+    "STATUS": {
+      "NOT_CONNECTED": "Not connected to Pathors",
+      "SAME_ORGANIZATION": "Already connected to this organization. Continue to reconnect.",
+      "OTHER_ORGANIZATION": "Connected elsewhere"
+    },
+    "OTHER_ORGANIZATION_HINT": "Connected to another Pathors organization. Disconnect it on the account's Pathors integration page first.",
+    "ORGANIZATION_ID": "Organization {id}",
+    "OPEN_INTEGRATION": "Open integration page",
+    "NEW_ACCOUNT": {
+      "LABEL": "Create a new account",
+      "DESCRIPTION": "You will be its administrator.",
+      "NAME_LABEL": "Account name",
+      "NAME_PLACEHOLDER": "Enter a name for the account"
+    },
+    "CONTINUE": "Continue to Pathors",
+    "ERROR": "The connection could not be started, please try again."
   }
 }

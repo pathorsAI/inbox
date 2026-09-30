@@ -15,6 +15,7 @@ import Suspended from './suspended/Index.vue';
 import NoAccounts from './noAccounts/Index.vue';
 import OnboardingAccountDetails from './onboarding/Index.vue';
 import OnboardingInboxSetup from './onboarding/InboxSetup.vue';
+import PathorsConnect from './pathorsConnect/Index.vue';
 
 export default {
   routes: [
@@ -63,6 +64,14 @@ export default {
       path: frontendURL('no-accounts'),
       name: 'no_accounts',
       component: NoAccounts,
+    },
+    // Entered from a Pathors organization page, before any account is chosen.
+    {
+      path: frontendURL('pathors/connect'),
+      name: 'pathors_connect',
+      meta: { accountAgnostic: true, resumeAfterLogin: true },
+      component: PathorsConnect,
+      props: route => ({ organizationId: route.query.organization_id ?? '' }),
     },
   ],
 };
