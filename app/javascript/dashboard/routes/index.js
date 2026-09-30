@@ -6,6 +6,8 @@ import store from 'dashboard/store';
 import { validateLoggedInRoutes } from '../helper/routeHelpers';
 import { isOnOnboardingView } from 'v3/helpers/RouteHelper';
 import AnalyticsHelper from '../helper/AnalyticsHelper';
+import SessionStorage from 'shared/helpers/sessionStorage';
+import { SESSION_STORAGE_KEYS } from 'dashboard/constants/sessionStorage';
 
 const ONBOARDING_STEPS = ['account_details', 'enrichment', 'inbox_setup'];
 const routes = [...dashboard.routes];
@@ -19,9 +21,27 @@ export const validateAuthenticateRoutePermission = async (to, next) => {
   const { isLoggedIn, getCurrentUser: user } = store.getters;
 
   if (!isLoggedIn) {
+    // Login never carries a return address: every login method (password,
+    // MFA, Google, SAML) lands on the dashboard root. A route that is entered
+    // from a link outside the app (meta.resumeAfterLogin) leaves its full path
+    // here instead, and the first navigation after login resumes it.
+    if (to.meta?.resumeAfterLogin) {
+      SessionStorage.set(SESSION_STORAGE_KEYS.LOGIN_RETURN_PATH, to.fullPath);
+    }
     window.location.assign('/app/login');
     return '';
   }
+
+  const returnPath = SessionStorage.get(SESSION_STORAGE_KEYS.LOGIN_RETURN_PATH);
+  if (returnPath) {
+    SessionStorage.remove(SESSION_STORAGE_KEYS.LOGIN_RETURN_PATH);
+    if (returnPath !== to.fullPath) return next(returnPath);
+  }
+
+  // Pages that are about the user rather than one account (e.g. picking the
+  // account to connect) skip the account checks below — they work even for a
+  // user with no account yet.
+  if (to.meta?.accountAgnostic) return next();
 
   const { accounts = [], account_id: accountId } = user;
 

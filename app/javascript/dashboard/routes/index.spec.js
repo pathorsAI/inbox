@@ -23,6 +23,7 @@ describe('#validateAuthenticateRoutePermission', () => {
 
   beforeEach(() => {
     next = vi.fn(); // Mock the next function
+    window.sessionStorage.clear();
   });
 
   describe('when user is not logged in', () => {
@@ -40,6 +41,63 @@ describe('#validateAuthenticateRoutePermission', () => {
       validateAuthenticateRoutePermission(to, next);
 
       expect(mockAssign).toHaveBeenCalledWith('/app/login');
+      expect(window.sessionStorage.getItem('loginReturnPath')).toBeNull();
+    });
+
+    it('remembers a route that resumes after login', () => {
+      const to = {
+        name: 'pathors_connect',
+        fullPath: '/app/pathors/connect?organization_id=org-1',
+        params: {},
+        meta: { accountAgnostic: true, resumeAfterLogin: true },
+      };
+      store.getters.isLoggedIn = false;
+      const mockAssign = vi.fn();
+      delete window.location;
+      window.location = { assign: mockAssign };
+
+      validateAuthenticateRoutePermission(to, next);
+
+      expect(mockAssign).toHaveBeenCalledWith('/app/login');
+      expect(window.sessionStorage.getItem('loginReturnPath')).toBe(
+        '/app/pathors/connect?organization_id=org-1'
+      );
+    });
+  });
+
+  describe('when a route was remembered before login', () => {
+    beforeEach(() => {
+      store.getters.isLoggedIn = true;
+      store.getters.getCurrentUser = { account_id: null, id: 1, accounts: [] };
+      window.sessionStorage.setItem(
+        'loginReturnPath',
+        '/app/pathors/connect?organization_id=org-1'
+      );
+    });
+
+    it('resumes it once, instead of the landing route', async () => {
+      const to = { name: 'no_accounts', fullPath: '/app/no-accounts' };
+
+      await validateAuthenticateRoutePermission(to, next);
+
+      expect(next).toHaveBeenCalledWith(
+        '/app/pathors/connect?organization_id=org-1'
+      );
+      expect(window.sessionStorage.getItem('loginReturnPath')).toBeNull();
+    });
+
+    it('lets an account-agnostic route through for a user without accounts', async () => {
+      const to = {
+        name: 'pathors_connect',
+        fullPath: '/app/pathors/connect?organization_id=org-1',
+        params: {},
+        meta: { accountAgnostic: true, resumeAfterLogin: true },
+      };
+
+      await validateAuthenticateRoutePermission(to, next);
+
+      expect(next).toHaveBeenCalledWith();
+      expect(window.sessionStorage.getItem('loginReturnPath')).toBeNull();
     });
   });
 
