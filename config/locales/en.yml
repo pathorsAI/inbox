@@ -713,6 +713,15 @@ en:
         description: If we have tickets for that email address, a sign-in link is on its way. The link expires in 15 minutes.
       access_mailer:
         subject: 'Your ticket access link for %{portal_name}'
+      acknowledgement:
+        greeting: 'Hi %{name},'
+        greeting_anonymous: 'Hi there,'
+        body: |-
+          Thanks for contacting %{portal_name}. Your request is logged as ticket #%{number} and we will answer you by email. Reply to this message to add anything.
+
+          Subject: %{subject}
+
+          %{description}
       index:
         title: My tickets
         subtitle:
