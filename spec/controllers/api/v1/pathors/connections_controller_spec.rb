@@ -47,12 +47,18 @@ RSpec.describe 'Pathors Connection API', type: :request do
       )
     end
 
-    it 'reports whether a new account can be created' do
-      allow(GlobalConfigService).to receive(:load).with('CREATE_NEW_ACCOUNT_FROM_DASHBOARD', 'false').and_return('true')
-
+    it 'allows creating an account when the installation has no setting for it' do
       get '/api/v1/pathors/connection', headers: agent.create_new_auth_token, as: :json
 
       expect(response.parsed_body).to eq('can_create_account' => true, 'accounts' => [])
+    end
+
+    it 'reports account creation as off when the installation turns it off' do
+      allow(GlobalConfigService).to receive(:load).with('PATHORS_CONNECT_ALLOW_ACCOUNT_CREATION', 'true').and_return('false')
+
+      get '/api/v1/pathors/connection', headers: agent.create_new_auth_token, as: :json
+
+      expect(response.parsed_body['can_create_account']).to be(false)
     end
   end
 
@@ -136,9 +142,11 @@ RSpec.describe 'Pathors Connection API', type: :request do
     # built up front: the agent's own account must not count as a created one
     let!(:auth_headers) { agent.create_new_auth_token }
 
-    context 'when the installation allows creating accounts from the dashboard' do
+    context 'when the installation allows creating accounts from the connect page' do
       before do
-        allow(GlobalConfigService).to receive(:load).with('CREATE_NEW_ACCOUNT_FROM_DASHBOARD', 'false').and_return('true')
+        # the dashboard-wide switch stays off, as it is in production
+        allow(GlobalConfigService).to receive(:load).with('CREATE_NEW_ACCOUNT_FROM_DASHBOARD', anything).and_return('false')
+        allow(GlobalConfigService).to receive(:load).with('ENABLE_ACCOUNT_SIGNUP', anything).and_return('false')
       end
 
       it 'creates the account with the user as administrator and returns the authorize URL', :aggregate_failures do
@@ -153,6 +161,16 @@ RSpec.describe 'Pathors Connection API', type: :request do
 
         claims = decoded_connect_token(response.parsed_body['authorize_url'])
         expect(claims).to include('account_id' => new_account.id, 'organization_id' => organization_id)
+      end
+
+      it 'creates the first account of a user who has none yet', :aggregate_failures do
+        new_customer = create(:user)
+        headers = new_customer.create_new_auth_token
+
+        post '/api/v1/pathors/connection/accounts', params: params, headers: headers, as: :json
+
+        expect(response).to have_http_status(:ok)
+        expect(new_customer.reload.account_users.sole).to be_administrator
       end
 
       it 'refuses a blank account name' do
@@ -174,8 +192,8 @@ RSpec.describe 'Pathors Connection API', type: :request do
       end
     end
 
-    it 'refuses when the installation does not allow creating accounts' do
-      allow(GlobalConfigService).to receive(:load).with('CREATE_NEW_ACCOUNT_FROM_DASHBOARD', 'false').and_return('false')
+    it 'refuses when the installation turns account creation off' do
+      allow(GlobalConfigService).to receive(:load).with('PATHORS_CONNECT_ALLOW_ACCOUNT_CREATION', 'true').and_return('false')
 
       expect do
         post '/api/v1/pathors/connection/accounts', params: params, headers: auth_headers, as: :json

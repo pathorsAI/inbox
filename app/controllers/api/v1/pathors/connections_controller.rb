@@ -45,7 +45,9 @@ class Api::V1::Pathors::ConnectionsController < Api::BaseController
 
   # A new account for this user, created only to be connected right away. Same
   # outcome as the dashboard's "new account" (AccountBuilder, the user as its
-  # administrator), gated by the same installation switch.
+  # administrator), but behind its own switch: new Pathors customers get their
+  # account here even where the dashboard-wide CREATE_NEW_ACCOUNT_FROM_DASHBOARD
+  # and public signup are off.
   def create_account
     return render_forbidden(I18n.t('errors.pathors.connect.account_creation_disabled')) unless account_creation_enabled?
 
@@ -88,8 +90,10 @@ class Api::V1::Pathors::ConnectionsController < Api::BaseController
     account.hooks.find_by(app_id: 'pathors')&.settings.to_h['organization_id'] != params[:organization_id]
   end
 
+  # On unless an operator turns it off (installation config or ENV), like the
+  # other PATHORS_* settings.
   def account_creation_enabled?
-    ActiveModel::Type::Boolean.new.cast(GlobalConfigService.load('CREATE_NEW_ACCOUNT_FROM_DASHBOARD', 'false'))
+    ActiveModel::Type::Boolean.new.cast(GlobalConfigService.load('PATHORS_CONNECT_ALLOW_ACCOUNT_CREATION', 'true'))
   end
 
   def validate_organization_id
