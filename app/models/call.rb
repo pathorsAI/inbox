@@ -36,6 +36,8 @@ class Call < ApplicationRecord
   STATUSES = %w[ringing in_progress completed no_answer failed rejected].freeze
   # Once a call reaches one of these it can never go back to a live state.
   TERMINAL_STATUSES = %w[completed no_answer failed rejected].freeze
+  # The complement of TERMINAL_STATUSES: the call is still on the line.
+  ACTIVE_STATUSES = %w[ringing in_progress].freeze
   DISPLAY_STATUSES = { 'in_progress' => 'in-progress', 'no_answer' => 'no-answer' }.freeze
   # The dashboard speaks inbound/outbound; the column stores incoming/outgoing.
   DISPLAY_DIRECTIONS = { 'incoming' => 'inbound', 'outgoing' => 'outbound' }.freeze
@@ -58,10 +60,14 @@ class Call < ApplicationRecord
   # `room_name` is unused in P1 and reserved for the P2 live-audio bridge.
   # `handoff_message_id` points at the AI handoff card posted when a human takes
   # the call over; its presence is what makes that endpoint idempotent.
-  store_accessor :meta, :room_name, :ended_at, :from_number, :to_number, :recording_url, :handoff_message_id
+  # `live` is the AI's running state while it handles the call (turn and
+  # interruption counts, a transcript window); see Pathors::CallLiveStateService.
+  store_accessor :meta, :room_name, :ended_at, :from_number, :to_number, :recording_url, :handoff_message_id, :live
 
   validates :provider_call_id, presence: true, uniqueness: { scope: :provider }
   validates :status, inclusion: { in: STATUSES }
+
+  scope :active, -> { where(status: ACTIVE_STATUSES) }
 
   def self.normalize_timestamp(value)
     return nil if value.blank?
@@ -127,7 +133,11 @@ class Call < ApplicationRecord
       # Written back by the Pathors backend once the recording is finalized, so it
       # stays nil for the whole live phase of the call.
       recording_url: recording_url,
-      transcript: transcript
+      transcript: transcript,
+      # Pathors only: pushed by the backend on every AI turn, so agents can
+      # follow the call before taking it over. Dropped once the call ends so
+      # the transcript window does not ride along on every later message load.
+      live: (live unless terminal?)
     }
   end
 end

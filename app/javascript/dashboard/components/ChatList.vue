@@ -17,6 +17,7 @@ import DeleteCustomViews from 'dashboard/routes/dashboard/customviews/DeleteCust
 import ConversationBulkActions from './widgets/conversation/conversationBulkActions/Index.vue';
 import TeleportWithDirection from 'dashboard/components-next/TeleportWithDirection.vue';
 import ConversationResolveAttributesModal from 'dashboard/components-next/ConversationWorkflow/ConversationResolveAttributesModal.vue';
+import PathorsLiveCallsGroup from 'dashboard/components-next/Calls/PathorsLiveCallsGroup.vue';
 
 import { useUISettings } from 'dashboard/composables/useUISettings';
 import { useAlert } from 'dashboard/composables';
@@ -941,6 +942,8 @@ watch(chatLists, () => {
       is-compact
       @chat-tab-change="updateAssigneeTab"
     />
+
+    <PathorsLiveCallsGroup />
 
     <p
       v-if="!chatListLoading && !conversationList.length"

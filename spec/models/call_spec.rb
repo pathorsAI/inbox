@@ -155,6 +155,14 @@ RSpec.describe Call do
     it 'emits started_at as iso8601' do
       expect(call.push_event_data[:started_at]).to eq(Time.zone.parse('2026-08-05T10:00:00Z').iso8601)
     end
+
+    it 'emits the live state while the call is on the line and drops it once the call ends' do
+      call.update!(live: { 'seq' => 1, 'turns' => 3 })
+      expect(call.push_event_data[:live]).to eq('seq' => 1, 'turns' => 3)
+
+      call.update!(status: 'completed')
+      expect(call.push_event_data[:live]).to be_nil
+    end
   end
 
   describe 'Message#push_event_data' do

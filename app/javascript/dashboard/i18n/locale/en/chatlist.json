@@ -143,6 +143,12 @@
     "SHOW_QUOTED_TEXT": "Show Quoted Text",
     "MESSAGE_READ": "Read",
     "SENDING": "Sending",
-    "UNREAD_COUNT_OVERFLOW": "9+"
+    "UNREAD_COUNT_OVERFLOW": "9+",
+    "PATHORS_LIVE_CALLS": {
+      "TITLE": "Calls the AI is handling",
+      "HEADER": "AI on calls · {count}",
+      "AI_HANDLING": "AI on call {duration} · {turns} turns · {interruptions} interruptions",
+      "TAKEN_OVER": "{agentName} took over {duration}"
+    }
   }
 }

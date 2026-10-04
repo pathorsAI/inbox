@@ -4,6 +4,7 @@ import {
 } from 'dashboard/components-next/message/constants';
 import { MESSAGE_TYPE } from 'shared/constants/messages';
 import { useCallsStore } from 'dashboard/stores/calls';
+import { usePathorsLiveCallsStore } from 'dashboard/stores/pathorsLiveCalls';
 import types from 'dashboard/store/mutation-types';
 
 export const TERMINAL_STATUSES = [
@@ -125,6 +126,10 @@ export function handleVoiceCallCreated(
 ) {
   if (!isVoiceCallMessage(message)) return;
 
+  // Before the ringing filters below: the live-call list follows every live
+  // Pathors call, whoever it rings for.
+  usePathorsLiveCallsStore().syncFromMessage(message);
+
   const {
     callSid,
     callId,
@@ -177,6 +182,8 @@ export function handleVoiceCallUpdated(
   currentUserAvailability
 ) {
   if (!isVoiceCallMessage(message)) return;
+
+  usePathorsLiveCallsStore().syncFromMessage(message);
 
   const {
     callSid,

@@ -118,7 +118,8 @@ describe('usePathorsCallSession', () => {
 
   it('attaches subscribed audio tracks to a hidden autoplay element', async () => {
     PathorsCallsAPI.join.mockResolvedValue(credentials);
-    const { join, leave } = usePathorsCallSession();
+    PathorsCallsAPI.hangup.mockResolvedValue({ ok: true });
+    const { join, hangup } = usePathorsCallSession();
     await join({ accountId: 3, callId: 42 });
 
     const element = document.createElement('audio');
@@ -135,7 +136,7 @@ describe('usePathorsCallSession', () => {
     expect(element.style.display).toBe('none');
     expect(document.body.contains(element)).toBe(true);
 
-    await leave();
+    await hangup({ accountId: 3 });
 
     expect(document.body.contains(element)).toBe(false);
   });
@@ -177,20 +178,6 @@ describe('usePathorsCallSession', () => {
     expect(joined).toBe(false);
     expect(PathorsCallsAPI.join).toHaveBeenCalledTimes(1);
     expect(rooms).toHaveLength(1);
-  });
-
-  it('disconnects and clears the session on leave', async () => {
-    PathorsCallsAPI.join.mockResolvedValue(credentials);
-    const { join, leave, isJoined, durationSeconds, isActiveCall } =
-      usePathorsCallSession();
-    await join({ accountId: 3, callId: 42 });
-
-    await leave();
-
-    expect(rooms[0].disconnect).toHaveBeenCalled();
-    expect(isJoined.value).toBe(false);
-    expect(durationSeconds.value).toBe(0);
-    expect(isActiveCall(42)).toBe(false);
   });
 
   it('clears the session when the room drops the connection', async () => {
@@ -453,13 +440,14 @@ describe('usePathorsCallSession', () => {
       expect(isAudioBlocked.value).toBe(false);
     });
 
-    it('clears the flag on leave and on a remote disconnect', async () => {
+    it('clears the flag on hangup and on a remote disconnect', async () => {
+      PathorsCallsAPI.hangup.mockResolvedValue({ ok: true });
       const first = await joinCall();
       rooms[0].canPlaybackAudio = false;
       rooms[0].emit(ROOM_EVENT.AudioPlaybackStatusChanged, false);
       expect(first.isAudioBlocked.value).toBe(true);
 
-      await first.leave();
+      await first.hangup({ accountId: 3 });
       expect(first.isAudioBlocked.value).toBe(false);
 
       const second = await joinCall();

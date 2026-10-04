@@ -397,10 +397,14 @@ Rails.application.routes.draw do
 
           namespace :pathors do
             resources :calls, only: [:create, :update] do
+              collection do
+                get :active
+              end
               member do
                 post :join
                 post :hangup
                 post :handoff
+                put :live
               end
             end
             resource :context, only: [:show]

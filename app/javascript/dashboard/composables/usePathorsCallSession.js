@@ -9,9 +9,9 @@ import PathorsCallsAPI from 'dashboard/api/pathorsCalls';
  * participant token. Everything below is just: redeem the token, publish the
  * mic, play whatever comes back.
  *
- * Getting out comes in two flavours: `leave` only drops this browser out of the
- * room (the AI picks the caller back up), while `hangup` asks the backend to
- * end the call for everyone.
+ * Taking a call over is final — the AI is done with it — so the only way out
+ * is `hangup`, which asks the backend to end the call for everyone. A remote
+ * disconnect (the call ended, the token expired) lands on the same teardown.
  *
  * State is module-level on purpose. Every voice_call bubble in the thread
  * instantiates this composable, and a browser can only be in one call at a
@@ -25,7 +25,7 @@ export const PATHORS_JOIN_ERROR = {
   MEDIA_DENIED: 'media_denied',
   UNAVAILABLE: 'unavailable',
   // Ending the call failed for a reason other than "it is already over"; the
-  // agent is still in the room and can keep talking or leave instead.
+  // agent is still in the room and can keep talking or try again.
   HANGUP_FAILED: 'hangup_failed',
 };
 
@@ -130,9 +130,9 @@ const errorCodeFor = requestError => {
   return PATHORS_JOIN_ERROR.UNAVAILABLE;
 };
 
-// Local teardown shared by leave and hangup. Resets first so the UI flips back
-// immediately even if disconnect() hangs; the Disconnected handler is a no-op
-// once state is already clear.
+// Local teardown after a hangup. Resets first so the UI flips back immediately
+// even if disconnect() hangs; the Disconnected handler is a no-op once state is
+// already clear.
 const teardown = async () => {
   const activeRoom = room;
   resetSession();
@@ -163,8 +163,8 @@ const connectToRoom = async credentials => {
     isAudioBlocked.value = !lkRoom.canPlaybackAudio;
   });
   // A remote disconnect (call ended, token expired, agent kicked) has to land
-  // back on the same teardown as an explicit leave, or the bubble stays stuck
-  // showing "leave".
+  // back on the same teardown as a hangup, or the bubble stays stuck showing
+  // "end call".
   room.on(RoomEvent.Disconnected, () => resetSession());
 
   await room.connect(credentials.serverUrl, credentials.token);
@@ -238,14 +238,12 @@ export function usePathorsCallSession() {
     return true;
   };
 
-  const leave = () => teardown();
-
   /**
    * Ends the live call for everyone. On success the backend has the voice
    * agent delete the room, so we tear down locally right away instead of
    * waiting for the Disconnected event. Any failure other than "the call is
    * already over" keeps the agent in the room: dropping them on, say, a 502
-   * would leave the caller with the AI while the agent believes it hung up.
+   * would leave the caller on the line while the agent believes it hung up.
    * @param {{ accountId?: number|string }} params
    * @returns {Promise<boolean>} true when this browser is out of the call
    */
@@ -265,8 +263,8 @@ export function usePathorsCallSession() {
     }
 
     // The room can drop while the request is in flight (the backend's teardown
-    // racing its own response, or the agent pressing leave); that session is
-    // already reset, and a newer one must not be touched.
+    // racing its own response); that session is already reset, and a newer
+    // one must not be touched.
     if (room !== sessionRoom) return true;
 
     if (callOver) {
@@ -311,7 +309,6 @@ export function usePathorsCallSession() {
     join,
     // Alias kept for call sites that read better as a verb+noun.
     joinCall: join,
-    leave,
     hangup,
     enableAudio,
     isAudioBlocked: readonly(isAudioBlocked),
