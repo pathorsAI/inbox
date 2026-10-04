@@ -37,6 +37,30 @@ describe ActionCableListener do
     end
   end
 
+  describe '#pathors_call_live_updated' do
+    let(:call) do
+      create(:call, :pathors, account: account, inbox: inbox, conversation: conversation, contact: conversation.contact,
+                              live: { 'seq' => 3, 'turns' => 2, 'transcript' => [{ 'kind' => 'message', 'content' => 'hi' }] })
+    end
+    let(:event) { Events::Base.new(:'pathors_call.live_updated', Time.zone.now, call: call) }
+
+    it 'sends the live state to inbox agents and admins but not to the contact' do
+      expect(ActionCableBroadcastJob).to receive(:perform_later).with(
+        a_collection_containing_exactly(agent.pubsub_token, admin.pubsub_token),
+        'pathors_call.live_updated',
+        {
+          id: call.id,
+          conversation_id: conversation.display_id,
+          inbox_id: inbox.id,
+          live: call.live,
+          account_id: account.id
+        }
+      )
+
+      listener.pathors_call_live_updated(event)
+    end
+  end
+
   describe '#message_created' do
     let(:event_name) { :'message.created' }
     let!(:message) do

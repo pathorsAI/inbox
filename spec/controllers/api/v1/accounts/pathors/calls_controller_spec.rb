@@ -975,13 +975,37 @@ RSpec.describe 'Pathors Calls API', type: :request do
         end
       end
 
-      it 'touches the linked message so the bubble rebroadcasts with the state' do
-        original = message.updated_at
+      it 'broadcasts the state to inbox agents and administrators, never the contact' do
+        create(:inbox_member, user: agent, inbox: conversation.inbox)
+        call
+        allow(ActionCableBroadcastJob).to receive(:perform_later)
 
-        travel_to(2.minutes.from_now) { put_live }
+        put_live
 
-        expect(message.reload.updated_at).to be > original
-        expect(message.push_event_data[:call][:live]['turns']).to eq(14)
+        expect(ActionCableBroadcastJob).to have_received(:perform_later).once.with(
+          a_collection_containing_exactly(agent.pubsub_token, admin.pubsub_token),
+          'pathors_call.live_updated',
+          hash_including(id: call.id, conversation_id: conversation.display_id, inbox_id: conversation.inbox_id,
+                         live: hash_including('seq' => 1_759_581_234_567, 'transcript' => a_collection_including(
+                           hash_including('content' => 'I want to book a room')
+                         )))
+        )
+        expect(ActionCableBroadcastJob).not_to have_received(:perform_later)
+          .with(array_including(conversation.contact_inbox.pubsub_token), any_args)
+      end
+
+      it 'does not touch the message, so no message event, webhook or agent bot event fires' do
+        call
+        admin
+        original = message.reload.updated_at
+
+        travel_to(2.minutes.from_now) do
+          expect { put_live }.not_to have_enqueued_job(EventDispatcherJob)
+        end
+
+        expect(message.reload.updated_at).to eq(original)
+        expect(WebhookJob).not_to have_been_enqueued
+        expect(AgentBots::WebhookJob).not_to have_been_enqueued
       end
 
       it 'does not write chat messages for transcript lines' do
@@ -998,20 +1022,18 @@ RSpec.describe 'Pathors Calls API', type: :request do
         expect(call.reload.live['turns']).to eq(15)
       end
 
-      it 'ignores a stale or repeated seq without touching the message' do
+      it 'ignores a stale or repeated seq without broadcasting it' do
         put_live
-        original = message.reload.updated_at
+        allow(ActionCableBroadcastJob).to receive(:perform_later)
 
-        travel_to(2.minutes.from_now) do
-          put_live({ live: live_payload[:live].merge(seq: 1_759_581_200_000, turns: 3) })
-          expect(response.parsed_body).to eq('applied' => false)
-          put_live({ live: live_payload[:live].merge(turns: 3) })
-          expect(response.parsed_body).to eq('applied' => false)
-        end
+        put_live({ live: live_payload[:live].merge(seq: 1_759_581_200_000, turns: 3) })
+        expect(response.parsed_body).to eq('applied' => false)
+        put_live({ live: live_payload[:live].merge(turns: 3) })
+        expect(response.parsed_body).to eq('applied' => false)
 
         expect(response).to have_http_status(:ok)
         expect(call.reload.live['turns']).to eq(14)
-        expect(message.reload.updated_at).to eq(original)
+        expect(ActionCableBroadcastJob).not_to have_received(:perform_later)
       end
 
       it 'ignores updates for a call that has ended' do
@@ -1138,7 +1160,7 @@ RSpec.describe 'Pathors Calls API', type: :request do
         expect(ids).to eq([ringing_call.id, live_call.id, other_inbox_call.id])
       end
 
-      it 'carries what the list row needs without the transcript window' do
+      it 'carries what the list row and the bubble need, transcript included' do
         get active_url, headers: admin.create_new_auth_token, as: :json
 
         row = response.parsed_body['payload'].find { |item| item['id'] == live_call.id }
@@ -1148,7 +1170,8 @@ RSpec.describe 'Pathors Calls API', type: :request do
           'inbox_id' => conversation.inbox_id,
           'inbox_name' => conversation.inbox.name,
           'contact_name' => conversation.contact.name,
-          'live' => { 'seq' => 1, 'turns' => 4, 'interruptions' => 1, 'transfer_failed' => false }
+          'live' => { 'seq' => 1, 'turns' => 4, 'interruptions' => 1, 'transfer_failed' => false,
+                      'transcript' => [{ 'kind' => 'message', 'role' => 'user', 'content' => 'hi' }] }
         )
       end
     end

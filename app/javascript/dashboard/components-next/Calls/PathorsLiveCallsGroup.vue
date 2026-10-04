@@ -54,7 +54,11 @@ const callerName = call => {
 
 const rows = computed(() => {
   const nowMs = now.value;
-  return sortLiveCalls(store.records, nowMs).map(call => {
+  const calls = store.records.map(record => ({
+    ...record,
+    live: store.liveById[record.id] || null,
+  }));
+  return sortLiveCalls(calls, nowMs).map(call => {
     const elapsedSeconds = callElapsedSeconds(call.startedAt, nowMs);
     return {
       call,

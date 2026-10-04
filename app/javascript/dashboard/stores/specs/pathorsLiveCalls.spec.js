@@ -22,16 +22,16 @@ const buildMessage = ({ call = {}, ...overrides } = {}) => ({
     status: 'in-progress',
     started_at: '2026-10-04T10:00:00Z',
     accepted_by_agent_id: null,
-    live: {
-      seq: 2,
-      turns: 4,
-      interruptions: 1,
-      transfer_failed: false,
-      transcript: [{ kind: 'message', role: 'user', content: 'hi' }],
-    },
     ...call,
   },
   ...overrides,
+});
+
+const liveUpdate = (live, id = 77) => ({
+  id,
+  conversation_id: 12,
+  account_id: 1,
+  live,
 });
 
 describe('pathorsLiveCalls store', () => {
@@ -41,10 +41,19 @@ describe('pathorsLiveCalls store', () => {
     vi.clearAllMocks();
   });
 
-  it('loads the active calls camelized', async () => {
+  it('loads the active calls camelized, keeping their live state apart', async () => {
     PathorsCallsAPI.active.mockResolvedValue({
       payload: [
-        { id: 77, conversation_id: 12, inbox_name: 'Front desk', live: null },
+        {
+          id: 77,
+          conversation_id: 12,
+          inbox_name: 'Front desk',
+          live: {
+            seq: 4,
+            transfer_failed: true,
+            transcript: [{ kind: 'message', role: 'user', content: 'hi' }],
+          },
+        },
       ],
     });
     const store = usePathorsLiveCallsStore();
@@ -52,11 +61,36 @@ describe('pathorsLiveCalls store', () => {
     await store.fetchActive();
 
     expect(store.records).toEqual([
-      { id: 77, conversationId: 12, inboxName: 'Front desk', live: null },
+      { id: 77, conversationId: 12, inboxName: 'Front desk' },
     ]);
+    expect(store.liveById[77]).toEqual({
+      seq: 4,
+      transferFailed: true,
+      transcript: [{ kind: 'message', role: 'user', content: 'hi' }],
+    });
+    expect(store.hasLoaded).toBe(true);
   });
 
-  it('adds a live pathors call from its message with only the live counters', () => {
+  it('loads once however many bubbles ask, and not again once loaded', async () => {
+    PathorsCallsAPI.active.mockResolvedValue({ payload: [] });
+    const store = usePathorsLiveCallsStore();
+
+    await Promise.all([store.ensureLoaded(), store.ensureLoaded()]);
+    await store.ensureLoaded();
+
+    expect(PathorsCallsAPI.active).toHaveBeenCalledTimes(1);
+  });
+
+  it('survives a failed load so the next turn can still fill the bubble', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    PathorsCallsAPI.active.mockRejectedValue(new Error('offline'));
+    const store = usePathorsLiveCallsStore();
+
+    await expect(store.ensureLoaded()).resolves.toBeUndefined();
+    expect(store.hasLoaded).toBe(false);
+  });
+
+  it('adds a live pathors call from its message', () => {
     const store = usePathorsLiveCallsStore();
 
     store.syncFromMessage(buildMessage());
@@ -70,13 +104,19 @@ describe('pathorsLiveCalls store', () => {
       inboxId: 3,
       contactName: 'Wang',
       contactPhoneNumber: '+886912345678',
-      live: { seq: 2, turns: 4, interruptions: 1, transferFailed: false },
     });
   });
 
   it('updates in place and keeps what the fetch knew', async () => {
     PathorsCallsAPI.active.mockResolvedValue({
-      payload: [{ id: 77, inbox_name: 'Front desk', contact_name: 'Wang' }],
+      payload: [
+        {
+          id: 77,
+          inbox_name: 'Front desk',
+          contact_name: 'Wang',
+          live: { seq: 1 },
+        },
+      ],
     });
     const store = usePathorsLiveCallsStore();
     await store.fetchActive();
@@ -95,33 +135,56 @@ describe('pathorsLiveCalls store', () => {
       inboxName: 'Front desk',
       contactName: 'Wang',
     });
+    expect(store.liveById[77]).toEqual({ seq: 1 });
   });
 
-  it('ignores a turn older than the one it already has', () => {
+  it('takes live updates from the broadcast, newest seq wins', () => {
     const store = usePathorsLiveCallsStore();
-    store.syncFromMessage(
-      buildMessage({ call: { live: { seq: 5, turns: 9 } } })
-    );
 
-    store.syncFromMessage(
-      buildMessage({ call: { live: { seq: 4, turns: 8 } } })
-    );
+    store.handleLiveUpdated(liveUpdate({ seq: 5, turns: 9 }));
+    store.handleLiveUpdated(liveUpdate({ seq: 4, turns: 8 }));
+    expect(store.liveById[77]).toEqual({ seq: 5, turns: 9 });
 
-    expect(store.records[0].live.turns).toBe(9);
+    store.handleLiveUpdated(
+      liveUpdate({ seq: 6, turns: 10, transfer_failed: true })
+    );
+    expect(store.liveById[77]).toEqual({
+      seq: 6,
+      turns: 10,
+      transferFailed: true,
+    });
   });
 
-  it('removes the call when it ends and does not let a late fetch revive it', async () => {
+  it('keeps a newer broadcast over an older fetch result', async () => {
+    const store = usePathorsLiveCallsStore();
+    store.handleLiveUpdated(liveUpdate({ seq: 8, turns: 12 }));
+    PathorsCallsAPI.active.mockResolvedValue({
+      payload: [{ id: 77, live: { seq: 7, turns: 11 } }],
+    });
+
+    await store.fetchActive();
+
+    expect(store.liveById[77]).toEqual({ seq: 8, turns: 12 });
+  });
+
+  it('removes the call and its live state when it ends, and nothing revives it', async () => {
     const store = usePathorsLiveCallsStore();
     store.syncFromMessage(buildMessage());
+    store.handleLiveUpdated(liveUpdate({ seq: 1, turns: 1 }));
 
     store.syncFromMessage(buildMessage({ call: { status: 'completed' } }));
     expect(store.records).toEqual([]);
+    expect(store.liveById).toEqual({});
 
-    PathorsCallsAPI.active.mockResolvedValue({ payload: [{ id: 77 }] });
+    PathorsCallsAPI.active.mockResolvedValue({
+      payload: [{ id: 77, live: { seq: 2 } }],
+    });
     await store.fetchActive();
     store.syncFromMessage(buildMessage());
+    store.handleLiveUpdated(liveUpdate({ seq: 3 }));
 
     expect(store.records).toEqual([]);
+    expect(store.liveById).toEqual({});
   });
 
   it('ignores other providers and other message types', () => {

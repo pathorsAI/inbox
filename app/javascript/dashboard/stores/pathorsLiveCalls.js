@@ -8,50 +8,82 @@ import { MESSAGE_TYPE } from 'shared/constants/messages';
 
 /**
  * Pathors calls that are still on the line, for the pinned "AI handling" group
- * at the top of the conversation list. Voice conversations sit in `pending`
- * under the Pathors bot, so the regular list never shows them.
+ * at the top of the conversation list, and what the AI is doing on each of
+ * them for the voice_call bubble.
  *
- * Seeded from GET pathors/calls/active, then kept current by the voice_call
- * message broadcasts every call change already produces (see helper/voice.js).
- * Records use the camelized `call` shape plus the conversation, inbox and
- * caller fields that the broadcast keeps on the message.
+ * - `records`: the calls themselves (camelized `call` shape plus the
+ *   conversation, inbox and caller fields the message keeps). Seeded from
+ *   GET pathors/calls/active, then kept current by the voice_call message
+ *   broadcasts every status change already produces (see helper/voice.js).
+ * - `liveById`: the per-turn live state (counters and transcript). Message
+ *   payloads never carry it, because message events also reach the contact;
+ *   it comes only from the active endpoint and the agent-only
+ *   `pathors_call.live_updated` broadcast.
  */
 
 // Ended calls stay out even if a fetch that started before the call ended
 // resolves after the broadcast that removed it.
 const endedCallIds = new Set();
-
-const liveCounters = live =>
-  live
-    ? {
-        seq: live.seq,
-        turns: live.turns,
-        interruptions: live.interruptions,
-        transferFailed: live.transferFailed,
-      }
-    : null;
+let inflightFetch = null;
 
 // Broadcasts are delivered through a job queue and can arrive out of order;
 // never let an older turn overwrite a newer one.
-const newerLive = (current, incoming) => {
-  if (!incoming) return current || null;
-  if (current?.seq && incoming.seq && incoming.seq < current.seq) {
-    return current;
-  }
-  return liveCounters(incoming);
-};
+const isOlder = (current, incoming) =>
+  !!current?.seq && !!incoming?.seq && incoming.seq < current.seq;
 
 export const usePathorsLiveCallsStore = defineStore('pathorsLiveCalls', {
   state: () => ({
     records: [],
+    liveById: {},
+    hasLoaded: false,
   }),
 
   actions: {
     async fetchActive() {
       const { payload } = await PathorsCallsAPI.active();
-      this.records = camelcaseKeys(payload, { deep: true }).filter(
-        record => !endedCallIds.has(record.id)
+      const calls = camelcaseKeys(payload, { deep: true }).filter(
+        call => !endedCallIds.has(call.id)
       );
+      this.records = calls.map(({ live, ...call }) => call);
+      calls.forEach(({ id, live }) => this.applyLive(id, live));
+      this.hasLoaded = true;
+    },
+
+    // For a bubble opened straight onto a live call (deep link, reload) before
+    // anything else loaded the list. One request, however many bubbles ask.
+    // A failure only means the bubble waits for the next turn's broadcast.
+    ensureLoaded() {
+      if (this.hasLoaded || inflightFetch) return inflightFetch;
+      inflightFetch = this.fetchActive()
+        .catch(error => {
+          // eslint-disable-next-line no-console
+          console.warn(
+            '[pathors-live-calls] could not load active calls',
+            error
+          );
+        })
+        .finally(() => {
+          inflightFetch = null;
+        });
+      return inflightFetch;
+    },
+
+    /**
+     * @param {number} callId
+     * @param {Object|null|undefined} live camelized live state
+     */
+    applyLive(callId, live) {
+      if (!live || endedCallIds.has(callId)) return;
+      if (isOlder(this.liveById[callId], live)) return;
+      this.liveById[callId] = live;
+    },
+
+    /**
+     * @param {{ id: number, live: Object }} data raw `pathors_call.live_updated` payload
+     */
+    handleLiveUpdated(data) {
+      if (!data?.id || !data.live) return;
+      this.applyLive(data.id, camelcaseKeys(data.live, { deep: true }));
     },
 
     /**
@@ -65,19 +97,18 @@ export const usePathorsLiveCallsStore = defineStore('pathorsLiveCalls', {
       if (!isLiveCallStatus(call.status)) {
         endedCallIds.add(call.id);
         this.records = this.records.filter(record => record.id !== call.id);
+        delete this.liveById[call.id];
         return;
       }
       if (endedCallIds.has(call.id)) return;
 
       const existing = this.records.find(record => record.id === call.id);
-      const { live, ...rest } = camelcaseKeys(call, { deep: true });
       // Only an incoming call's message is authored by the contact; otherwise
       // keep what the fetch knew and let the row fall back to the number.
       const caller =
         message.message_type === MESSAGE_TYPE.INCOMING ? message.sender : null;
       const next = {
-        ...rest,
-        live: newerLive(existing?.live, live),
+        ...camelcaseKeys(call, { deep: true }),
         messageId: message.id,
         conversationId: message.conversation_id,
         inboxId: message.inbox_id,
@@ -96,5 +127,8 @@ export const usePathorsLiveCallsStore = defineStore('pathorsLiveCalls', {
   },
 });
 
-// Test seam: the module-level set would otherwise leak between specs.
-export const resetPathorsLiveCallsTracking = () => endedCallIds.clear();
+// Test seam: the module-level state would otherwise leak between specs.
+export const resetPathorsLiveCallsTracking = () => {
+  endedCallIds.clear();
+  inflightFetch = null;
+};

@@ -18,6 +18,8 @@ import {
 const props = defineProps({
   // The camelized `call` of the voice_call message.
   call: { type: Object, required: true },
+  // Its live state from the pathorsLiveCalls store; null until the first turn.
+  live: { type: Object, default: null },
 });
 
 // How close to the bottom still counts as "following along", so a new line
@@ -35,12 +37,15 @@ const ALERT_BANNER_CLASS = {
 const { t } = useI18n();
 const now = useClock();
 
-const live = computed(() => props.call.live || {});
+const live = computed(() => props.live || {});
 const elapsedSeconds = computed(() =>
   callElapsedSeconds(props.call.startedAt, now.value)
 );
 const alerts = computed(() =>
-  getPathorsCallAlerts(props.call, elapsedSeconds.value)
+  getPathorsCallAlerts(
+    { ...props.call, live: props.live },
+    elapsedSeconds.value
+  )
 );
 const isOver = type => alerts.value.some(alert => alert.type === type);
 

@@ -8,8 +8,12 @@
 # newer than the stored one, or one for a call that already ended, is dropped.
 # The row lock keeps two concurrent deliveries from both passing that check.
 #
-# Nothing here becomes a chat message; the caller rebroadcasts the call's
-# voice_call message so the bubble and the conversation list pick it up.
+# Nothing here becomes a chat message, and the voice_call message is not
+# touched: a message event would also reach the contact's widget, account
+# webhooks and the inbox's agent bot on every turn. A stored update is
+# broadcast as pathors_call.live_updated to the inbox's agents and the account
+# administrators only (ActionCableListener), through the sync dispatcher alone,
+# so no async listener (webhooks, automations) ever sees it.
 class Pathors::CallLiveStateService
   KINDS = %w[message system].freeze
   ROLES = %w[user assistant].freeze
@@ -29,17 +33,23 @@ class Pathors::CallLiveStateService
     seq_error || counters_error || transfer_failed_error || transcript_error
   end
 
-  # Returns true when the state was stored.
+  # Returns true when the state was stored (and broadcast).
   def perform
-    call.with_lock do
+    applied = call.with_lock do
       next false if call.terminal? || !newer?
 
       call.update!(live: live_state)
       true
     end
+    broadcast if applied
+    applied
   end
 
   private
+
+  def broadcast
+    Rails.configuration.dispatcher.sync_dispatcher.dispatch(Events::Types::PATHORS_CALL_LIVE_UPDATED, Time.zone.now, call: call)
+  end
 
   def newer?
     stored_seq = call.live&.dig('seq')

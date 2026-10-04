@@ -1,5 +1,7 @@
 import { describe, it, beforeEach, afterEach, expect, vi } from 'vitest';
+import { createPinia, setActivePinia } from 'pinia';
 import ActionCableConnector from '../actionCable';
+import { usePathorsLiveCallsStore } from 'dashboard/stores/pathorsLiveCalls';
 import { FEATURE_FLAGS } from 'dashboard/featureFlags';
 
 vi.mock('shared/helpers/mitt', () => ({
@@ -376,5 +378,51 @@ describe('ActionCableConnector - Copilot Tests', () => {
       vi.advanceTimersByTime(4000);
       expect(mockDispatch).toHaveBeenCalledTimes(2);
     });
+  });
+});
+
+describe('ActionCableConnector - Pathors live calls', () => {
+  let actionCable;
+
+  beforeEach(() => {
+    setActivePinia(createPinia());
+    actionCable = ActionCableConnector.init(
+      {
+        dispatch: vi.fn(),
+        getters: {
+          getCurrentAccountId: 1,
+          'accounts/isFeatureEnabledonAccount': vi.fn(() => true),
+        },
+      },
+      'test-token'
+    );
+  });
+
+  it('stores the live state of a pathors_call.live_updated broadcast', () => {
+    actionCable.onReceived({
+      event: 'pathors_call.live_updated',
+      data: {
+        id: 7,
+        conversation_id: 12,
+        account_id: 1,
+        live: { seq: 2, turns: 3, transfer_failed: true, transcript: [] },
+      },
+    });
+
+    expect(usePathorsLiveCallsStore().liveById[7]).toEqual({
+      seq: 2,
+      turns: 3,
+      transferFailed: true,
+      transcript: [],
+    });
+  });
+
+  it('ignores a broadcast for another account', () => {
+    actionCable.onReceived({
+      event: 'pathors_call.live_updated',
+      data: { id: 7, account_id: 2, live: { seq: 2 } },
+    });
+
+    expect(usePathorsLiveCallsStore().liveById).toEqual({});
   });
 });

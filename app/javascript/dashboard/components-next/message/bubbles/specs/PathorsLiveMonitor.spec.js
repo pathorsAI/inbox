@@ -28,11 +28,14 @@ const transcript = [
 ];
 
 const buildCall = ({ live = {}, ...overrides } = {}) => ({
-  id: 7,
-  provider: 'pathors',
-  status: 'in-progress',
-  acceptedByAgentId: null,
-  startedAt: secondsAgo(102),
+  call: {
+    id: 7,
+    provider: 'pathors',
+    status: 'in-progress',
+    acceptedByAgentId: null,
+    startedAt: secondsAgo(102),
+    ...overrides,
+  },
   live: {
     seq: 1,
     turns: 6,
@@ -41,10 +44,9 @@ const buildCall = ({ live = {}, ...overrides } = {}) => ({
     transcript,
     ...live,
   },
-  ...overrides,
 });
 
-const mountMonitor = call => mount(PathorsLiveMonitor, { props: { call } });
+const mountMonitor = props => mount(PathorsLiveMonitor, { props });
 
 const stat = (wrapper, key) =>
   wrapper.find(`[data-test-id="live-stat-${key}"]`);
@@ -132,9 +134,22 @@ describe('PathorsLiveMonitor', () => {
     );
   });
 
+  it('times and alerts on a call with no live state yet', () => {
+    const wrapper = mountMonitor({
+      call: buildCall({ startedAt: secondsAgo(301) }).call,
+      live: null,
+    });
+
+    expect(stat(wrapper, 'turns').text()).toContain('0');
+    expect(stat(wrapper, 'duration').attributes('data-over')).toBe('true');
+    expect(wrapper.find('[data-test-id="live-transcript"]').exists()).toBe(
+      false
+    );
+  });
+
   it('follows new lines unless the reader scrolled up', async () => {
-    const call = buildCall();
-    const wrapper = mountMonitor(call);
+    const props = buildCall();
+    const wrapper = mountMonitor(props);
     const box = wrapper.find('[data-test-id="live-transcript"]');
     const el = box.element;
     Object.defineProperty(el, 'scrollHeight', {
@@ -148,17 +163,13 @@ describe('PathorsLiveMonitor', () => {
 
     el.scrollTop = 770;
     await box.trigger('scroll');
-    await wrapper.setProps({
-      call: { ...call, live: { ...call.live, seq: 2 } },
-    });
+    await wrapper.setProps({ live: { ...props.live, seq: 2 } });
     await nextTick();
     expect(el.scrollTop).toBe(1000);
 
     el.scrollTop = 100;
     await box.trigger('scroll');
-    await wrapper.setProps({
-      call: { ...call, live: { ...call.live, seq: 3 } },
-    });
+    await wrapper.setProps({ live: { ...props.live, seq: 3 } });
     await nextTick();
     expect(el.scrollTop).toBe(100);
   });

@@ -73,4 +73,8 @@ module Events::Types
 
   # copilot events
   COPILOT_MESSAGE_CREATED = 'copilot.message.created'
+
+  # pathors voice events
+  # Per-turn state of a live AI call; agents only (see ActionCableListener).
+  PATHORS_CALL_LIVE_UPDATED = 'pathors_call.live_updated'
 end

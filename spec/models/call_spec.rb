@@ -156,12 +156,10 @@ RSpec.describe Call do
       expect(call.push_event_data[:started_at]).to eq(Time.zone.parse('2026-08-05T10:00:00Z').iso8601)
     end
 
-    it 'emits the live state while the call is on the line and drops it once the call ends' do
-      call.update!(live: { 'seq' => 1, 'turns' => 3 })
-      expect(call.push_event_data[:live]).to eq('seq' => 1, 'turns' => 3)
+    it 'never carries the live state, since message events also reach the contact' do
+      call.update!(live: { 'seq' => 1, 'turns' => 3, 'transcript' => [{ 'kind' => 'message', 'content' => 'hi' }] })
 
-      call.update!(status: 'completed')
-      expect(call.push_event_data[:live]).to be_nil
+      expect(call.push_event_data).not_to have_key(:live)
     end
   end
 

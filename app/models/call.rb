@@ -62,6 +62,7 @@ class Call < ApplicationRecord
   # the call over; its presence is what makes that endpoint idempotent.
   # `live` is the AI's running state while it handles the call (turn and
   # interruption counts, a transcript window); see Pathors::CallLiveStateService.
+  # Agent-only: it is never part of push_event_data.
   store_accessor :meta, :room_name, :ended_at, :from_number, :to_number, :recording_url, :handoff_message_id, :live
 
   validates :provider_call_id, presence: true, uniqueness: { scope: :provider }
@@ -133,11 +134,10 @@ class Call < ApplicationRecord
       # Written back by the Pathors backend once the recording is finalized, so it
       # stays nil for the whole live phase of the call.
       recording_url: recording_url,
-      transcript: transcript,
-      # Pathors only: pushed by the backend on every AI turn, so agents can
-      # follow the call before taking it over. Dropped once the call ends so
-      # the transcript window does not ride along on every later message load.
-      live: (live unless terminal?)
+      # `live` is deliberately absent: this payload rides on message events,
+      # which also reach the contact. Agents get it from pathors/calls/active
+      # and the pathors_call.live_updated broadcast.
+      transcript: transcript
     }
   end
 end

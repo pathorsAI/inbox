@@ -99,9 +99,7 @@ class Api::V1::Accounts::Pathors::CallsController < Api::V1::Accounts::BaseContr
     error = service.validation_error
     return render_error(error) if error
 
-    applied = service.perform
-    rebroadcast_bubble if applied
-    render json: { applied: applied }, status: :ok
+    render json: { applied: service.perform }, status: :ok
   end
 
   private
@@ -193,7 +191,7 @@ class Api::V1::Accounts::Pathors::CallsController < Api::V1::Accounts::BaseContr
   end
 
   # Fires MESSAGE_UPDATED, whose payload embeds the call, so every dashboard
-  # re-renders the bubble and the live-call list with the new state.
+  # re-renders the bubble and the live-call list with the new status.
   def rebroadcast_bubble
     # rubocop:disable Rails/SkipsModelValidations
     @call.message&.touch

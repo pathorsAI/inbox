@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useStore } from 'vuex';
 import { useMapGetter } from 'dashboard/composables/store';
@@ -19,6 +19,7 @@ import {
   PATHORS_JOIN_ERROR,
 } from 'dashboard/composables/usePathorsCallSession';
 import { useCallsStore } from 'dashboard/stores/calls';
+import { usePathorsLiveCallsStore } from 'dashboard/stores/pathorsLiveCalls';
 import { VOICE_CALL_PROVIDERS } from 'dashboard/helper/inbox';
 import { isAiHandlingCall } from 'dashboard/helper/pathorsLiveCall';
 import { formatDuration } from 'shared/helpers/timeHelper';
@@ -89,6 +90,7 @@ const {
 } = usePathorsCallSession();
 const { accountId } = useAccount();
 const callsStore = useCallsStore();
+const pathorsLiveCallsStore = usePathorsLiveCallsStore();
 const contactsUiFlags = useMapGetter('contacts/getUIFlags');
 const isInitiatingCall = computed(
   () => contactsUiFlags.value?.isInitiatingCall || false
@@ -321,8 +323,22 @@ const canJoinPathorsCall = computed(
       acceptedByAgentId.value === currentUserId.value)
 );
 // Until someone takes the call over, the bubble shows what the AI is doing.
+// The live state never rides on the message (message events also reach the
+// contact); it comes from the agent-only store.
 const isPathorsAiHandling = computed(
   () => isPathors.value && isAiHandlingCall(call.value)
+);
+const pathorsLive = computed(
+  () => pathorsLiveCallsStore.liveById[pathorsCallId.value] || null
+);
+// A conversation opened straight onto a live call (deep link, reload) may
+// render before anything loaded the active calls.
+watch(
+  isPathorsAiHandling,
+  isHandling => {
+    if (isHandling) pathorsLiveCallsStore.ensureLoaded();
+  },
+  { immediate: true }
 );
 const pathorsCallDurationLabel = computed(() =>
   formatDuration(pathorsCallDuration.value)
@@ -433,7 +449,11 @@ const handleCallBack = async () => {
         </div>
       </div>
 
-      <PathorsLiveMonitor v-if="isPathorsAiHandling" :call="call" />
+      <PathorsLiveMonitor
+        v-if="isPathorsAiHandling"
+        :call="call"
+        :live="pathorsLive"
+      />
 
       <!-- Audio player (when there's a recording) -->
       <AudioChip
