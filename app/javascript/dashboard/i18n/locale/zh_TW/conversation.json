@@ -130,7 +130,7 @@
       "YOU_ANSWERED": "您已接聽",
       "AGENT_ANSWERED": "{agentName} answered",
       "JOIN_CALL": "加入通話",
-      "LEAVE_CALL": "離開（交回 AI）",
+      "TAKE_OVER_CALL": "接手通話",
       "HANGUP_CALL": "結束通話",
       "JOIN_ALREADY_CLAIMED": "已由其他人接聽",
       "JOIN_CALL_ENDED": "通話已結束",
@@ -140,7 +140,27 @@
       "ENABLE_AUDIO": "點此開啟通話聲音",
       "CALL_BACK": "Call back",
       "TRANSCRIPT_SHOW_MORE": "Show more",
-      "TRANSCRIPT_SHOW_LESS": "Show less"
+      "TRANSCRIPT_SHOW_LESS": "Show less",
+      "LIVE": {
+        "STAT_DURATION": "通話時間",
+        "STAT_TURNS": "輪數",
+        "STAT_INTERRUPTIONS": "被打斷",
+        "TRANSCRIPT_TITLE": "即時逐字稿",
+        "TRANSCRIPT_COUNT": "{count} 則",
+        "ROLE_USER": "客人",
+        "ROLE_ASSISTANT": "AI",
+        "INTERRUPTED": "被打斷",
+        "ALERTS": {
+          "TRANSFER_FAILED": "轉接失敗",
+          "TRANSFER_FAILED_HINT": "AI 轉接專員沒接通，客人仍在線上",
+          "INTERRUPTIONS": "被打斷 {count} 次",
+          "INTERRUPTIONS_HINT": "客人一直插話，可能不耐煩",
+          "LONG_CALL": "超過 {minutes} 分鐘",
+          "LONG_CALL_HINT": "通話時間偏長",
+          "MANY_TURNS": "超過 {count} 輪",
+          "MANY_TURNS_HINT": "來回次數偏多，可能在原地打轉"
+        }
+      }
     },
     "HEADER": {
       "RESOLVE_ACTION": "解決",

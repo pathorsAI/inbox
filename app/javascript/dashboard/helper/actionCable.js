@@ -5,6 +5,7 @@ import { BUS_EVENTS } from 'shared/constants/busEvents';
 import { emitter } from 'shared/helpers/mitt';
 import { useImpersonation } from 'dashboard/composables/useImpersonation';
 import { useCallsStore } from 'dashboard/stores/calls';
+import { usePathorsLiveCallsStore } from 'dashboard/stores/pathorsLiveCalls';
 import {
   applyOutboundAnswer,
   armOutboundRecorder,
@@ -66,6 +67,7 @@ class ActionCableConnector extends BaseActionCableConnector {
       'voice_call.outbound_connected': this.onVoiceCallOutboundConnected,
       'voice_call.outbound_accepted': this.onVoiceCallOutboundAccepted,
       'voice_call.ended': this.onVoiceCallEnded,
+      'pathors_call.live_updated': this.onPathorsCallLiveUpdated,
       'ticket.created': this.refreshTicketCounts,
       'ticket.updated': this.refreshTicketCounts,
     };
@@ -447,6 +449,12 @@ class ActionCableConnector extends BaseActionCableConnector {
     if (!store.calls.some(c => c.callSid === data.call_id)) return;
     store.setCallActive(data.call_id);
     armOutboundRecorder();
+  };
+
+  // Per-turn state of a live Pathors AI call; agents and admins only.
+  // eslint-disable-next-line class-methods-use-this
+  onPathorsCallLiveUpdated = data => {
+    usePathorsLiveCallsStore().handleLiveUpdated(data);
   };
 
   // eslint-disable-next-line class-methods-use-this

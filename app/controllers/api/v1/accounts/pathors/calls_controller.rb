@@ -9,17 +9,26 @@ class Api::V1::Accounts::Pathors::CallsController < Api::V1::Accounts::BaseContr
   }.freeze
 
   # create/update are backend-to-backend webhooks: bots use the whitelisted bot
-  # token (see BOT_ACCESSIBLE_ENDPOINTS), agents their own token. `handoff` is
-  # one too, but it writes into a conversation without checking inbox access and
-  # echoes an existing card back, so it requires an account administrator (the
-  # Pathors backend uses the admin's token; bot tokens are not whitelisted) and
-  # rejects anyone else with 401. `join` and `hangup` are dashboard actions
-  # authorized on conversation access (see #authorize_call_access).
+  # token (see BOT_ACCESSIBLE_ENDPOINTS), agents their own token. `handoff` and
+  # `live` are too, but they write into a conversation without checking inbox
+  # access (and handoff echoes an existing card back), so they require an
+  # account administrator (the Pathors backend uses the admin's token; bot
+  # tokens are not whitelisted) and reject anyone else with 401. `join` and
+  # `hangup` are dashboard actions authorized on conversation access (see
+  # #authorize_call_access); `active` is scoped to it.
   before_action :fetch_conversation, only: [:create]
-  before_action :check_admin_authorization?, only: [:handoff]
+  before_action :check_admin_authorization?, only: [:handoff, :live]
   before_action :fetch_call, only: [:update]
-  before_action :fetch_pathors_call, only: [:join, :hangup, :handoff]
+  before_action :fetch_pathors_call, only: [:join, :hangup, :handoff, :live]
   before_action :authorize_call_access, only: [:join, :hangup]
+
+  # The live Pathors calls the viewer can open, for the pinned group at the top
+  # of the conversation list. Voice conversations sit in `pending` under the
+  # Pathors bot, so the regular list never shows a call the AI is handling.
+  def active
+    @calls = account_calls.pathors.active.where(conversation_id: accessible_conversations)
+                          .includes(:contact, :inbox, :conversation, :accepted_by_agent).order(:started_at)
+  end
 
   def create
     direction = DIRECTIONS[create_params[:direction].to_s]
@@ -58,11 +67,11 @@ class Api::V1::Accounts::Pathors::CallsController < Api::V1::Accounts::BaseContr
     render json: result.body, status: result.status
   end
 
-  # Ends the call for everyone, as opposed to the dashboard's "leave", which only
-  # drops the human out of the room and hands the caller back to the AI. The
-  # backend decides whether this agent holds the call (409 otherwise) and tells
-  # the voice agent to tear the room down; the terminal status then arrives
-  # through the usual update webhook, so nothing is written here.
+  # Ends the call for everyone. Taking a call over means the AI is done with it,
+  # so this is the only way out for the agent holding it. The backend decides
+  # whether this agent holds the call (409 otherwise) and tells the voice agent
+  # to tear the room down; the terminal status then arrives through the usual
+  # update webhook, so nothing is written here.
   def hangup
     return render json: { error: 'call_ended' }, status: :gone if @call.terminal?
 
@@ -82,14 +91,23 @@ class Api::V1::Accounts::Pathors::CallsController < Api::V1::Accounts::BaseContr
     render status: created ? :created : :ok
   end
 
+  # Pushed by the Pathors backend on every AI turn; see Pathors::CallLiveStateService.
+  # A stale or post-call delivery is a normal race, not an error: it answers
+  # 200 with applied: false.
+  def live
+    service = ::Pathors::CallLiveStateService.new(call: @call, payload: params.to_unsafe_h[:live])
+    error = service.validation_error
+    return render_error(error) if error
+
+    render json: { applied: service.perform }, status: :ok
+  end
+
   private
 
   def record_join
     @call.update(accepted_by_agent_id: Current.user.id)
-    # Rebroadcasts the bubble so every other dashboard sees who answered.
-    # rubocop:disable Rails/SkipsModelValidations
-    @call.message&.touch
-    # rubocop:enable Rails/SkipsModelValidations
+    # So every other dashboard sees who answered.
+    rebroadcast_bubble
     assign_conversation_to_joiner
   end
 
@@ -169,7 +187,12 @@ class Api::V1::Accounts::Pathors::CallsController < Api::V1::Accounts::BaseContr
 
   def persist(attributes)
     @call.update!(attributes)
-    # Fires MESSAGE_UPDATED so the dashboard bubble re-renders with the new state.
+    rebroadcast_bubble
+  end
+
+  # Fires MESSAGE_UPDATED, whose payload embeds the call, so every dashboard
+  # re-renders the bubble and the live-call list with the new status.
+  def rebroadcast_bubble
     # rubocop:disable Rails/SkipsModelValidations
     @call.message&.touch
     # rubocop:enable Rails/SkipsModelValidations
@@ -215,6 +238,12 @@ class Api::V1::Accounts::Pathors::CallsController < Api::V1::Accounts::BaseContr
   # bar here; the backend narrows it to the agent actually holding the call.
   def authorize_call_access
     authorize @call.conversation, :show?
+  end
+
+  # The same bar as CallFinder and the conversation list: administrators see the
+  # whole account, everyone else the conversations in their inboxes.
+  def accessible_conversations
+    ::Conversations::PermissionFilterService.new(Current.account.conversations, Current.user, Current.account).perform.select(:id)
   end
 
   # Tolerates the dashed display form ('in-progress') the dashboard uses.

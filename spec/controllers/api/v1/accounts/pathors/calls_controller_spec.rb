@@ -901,4 +901,297 @@ RSpec.describe 'Pathors Calls API', type: :request do
       end
     end
   end
+
+  describe 'PUT /api/v1/accounts/{account.id}/pathors/calls/{id}/live' do
+    let(:message) do
+      create(:message, account: account, conversation: conversation, inbox: conversation.inbox, content_type: 'voice_call')
+    end
+    let(:call) do
+      create(:call, :pathors, account: account, conversation: conversation, inbox: conversation.inbox,
+                              contact: conversation.contact, message: message)
+    end
+    let(:live_url) { "/api/v1/accounts/#{account.id}/pathors/calls/#{call.id}/live" }
+    let(:transcript) do
+      [
+        { kind: 'message', role: 'user', content: 'I want to book a room', at: 1_759_581_200_000 },
+        { kind: 'message', role: 'assistant', content: 'For which night', interrupted: true, at: 1_759_581_201_000 },
+        { kind: 'system', code: 'transfer_failed', text: 'Transfer failed: line busy', at: 1_759_581_202_000 }
+      ]
+    end
+    let(:live_payload) do
+      { live: { seq: 1_759_581_234_567, turns: 14, interruptions: 2, transfer_failed: true, transcript: transcript } }
+    end
+
+    def put_live(payload = live_payload, headers: admin.create_new_auth_token)
+      put live_url, params: payload, headers: headers, as: :json
+    end
+
+    context 'when it is an unauthenticated user' do
+      it 'returns unauthorized' do
+        put live_url, params: live_payload, as: :json
+
+        expect(response).to have_http_status(:unauthorized)
+      end
+    end
+
+    context 'when it is an agent' do
+      it 'returns unauthorized without storing anything' do
+        create(:inbox_member, user: agent, inbox: conversation.inbox)
+
+        put_live(headers: agent.create_new_auth_token)
+
+        expect(response).to have_http_status(:unauthorized)
+        expect(call.reload.live).to be_nil
+      end
+    end
+
+    context 'when it is an agent bot' do
+      it 'returns unauthorized' do
+        put_live(headers: { api_access_token: agent_bot.access_token.token })
+
+        expect(response).to have_http_status(:unauthorized)
+      end
+    end
+
+    context 'when it is an administrator' do
+      it 'stores the live state on the call' do
+        freeze_time do
+          put_live
+
+          expect(response).to have_http_status(:ok)
+          expect(response.parsed_body).to eq('applied' => true)
+          expect(call.reload.live).to eq(
+            'seq' => 1_759_581_234_567, 'turns' => 14, 'interruptions' => 2, 'transfer_failed' => true,
+            'transcript' => [
+              { 'kind' => 'message', 'role' => 'user', 'content' => 'I want to book a room', 'interrupted' => false,
+                'at' => 1_759_581_200_000 },
+              { 'kind' => 'message', 'role' => 'assistant', 'content' => 'For which night', 'interrupted' => true,
+                'at' => 1_759_581_201_000 },
+              { 'kind' => 'system', 'code' => 'transfer_failed', 'text' => 'Transfer failed: line busy',
+                'at' => 1_759_581_202_000 }
+            ],
+            'updated_at' => Time.current.iso8601
+          )
+        end
+      end
+
+      it 'broadcasts the state to inbox agents and administrators, never the contact' do
+        create(:inbox_member, user: agent, inbox: conversation.inbox)
+        call
+        allow(ActionCableBroadcastJob).to receive(:perform_later)
+
+        put_live
+
+        expect(ActionCableBroadcastJob).to have_received(:perform_later).once.with(
+          a_collection_containing_exactly(agent.pubsub_token, admin.pubsub_token),
+          'pathors_call.live_updated',
+          hash_including(id: call.id, conversation_id: conversation.display_id, inbox_id: conversation.inbox_id,
+                         live: hash_including('seq' => 1_759_581_234_567, 'transcript' => a_collection_including(
+                           hash_including('content' => 'I want to book a room')
+                         )))
+        )
+        expect(ActionCableBroadcastJob).not_to have_received(:perform_later)
+          .with(array_including(conversation.contact_inbox.pubsub_token), any_args)
+      end
+
+      it 'does not touch the message, so no message event, webhook or agent bot event fires' do
+        call
+        admin
+        original = message.reload.updated_at
+
+        travel_to(2.minutes.from_now) do
+          expect { put_live }.not_to have_enqueued_job(EventDispatcherJob)
+        end
+
+        expect(message.reload.updated_at).to eq(original)
+        expect(WebhookJob).not_to have_been_enqueued
+        expect(AgentBots::WebhookJob).not_to have_been_enqueued
+      end
+
+      it 'does not write chat messages for transcript lines' do
+        call
+
+        expect { put_live }.not_to change(Message, :count)
+      end
+
+      it 'applies a newer seq over an older one' do
+        put_live
+        put_live({ live: live_payload[:live].merge(seq: 1_759_581_240_000, turns: 15) })
+
+        expect(response.parsed_body).to eq('applied' => true)
+        expect(call.reload.live['turns']).to eq(15)
+      end
+
+      it 'ignores a stale or repeated seq without broadcasting it' do
+        put_live
+        allow(ActionCableBroadcastJob).to receive(:perform_later)
+
+        put_live({ live: live_payload[:live].merge(seq: 1_759_581_200_000, turns: 3) })
+        expect(response.parsed_body).to eq('applied' => false)
+        put_live({ live: live_payload[:live].merge(turns: 3) })
+        expect(response.parsed_body).to eq('applied' => false)
+
+        expect(response).to have_http_status(:ok)
+        expect(call.reload.live['turns']).to eq(14)
+        expect(ActionCableBroadcastJob).not_to have_received(:perform_later)
+      end
+
+      it 'ignores updates for a call that has ended' do
+        call.update!(status: 'completed')
+
+        put_live
+
+        expect(response).to have_http_status(:ok)
+        expect(response.parsed_body).to eq('applied' => false)
+        expect(call.reload.live).to be_nil
+      end
+
+      it 'keeps only the latest transcript entries and cuts long lines' do
+        long_transcript = Array.new(Pathors::CallLiveStateService::MAX_ENTRIES + 5) do |index|
+          { kind: 'message', role: 'user', content: "line #{index}", at: index }
+        end
+        long_transcript[-1] = { kind: 'message', role: 'assistant', content: 'x' * 3000, at: 99 }
+
+        put_live({ live: live_payload[:live].merge(transcript: long_transcript) })
+
+        stored = call.reload.live['transcript']
+        expect(stored.size).to eq(Pathors::CallLiveStateService::MAX_ENTRIES)
+        expect(stored.first['content']).to eq('line 5')
+        expect(stored.last['content'].length).to eq(Pathors::CallLiveStateService::MAX_TEXT_LENGTH)
+      end
+
+      it 'drops keys outside the documented entry shape' do
+        put_live({ live: live_payload[:live].merge(transcript: [{ kind: 'message', role: 'user', content: 'hi', extra: 'x' }]) })
+
+        expect(call.reload.live['transcript']).to eq([{ 'kind' => 'message', 'role' => 'user', 'content' => 'hi',
+                                                        'interrupted' => false, 'at' => nil }])
+      end
+
+      it 'rejects an unknown entry kind' do
+        put_live({ live: live_payload[:live].merge(transcript: [{ kind: 'tool', content: 'lookup' }]) })
+
+        expect(response).to have_http_status(:unprocessable_entity)
+        expect(call.reload.live).to be_nil
+      end
+
+      it 'rejects an unknown message role' do
+        put_live({ live: live_payload[:live].merge(transcript: [{ kind: 'message', role: 'system', content: 'hi' }]) })
+
+        expect(response).to have_http_status(:unprocessable_entity)
+      end
+
+      it 'rejects a missing or non-integer seq' do
+        put_live({ live: live_payload[:live].except(:seq) })
+        expect(response).to have_http_status(:unprocessable_entity)
+
+        put_live({ live: live_payload[:live].merge(seq: '12') })
+        expect(response).to have_http_status(:unprocessable_entity)
+      end
+
+      it 'rejects negative counters and a non-boolean transfer_failed' do
+        put_live({ live: live_payload[:live].merge(interruptions: -1) })
+        expect(response).to have_http_status(:unprocessable_entity)
+
+        put_live({ live: live_payload[:live].merge(transfer_failed: 'yes') })
+        expect(response).to have_http_status(:unprocessable_entity)
+      end
+
+      it 'rejects a request without a live object' do
+        put_live({ seq: 1 })
+
+        expect(response).to have_http_status(:unprocessable_entity)
+      end
+
+      it 'returns not found for a call from another provider' do
+        twilio_call = create(:call, account: account, conversation: conversation, inbox: conversation.inbox,
+                                    contact: conversation.contact)
+
+        put "/api/v1/accounts/#{account.id}/pathors/calls/#{twilio_call.id}/live",
+            params: live_payload, headers: admin.create_new_auth_token, as: :json
+
+        expect(response).to have_http_status(:not_found)
+      end
+    end
+  end
+
+  describe 'GET /api/v1/accounts/{account.id}/pathors/calls/active' do
+    let(:active_url) { "/api/v1/accounts/#{account.id}/pathors/calls/active" }
+    let(:other_conversation) { create(:conversation, account: account) }
+    let!(:live_call) do
+      create(:call, :pathors, account: account, conversation: conversation, inbox: conversation.inbox,
+                              contact: conversation.contact, started_at: 2.minutes.ago,
+                              live: { 'seq' => 1, 'turns' => 4, 'interruptions' => 1, 'transfer_failed' => false,
+                                      'transcript' => [{ 'kind' => 'message', 'role' => 'user', 'content' => 'hi' }] })
+    end
+    let!(:ringing_call) do
+      create(:call, :pathors, account: account, conversation: conversation, inbox: conversation.inbox,
+                              contact: conversation.contact, status: 'ringing', started_at: 5.minutes.ago)
+    end
+    let!(:other_inbox_call) do
+      create(:call, :pathors, account: account, conversation: other_conversation, inbox: other_conversation.inbox,
+                              contact: other_conversation.contact, started_at: 1.minute.ago)
+    end
+
+    before do
+      create(:call, :pathors, account: account, conversation: conversation, inbox: conversation.inbox,
+                              contact: conversation.contact, status: 'completed')
+      create(:call, account: account, conversation: conversation, inbox: conversation.inbox,
+                    contact: conversation.contact, status: 'in_progress')
+      other_account = create(:account)
+      other_account_conversation = create(:conversation, account: other_account)
+      create(:call, :pathors, account: other_account, conversation: other_account_conversation,
+                              inbox: other_account_conversation.inbox, contact: other_account_conversation.contact)
+    end
+
+    context 'when it is an unauthenticated user' do
+      it 'returns unauthorized' do
+        get active_url, as: :json
+
+        expect(response).to have_http_status(:unauthorized)
+      end
+    end
+
+    context 'when it is an administrator' do
+      it 'lists every live pathors call in the account, oldest first' do
+        get active_url, headers: admin.create_new_auth_token, as: :json
+
+        expect(response).to have_http_status(:ok)
+        ids = response.parsed_body['payload'].pluck('id')
+        expect(ids).to eq([ringing_call.id, live_call.id, other_inbox_call.id])
+      end
+
+      it 'carries what the list row and the bubble need, transcript included' do
+        get active_url, headers: admin.create_new_auth_token, as: :json
+
+        row = response.parsed_body['payload'].find { |item| item['id'] == live_call.id }
+        expect(row).to include(
+          'status' => 'in-progress',
+          'conversation_id' => conversation.display_id,
+          'inbox_id' => conversation.inbox_id,
+          'inbox_name' => conversation.inbox.name,
+          'contact_name' => conversation.contact.name,
+          'live' => { 'seq' => 1, 'turns' => 4, 'interruptions' => 1, 'transfer_failed' => false,
+                      'transcript' => [{ 'kind' => 'message', 'role' => 'user', 'content' => 'hi' }] }
+        )
+      end
+    end
+
+    context 'when it is an agent' do
+      it 'lists only the calls in inboxes the agent belongs to' do
+        create(:inbox_member, user: agent, inbox: conversation.inbox)
+
+        get active_url, headers: agent.create_new_auth_token, as: :json
+
+        expect(response).to have_http_status(:ok)
+        expect(response.parsed_body['payload'].pluck('id')).to contain_exactly(ringing_call.id, live_call.id)
+      end
+
+      it 'lists nothing for an agent without inbox access' do
+        get active_url, headers: agent.create_new_auth_token, as: :json
+
+        expect(response).to have_http_status(:ok)
+        expect(response.parsed_body['payload']).to eq([])
+      end
+    end
+  end
 end

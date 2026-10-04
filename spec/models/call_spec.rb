@@ -155,6 +155,12 @@ RSpec.describe Call do
     it 'emits started_at as iso8601' do
       expect(call.push_event_data[:started_at]).to eq(Time.zone.parse('2026-08-05T10:00:00Z').iso8601)
     end
+
+    it 'never carries the live state, since message events also reach the contact' do
+      call.update!(live: { 'seq' => 1, 'turns' => 3, 'transcript' => [{ 'kind' => 'message', 'content' => 'hi' }] })
+
+      expect(call.push_event_data).not_to have_key(:live)
+    end
   end
 
   describe 'Message#push_event_data' do

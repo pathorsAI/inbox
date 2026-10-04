@@ -22,12 +22,18 @@ class PathorsCallsAPI extends ApiClient {
       .then(r => r.data);
   }
 
-  // Ends the call for everyone (the voice agent tears the room down), as
-  // opposed to leaving, which only drops this browser out of the room.
+  // Ends the call for everyone (the voice agent tears the room down). Taking a
+  // call over is final, so this is the agent's only way out of it.
   hangup(callId, accountId) {
     return axios
       .post(this.memberUrl(callId, 'hangup', accountId))
       .then(r => r.data);
+  }
+
+  // Live Pathors calls in the inboxes the viewer can open, for the pinned group
+  // at the top of the conversation list.
+  active() {
+    return axios.get(`${this.url}/active`).then(r => r.data);
   }
 }
 

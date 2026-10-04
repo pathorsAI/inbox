@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useStore } from 'vuex';
 import { useMapGetter } from 'dashboard/composables/store';
@@ -19,7 +19,9 @@ import {
   PATHORS_JOIN_ERROR,
 } from 'dashboard/composables/usePathorsCallSession';
 import { useCallsStore } from 'dashboard/stores/calls';
+import { usePathorsLiveCallsStore } from 'dashboard/stores/pathorsLiveCalls';
 import { VOICE_CALL_PROVIDERS } from 'dashboard/helper/inbox';
+import { isAiHandlingCall } from 'dashboard/helper/pathorsLiveCall';
 import { formatDuration } from 'shared/helpers/timeHelper';
 import { useAlert } from 'dashboard/composables';
 import { useAccount } from 'dashboard/composables/useAccount';
@@ -28,6 +30,7 @@ import Icon from 'dashboard/components-next/icon/Icon.vue';
 import BaseBubble from 'next/message/bubbles/Base.vue';
 import AudioChip from 'next/message/chips/Audio.vue';
 import NextButton from 'dashboard/components-next/button/Button.vue';
+import PathorsLiveMonitor from './PathorsLiveMonitor.vue';
 
 const LABEL_MAP = {
   [VOICE_CALL_STATUS.IN_PROGRESS]: 'CONVERSATION.VOICE_CALL.CALL_IN_PROGRESS',
@@ -75,7 +78,6 @@ const { joinCall, endCall, activeCall, hasActiveCall, isJoining } =
 const whatsappCallSession = useWhatsappCallSession();
 const {
   join: joinPathorsCall,
-  leave: leavePathorsCall,
   hangup: hangupPathorsCall,
   isHangingUp: isHangingUpPathorsCall,
   isJoining: isJoiningPathorsCall,
@@ -88,6 +90,7 @@ const {
 } = usePathorsCallSession();
 const { accountId } = useAccount();
 const callsStore = useCallsStore();
+const pathorsLiveCallsStore = usePathorsLiveCallsStore();
 const contactsUiFlags = useMapGetter('contacts/getUIFlags');
 const isInitiatingCall = computed(
   () => contactsUiFlags.value?.isInitiatingCall || false
@@ -310,7 +313,7 @@ const isInThisPathorsCall = computed(
 // disappears for everyone but the agent who took the call. That field is never
 // cleared — it is the persisted "who handled this call" attribution the bubble
 // and the calls list read — so matching it against the viewer is also what
-// lets an agent rejoin a call they left.
+// lets an agent back in after a dropped connection or a reload.
 const canJoinPathorsCall = computed(
   () =>
     isPathorsCallLive.value &&
@@ -318,6 +321,24 @@ const canJoinPathorsCall = computed(
     !isJoinedPathorsCall.value &&
     (!acceptedByAgentId.value ||
       acceptedByAgentId.value === currentUserId.value)
+);
+// Until someone takes the call over, the bubble shows what the AI is doing.
+// The live state never rides on the message (message events also reach the
+// contact); it comes from the agent-only store.
+const isPathorsAiHandling = computed(
+  () => isPathors.value && isAiHandlingCall(call.value)
+);
+const pathorsLive = computed(
+  () => pathorsLiveCallsStore.liveById[pathorsCallId.value] || null
+);
+// A conversation opened straight onto a live call (deep link, reload) may
+// render before anything loaded the active calls.
+watch(
+  isPathorsAiHandling,
+  isHandling => {
+    if (isHandling) pathorsLiveCallsStore.ensureLoaded();
+  },
+  { immediate: true }
 );
 const pathorsCallDurationLabel = computed(() =>
   formatDuration(pathorsCallDuration.value)
@@ -335,8 +356,6 @@ const handlePathorsJoin = async () => {
   const labelKeyForError = PATHORS_ERROR_LABELS[pathorsCallError.value];
   useAlert(t(labelKeyForError || 'CONVERSATION.VOICE_CALL.JOIN_FAILED'));
 };
-
-const handlePathorsLeave = () => leavePathorsCall();
 
 const handlePathorsHangup = async () => {
   if (isHangingUpPathorsCall.value) return;
@@ -430,6 +449,12 @@ const handleCallBack = async () => {
         </div>
       </div>
 
+      <PathorsLiveMonitor
+        v-if="isPathorsAiHandling"
+        :call="call"
+        :live="pathorsLive"
+      />
+
       <!-- Audio player (when there's a recording) -->
       <AudioChip
         v-if="recordingAttachment"
@@ -461,12 +486,12 @@ const handleCallBack = async () => {
         @click="handleJoinCall"
       />
 
-      <!-- Pathors: take the call over from the AI agent, then either end the
-           call or leave it and hand the caller back to the AI -->
+      <!-- Pathors: take the call over from the AI agent. Taking over is final:
+           the AI is done with the call, so ending it is the only way out -->
       <NextButton
         v-if="canJoinPathorsCall"
         type="button"
-        :label="$t('CONVERSATION.VOICE_CALL.JOIN_CALL')"
+        :label="$t('CONVERSATION.VOICE_CALL.TAKE_OVER_CALL')"
         icon="i-ph-phone-bold"
         teal
         class="!rounded-full"
@@ -499,17 +524,6 @@ const handleCallBack = async () => {
             {{ pathorsCallDurationLabel }}
           </span>
         </div>
-        <!-- Leaving does not end the call: the AI picks the caller back up -->
-        <NextButton
-          type="button"
-          :label="$t('CONVERSATION.VOICE_CALL.LEAVE_CALL')"
-          icon="i-ph-sign-out-bold"
-          slate
-          faded
-          class="!rounded-full"
-          :disabled="isHangingUpPathorsCall"
-          @click="handlePathorsLeave"
-        />
       </div>
     </div>
   </BaseBubble>

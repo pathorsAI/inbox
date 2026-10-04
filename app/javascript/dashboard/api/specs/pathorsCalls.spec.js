@@ -6,17 +6,20 @@ describe('#PathorsCallsAPI', () => {
     expect(pathorsCallsAPI).toBeInstanceOf(ApiClient);
     expect(pathorsCallsAPI).toHaveProperty('join');
     expect(pathorsCallsAPI).toHaveProperty('hangup');
+    expect(pathorsCallsAPI).toHaveProperty('active');
   });
 
   describe('API calls', () => {
     const originalAxios = window.axios;
     const axiosMock = {
       post: vi.fn(() => Promise.resolve({ data: { ok: true } })),
+      get: vi.fn(() => Promise.resolve({ data: { payload: [] } })),
     };
 
     beforeEach(() => {
       window.axios = axiosMock;
       axiosMock.post.mockClear();
+      axiosMock.get.mockClear();
     });
 
     afterEach(() => {
@@ -36,6 +39,14 @@ describe('#PathorsCallsAPI', () => {
         '/api/v1/accounts/3/pathors/calls/42/hangup'
       );
       expect(data).toEqual({ ok: true });
+    });
+
+    it('#active gets the live calls and returns data', async () => {
+      const data = await pathorsCallsAPI.active();
+      expect(axiosMock.get).toHaveBeenCalledWith(
+        expect.stringMatching(/\/pathors\/calls\/active$/)
+      );
+      expect(data).toEqual({ payload: [] });
     });
   });
 });

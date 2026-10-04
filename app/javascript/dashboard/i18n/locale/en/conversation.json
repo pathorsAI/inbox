@@ -149,7 +149,7 @@
       "YOU_ANSWERED": "You answered",
       "AGENT_ANSWERED": "{agentName} answered",
       "JOIN_CALL": "Join call",
-      "LEAVE_CALL": "Leave (back to AI)",
+      "TAKE_OVER_CALL": "Take over call",
       "HANGUP_CALL": "End call",
       "JOIN_ALREADY_CLAIMED": "Someone else answered this call",
       "JOIN_CALL_ENDED": "This call has already ended",
@@ -159,7 +159,27 @@
       "ENABLE_AUDIO": "Tap to hear the call",
       "CALL_BACK": "Call back",
       "TRANSCRIPT_SHOW_MORE": "Show more",
-      "TRANSCRIPT_SHOW_LESS": "Show less"
+      "TRANSCRIPT_SHOW_LESS": "Show less",
+      "LIVE": {
+        "STAT_DURATION": "Duration",
+        "STAT_TURNS": "Turns",
+        "STAT_INTERRUPTIONS": "Interrupted",
+        "TRANSCRIPT_TITLE": "Live transcript",
+        "TRANSCRIPT_COUNT": "{count} message | {count} messages",
+        "ROLE_USER": "Caller",
+        "ROLE_ASSISTANT": "AI",
+        "INTERRUPTED": "Interrupted",
+        "ALERTS": {
+          "TRANSFER_FAILED": "Transfer failed",
+          "TRANSFER_FAILED_HINT": "The AI could not reach a person and the caller is still on the line",
+          "INTERRUPTIONS": "Interrupted {count} times",
+          "INTERRUPTIONS_HINT": "The caller keeps cutting in and may be getting impatient",
+          "LONG_CALL": "Over {minutes} min",
+          "LONG_CALL_HINT": "The call is running long",
+          "MANY_TURNS": "Over {count} turns",
+          "MANY_TURNS_HINT": "Lots of back-and-forth; the AI may be going in circles"
+        }
+      }
     },
     "HEADER": {
       "RESOLVE_ACTION": "Resolve",
