@@ -37,10 +37,10 @@ const SEVERITY_RANK = {
 const SECONDS_PER_MINUTE = 60;
 const MS_PER_SECOND = 1000;
 
-const ACTIVE_STATUSES = [
+const ACTIVE_STATUSES = new Set([
   VOICE_CALL_STATUS.RINGING,
   VOICE_CALL_STATUS.IN_PROGRESS,
-];
+]);
 
 const I18N_PREFIX = 'CONVERSATION.VOICE_CALL.LIVE.ALERTS';
 
@@ -60,7 +60,7 @@ export const callElapsedSeconds = (startedAt, now) => {
  * The call is still on the line (display status: ringing or in-progress).
  * @param {string|undefined} status
  */
-export const isLiveCallStatus = status => ACTIVE_STATUSES.includes(status);
+export const isLiveCallStatus = status => ACTIVE_STATUSES.has(status);
 
 /**
  * The AI is still on the call: it has not ended and nobody has taken it over.
