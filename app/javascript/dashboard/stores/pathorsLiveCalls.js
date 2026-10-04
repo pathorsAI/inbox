@@ -26,6 +26,11 @@ import { MESSAGE_TYPE } from 'shared/constants/messages';
 const endedCallIds = new Set();
 let inflightFetch = null;
 
+// Calls a status broadcast touched while a fetch was in flight. The fetch's
+// snapshot predates those broadcasts, so it must neither drop such a call nor
+// overwrite its newer fields.
+const syncedSinceFetch = new Set();
+
 // Broadcasts are delivered through a job queue and can arrive out of order;
 // never let an older turn overwrite a newer one.
 const isOlder = (current, incoming) =>
@@ -48,11 +53,32 @@ export const usePathorsLiveCallsStore = defineStore('pathorsLiveCalls', {
 
   actions: {
     async fetchActive() {
+      syncedSinceFetch.clear();
       const { payload } = await PathorsCallsAPI.active();
       const calls = camelcaseKeys(payload, { deep: true }).filter(
         call => !endedCallIds.has(call.id)
       );
-      this.records = calls.map(({ live, ...call }) => call);
+      const fetchedIds = new Set(calls.map(call => call.id));
+      const existingById = new Map(
+        this.records.map(record => [record.id, record])
+      );
+      const fetched = calls.map(({ live, ...call }) =>
+        syncedSinceFetch.has(call.id)
+          ? { ...call, ...existingById.get(call.id) }
+          : call
+      );
+      // A call that rang while the request was in flight is not in its payload.
+      const addedMeanwhile = this.records.filter(
+        record => !fetchedIds.has(record.id) && syncedSinceFetch.has(record.id)
+      );
+      this.records = [...fetched, ...addedMeanwhile];
+
+      // Whatever else is missing ended while the socket was down, and its
+      // ended broadcast never arrived: drop its live state too.
+      const keptIds = new Set(this.records.map(record => record.id));
+      Object.keys(this.liveById).forEach(id => {
+        if (!keptIds.has(Number(id))) delete this.liveById[id];
+      });
       calls.forEach(({ id, live }) => this.applyLive(id, live));
       this.hasLoaded = true;
     },
@@ -131,6 +157,7 @@ export const usePathorsLiveCallsStore = defineStore('pathorsLiveCalls', {
       } else {
         this.records.push(next);
       }
+      syncedSinceFetch.add(call.id);
     },
   },
 });
@@ -138,5 +165,6 @@ export const usePathorsLiveCallsStore = defineStore('pathorsLiveCalls', {
 // Test seam: the module-level state would otherwise leak between specs.
 export const resetPathorsLiveCallsTracking = () => {
   endedCallIds.clear();
+  syncedSinceFetch.clear();
   inflightFetch = null;
 };

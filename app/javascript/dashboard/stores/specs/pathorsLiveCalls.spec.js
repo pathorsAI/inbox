@@ -71,6 +71,35 @@ describe('pathorsLiveCalls store', () => {
     expect(store.hasLoaded).toBe(true);
   });
 
+  it('keeps a call that rang while the fetch was in flight', async () => {
+    let resolveFetch;
+    PathorsCallsAPI.active.mockReturnValue(
+      new Promise(resolve => {
+        resolveFetch = resolve;
+      })
+    );
+    const store = usePathorsLiveCallsStore();
+
+    const fetching = store.fetchActive();
+    store.syncFromMessage(buildMessage({ call: { id: 88 }, id: 502 }));
+    resolveFetch({ payload: [{ id: 77, conversation_id: 12 }] });
+    await fetching;
+
+    expect(store.records.map(record => record.id).sort()).toEqual([77, 88]);
+  });
+
+  it('drops live state for calls the fetch no longer reports', async () => {
+    const store = usePathorsLiveCallsStore();
+    store.applyLive(77, { seq: 3, turns: 5 });
+    store.records = [{ id: 77, conversationId: 12 }];
+    PathorsCallsAPI.active.mockResolvedValue({ payload: [] });
+
+    await store.fetchActive();
+
+    expect(store.records).toEqual([]);
+    expect(store.liveById).toEqual({});
+  });
+
   it('tells whether a conversation has a call still on the line', () => {
     const store = usePathorsLiveCallsStore();
     store.syncFromMessage(buildMessage());
