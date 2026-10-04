@@ -5,6 +5,7 @@ import { useMapGetter } from 'dashboard/composables/store';
 import { useAlert } from 'dashboard/composables';
 import { useI18n } from 'vue-i18n';
 import wootConstants from 'dashboard/constants/globals';
+import { usePathorsLiveCallsStore } from 'dashboard/stores/pathorsLiveCalls';
 
 import Banner from 'dashboard/components/ui/Banner.vue';
 
@@ -64,8 +65,20 @@ const isAgentBotOwned = computed(
   () => currentChat.value?.meta?.assignee_type === 'AgentBot'
 );
 
+// While a Pathors call is still on the line, the voice_call bubble's
+// "Take over call" is the takeover; this banner's action only reopens the
+// conversation, so showing both invites the wrong click.
+const pathorsLiveCalls = usePathorsLiveCallsStore();
+const hasLivePathorsCall = computed(() =>
+  pathorsLiveCalls.hasLiveCallInConversation(currentChat.value?.id)
+);
+
 const showBotHandoffBanner = computed(() => {
-  return isPendingConversation.value && isAgentBotOwned.value;
+  return (
+    isPendingConversation.value &&
+    isAgentBotOwned.value &&
+    !hasLivePathorsCall.value
+  );
 });
 
 const botAssigneeName = computed(() => {

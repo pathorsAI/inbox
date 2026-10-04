@@ -71,6 +71,18 @@ describe('pathorsLiveCalls store', () => {
     expect(store.hasLoaded).toBe(true);
   });
 
+  it('tells whether a conversation has a call still on the line', () => {
+    const store = usePathorsLiveCallsStore();
+    store.syncFromMessage(buildMessage());
+
+    expect(store.hasLiveCallInConversation(12)).toBe(true);
+    expect(store.hasLiveCallInConversation(13)).toBe(false);
+    expect(store.hasLiveCallInConversation(undefined)).toBe(false);
+
+    store.syncFromMessage(buildMessage({ call: { status: 'completed' } }));
+    expect(store.hasLiveCallInConversation(12)).toBe(false);
+  });
+
   it('loads once however many bubbles ask, and not again once loaded', async () => {
     PathorsCallsAPI.active.mockResolvedValue({ payload: [] });
     const store = usePathorsLiveCallsStore();

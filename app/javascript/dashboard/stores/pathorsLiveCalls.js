@@ -38,6 +38,14 @@ export const usePathorsLiveCallsStore = defineStore('pathorsLiveCalls', {
     hasLoaded: false,
   }),
 
+  getters: {
+    hasLiveCallInConversation: state => conversationDisplayId =>
+      !!conversationDisplayId &&
+      state.records.some(
+        record => record.conversationId === conversationDisplayId
+      ),
+  },
+
   actions: {
     async fetchActive() {
       const { payload } = await PathorsCallsAPI.active();
