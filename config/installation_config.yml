@@ -413,6 +413,42 @@
   description: 'Linear client secret'
   type: secret
 ## ------ End of Configs added for Linear ------ ##
+## ------ Configs added for the GitHub App ------ ##
+- name: GITHUB_APP_ID
+  display_title: 'GitHub App ID'
+  value:
+  locked: false
+  description: 'Numeric App ID from the GitHub App settings page'
+- name: GITHUB_APP_SLUG
+  display_title: 'GitHub App Slug'
+  value:
+  locked: false
+  description: 'URL name of the GitHub App, as in github.com/apps/<slug>'
+- name: GITHUB_APP_CLIENT_ID
+  display_title: 'GitHub App Client ID'
+  value:
+  locked: false
+  description: 'Client ID of the GitHub App'
+- name: GITHUB_APP_CLIENT_SECRET
+  display_title: 'GitHub App Client Secret'
+  value:
+  locked: false
+  description: 'Client secret of the GitHub App'
+  type: secret
+# `code` rather than `secret`: the PEM is multi-line and a password input drops its newlines.
+- name: GITHUB_APP_PRIVATE_KEY
+  display_title: 'GitHub App Private Key'
+  value:
+  locked: false
+  description: 'Private key (PEM) generated on the GitHub App settings page'
+  type: code
+- name: GITHUB_APP_WEBHOOK_SECRET
+  display_title: 'GitHub App Webhook Secret'
+  value:
+  locked: false
+  description: 'Webhook secret set on the GitHub App; verifies the installation events GitHub sends'
+  type: secret
+## ------ End of Configs added for the GitHub App ------ ##
 
 ## ------ Configs added for Notion ------ ##
 - name: NOTION_CLIENT_ID

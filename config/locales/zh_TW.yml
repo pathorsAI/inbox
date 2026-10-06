@@ -468,7 +468,7 @@ zh_TW:
     github:
       name: 'GitHub'
       short_description: '建立工單時自動開一則 GitHub issue。'
-      description: '自動把案件交接給工程團隊。每當有人建立工單，此整合就會在您設定的 GitHub 儲存庫開一則 issue，並帶上聯絡人、工單資訊與回到對話的連結。'
+      description: '自動把案件交接給工程團隊。連接 Pathors Inbox GitHub App 並選好儲存庫後，每當有人建立工單，App 就會在該儲存庫開一則 issue，並帶上聯絡人、工單資訊與回到對話的連結。'
       issue_created_note: '已為這張工單建立 GitHub issue：%{url}'
       errors:
         repository_not_granted: 'GitHub App 沒有安裝在這個儲存庫上。'

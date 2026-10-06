@@ -124,6 +124,12 @@ linear:
   enabled: true
   icon: 'icon-linear'
   config_key: 'linear'
+github:
+  name: 'GitHub'
+  description: 'Configuration for the GitHub App that opens issues from tickets'
+  enabled: true
+  icon: 'icon-github'
+  config_key: 'github'
 notion:
   name: 'Notion'
   description: 'Configuration for setting up Notion Integration'
