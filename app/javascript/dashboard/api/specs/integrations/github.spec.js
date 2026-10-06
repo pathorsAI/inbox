@@ -5,6 +5,7 @@ describe('#githubAPI', () => {
   const originalAxios = window.axios;
   const axiosMock = {
     get: vi.fn(() => Promise.resolve()),
+    post: vi.fn(() => Promise.resolve()),
     patch: vi.fn(() => Promise.resolve()),
   };
 
@@ -19,6 +20,19 @@ describe('#githubAPI', () => {
 
   it('creates correct instance', () => {
     expect(GithubAPIClient).toBeInstanceOf(ApiClient);
+  });
+
+  it('completes an installation', () => {
+    GithubAPIClient.connect({
+      code: 'oauth-code',
+      installationId: '81234567',
+      state: 'signed-state',
+    });
+    expect(axiosMock.post).toHaveBeenCalledWith('/api/v1/integrations/github', {
+      code: 'oauth-code',
+      installation_id: '81234567',
+      state: 'signed-state',
+    });
   });
 
   it('fetches the repositories of the installation', () => {

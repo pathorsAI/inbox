@@ -149,6 +149,7 @@
       "CHANGE": "變更",
       "UPDATE_SUCCESS": "已儲存 GitHub 設定",
       "UPDATE_ERROR": "無法儲存 GitHub 設定，請再試一次。",
+      "CONNECTED_SUCCESS": "已連接 GitHub",
       "CONNECTED": {
         "TITLE": "Issue 建立位置",
         "DESCRIPTION": "從對話建立的 Issue 會開在這個儲存庫。",

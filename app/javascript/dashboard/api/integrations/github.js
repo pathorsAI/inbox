@@ -7,6 +7,14 @@ class GithubAPI extends ApiClient {
     super('integrations/github', { accountScoped: true });
   }
 
+  connect({ code, installationId, state }) {
+    return axios.post(this.url, {
+      code,
+      installation_id: installationId,
+      state,
+    });
+  }
+
   getRepositories() {
     return axios.get(`${this.url}/repositories`);
   }

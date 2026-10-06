@@ -3,6 +3,8 @@ import { ref, computed, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useFunctionGetter, useStore } from 'dashboard/composables/store';
+import { useAlert } from 'dashboard/composables';
+import githubAPI from 'dashboard/api/integrations/github';
 
 import Integration from './Integration.vue';
 import RepositoryForm from './Github/RepositoryForm.vue';
@@ -13,7 +15,9 @@ import Button from 'dashboard/components-next/button/Button.vue';
 
 const props = defineProps({
   setupAction: { type: String, default: '' },
-  error: { type: String, default: '' },
+  code: { type: String, default: '' },
+  installationId: { type: String, default: '' },
+  state: { type: String, default: '' },
 });
 
 const STATUS = {
@@ -35,7 +39,7 @@ const SETUP_ACTION_NOTICES = {
   },
 };
 
-const ERROR_NOTICES = {
+const CONNECT_ERROR_NOTICES = {
   installation_not_verified: {
     color: 'ruby',
     message: t('INTEGRATION_SETTINGS.GITHUB.ERRORS.INSTALLATION_NOT_VERIFIED'),
@@ -71,22 +75,31 @@ const isConnected = computed(() => status.value !== STATUS.NOT_CONNECTED);
 
 const repositoryUrl = computed(() => `https://github.com/${repository.value}`);
 
-const initializeGithubIntegration = async () => {
-  await store.dispatch('integrations/get', 'github');
-  integrationLoaded.value = true;
+const completeInstall = async ({ code, installationId, state }) => {
+  try {
+    await githubAPI.connect({ code, installationId, state });
+    useAlert(t('INTEGRATION_SETTINGS.GITHUB.CONNECTED_SUCCESS'));
+  } catch (error) {
+    notice.value =
+      CONNECT_ERROR_NOTICES[error?.response?.data?.reason] ??
+      CONNECT_ERROR_NOTICES.connection_failed;
+  }
 };
 
-onMounted(() => {
-  // The install redirect's query is cleared below so a reload does not repeat
-  // it, which also clears these props; keep the notice it asked for.
-  notice.value =
-    ERROR_NOTICES[props.error] ??
-    SETUP_ACTION_NOTICES[props.setupAction] ??
-    null;
-  if (props.error || props.setupAction) {
+onMounted(async () => {
+  // Clearing the install redirect's query also clears these props, so read
+  // them first.
+  const { setupAction, code, installationId, state } = props;
+  notice.value = SETUP_ACTION_NOTICES[setupAction] ?? null;
+  if (code && installationId && state) {
+    await completeInstall({ code, installationId, state });
+  }
+  // The code is single-use; a reload must not submit it again.
+  if (setupAction || code || installationId || state) {
     router.replace(route.path);
   }
-  initializeGithubIntegration();
+  await store.dispatch('integrations/get', 'github');
+  integrationLoaded.value = true;
 });
 </script>
 

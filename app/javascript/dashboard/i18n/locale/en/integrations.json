@@ -149,6 +149,7 @@
       "CHANGE": "Change",
       "UPDATE_SUCCESS": "GitHub settings saved",
       "UPDATE_ERROR": "Couldn't save the GitHub settings. Try again.",
+      "CONNECTED_SUCCESS": "GitHub connected",
       "CONNECTED": {
         "TITLE": "Where issues are opened",
         "DESCRIPTION": "Issues opened from conversations are created in this repository.",

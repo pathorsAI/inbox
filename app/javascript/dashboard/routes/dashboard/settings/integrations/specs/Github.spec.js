@@ -6,14 +6,17 @@ import Github from '../Github.vue';
 import Integration from '../Integration.vue';
 import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 
-const { getRepositories, updateSettings, routerReplace } = vi.hoisted(() => ({
-  getRepositories: vi.fn(),
-  updateSettings: vi.fn(),
-  routerReplace: vi.fn(),
-}));
+const { connect, getRepositories, updateSettings, routerReplace } = vi.hoisted(
+  () => ({
+    connect: vi.fn(),
+    getRepositories: vi.fn(),
+    updateSettings: vi.fn(),
+    routerReplace: vi.fn(),
+  })
+);
 
 vi.mock('dashboard/api/integrations/github', () => ({
-  default: { getRepositories, updateSettings },
+  default: { connect, getRepositories, updateSettings },
 }));
 
 vi.mock('dashboard/composables', () => ({ useAlert: vi.fn() }));
@@ -271,34 +274,106 @@ describe('Github settings page', () => {
     expect(wrapper.text()).toContain('Where issues are opened');
   });
 
+  const INSTALL_QUERY = {
+    code: 'oauth-code',
+    installationId: '81234567',
+    state: 'signed-state',
+  };
+
+  it('completes the install from the redirect query before loading', async () => {
+    let finishConnect;
+    connect.mockReturnValue(
+      new Promise(resolve => {
+        finishConnect = resolve;
+      })
+    );
+    const { store, get, refreshedHooks } = buildStore([]);
+    refreshedHooks.value = [installedHook()];
+    const wrapper = mount(Github, {
+      props: INSTALL_QUERY,
+      global: {
+        plugins: [store],
+        stubs: {
+          Integration: true,
+          BaseSettingsHeader: true,
+          WootLoadingState: true,
+        },
+      },
+    });
+    await flushPromises();
+
+    expect(connect).toHaveBeenCalledWith(INSTALL_QUERY);
+    expect(wrapper.findComponent(Integration).exists()).toBe(false);
+    expect(routerReplace).not.toHaveBeenCalled();
+    expect(get).not.toHaveBeenCalled();
+
+    finishConnect({ data: installedHook() });
+    await flushPromises();
+
+    expect(useAlert).toHaveBeenCalledWith('GitHub connected');
+    expect(routerReplace).toHaveBeenCalledWith(
+      '/app/accounts/1/settings/integrations/github'
+    );
+    expect(get).toHaveBeenCalledTimes(1);
+    expect(routerReplace.mock.invocationCallOrder[0]).toBeLessThan(
+      get.mock.invocationCallOrder[0]
+    );
+    expect(wrapper.findComponent(ComboBox).exists()).toBe(true);
+  });
+
   it.each([
     [
-      { error: 'installation_not_verified' },
+      'installation_not_verified',
       "The GitHub account you signed in with can't see that installation",
     ],
-    [
-      { error: 'connection_failed' },
-      'Something went wrong while connecting GitHub.',
-    ],
-    [
-      { setupAction: 'request' },
-      'Waiting for your GitHub organization owner to approve the installation.',
-    ],
+    ['connection_failed', 'Something went wrong while connecting GitHub.'],
+    ['something_new', 'Something went wrong while connecting GitHub.'],
   ])(
-    'shows the install redirect notice for %o and clears the query',
-    async (props, message) => {
-      const { wrapper } = await mountPage({ props });
+    'shows the notice for a refused install with reason %s',
+    async (reason, message) => {
+      connect.mockRejectedValue({
+        response: {
+          status: 422,
+          data: { error: 'Installation could not be bound', reason },
+        },
+      });
+      const { wrapper, get } = await mountPage({ props: INSTALL_QUERY });
 
       expect(wrapper.text()).toContain(message);
+      expect(useAlert).not.toHaveBeenCalled();
       expect(routerReplace).toHaveBeenCalledWith(
         '/app/accounts/1/settings/integrations/github'
       );
+      expect(get).toHaveBeenCalledTimes(1);
+      expect(integrationCard(wrapper).props('integrationEnabled')).toBe(false);
     }
   );
+
+  it('clears an incomplete install query without connecting', async () => {
+    await mountPage({ props: { code: 'oauth-code' } });
+
+    expect(connect).not.toHaveBeenCalled();
+    expect(routerReplace).toHaveBeenCalledWith(
+      '/app/accounts/1/settings/integrations/github'
+    );
+  });
+
+  it('shows the pending approval notice and clears the query', async () => {
+    const { wrapper } = await mountPage({ props: { setupAction: 'request' } });
+
+    expect(wrapper.text()).toContain(
+      'Waiting for your GitHub organization owner to approve the installation.'
+    );
+    expect(connect).not.toHaveBeenCalled();
+    expect(routerReplace).toHaveBeenCalledWith(
+      '/app/accounts/1/settings/integrations/github'
+    );
+  });
 
   it('leaves the URL alone without an install redirect query', async () => {
     await mountPage();
 
+    expect(connect).not.toHaveBeenCalled();
     expect(routerReplace).not.toHaveBeenCalled();
   });
 
