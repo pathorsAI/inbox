@@ -38,12 +38,12 @@ RSpec.describe Github::CallbacksController, type: :request do
       expect(response).to redirect_to('http://www.example.com')
     end
 
-    it 'rejects an expired state' do
+    it 'sends an expired state back to its account to connect again, without the install' do
       expired = JWT.encode({ sub: account.id, exp: 1.minute.ago.to_i }, client_secret, 'HS256')
 
       get github_callback_path, params: { code: 'oauth-code', installation_id: '4242', state: expired }
 
-      expect(response).to redirect_to('http://www.example.com')
+      expect(response).to redirect_to("#{settings_url}?error=state_expired")
     end
 
     it 'rejects a state without an expiry' do

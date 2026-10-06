@@ -165,7 +165,8 @@
       "AWAITING_APPROVAL": "Waiting for your GitHub organization owner to approve the installation. You'll be able to pick a repository once they approve.",
       "ERRORS": {
         "INSTALLATION_NOT_VERIFIED": "The GitHub account you signed in with can't see that installation, so it wasn't connected. Install the app with an account that has access to it, or ask an organization owner to connect it.",
-        "CONNECTION_FAILED": "Something went wrong while connecting GitHub. Try connecting again."
+        "CONNECTION_FAILED": "Something went wrong while connecting GitHub. Try connecting again.",
+        "STATE_EXPIRED": "The connect link expired before GitHub sent you back. The app may already be installed on GitHub; press Connect again to finish."
       }
     },
     "SHOPIFY": {

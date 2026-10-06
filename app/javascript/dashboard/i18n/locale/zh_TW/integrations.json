@@ -165,7 +165,8 @@
       "AWAITING_APPROVAL": "正在等待你的 GitHub 組織擁有者核准安裝。核准後，你就能在這裡選擇儲存庫。",
       "ERRORS": {
         "INSTALLATION_NOT_VERIFIED": "你登入的 GitHub 帳號看不到這個安裝，因此沒有完成連接。請改用有權限存取它的帳號安裝，或請組織擁有者來連接。",
-        "CONNECTION_FAILED": "連接 GitHub 時發生問題，請再試一次。"
+        "CONNECTION_FAILED": "連接 GitHub 時發生問題，請再試一次。",
+        "STATE_EXPIRED": "連接的連結在回到這裡之前就過期了。App 可能已經裝在 GitHub 上，再按一次「連接」就能完成。"
       }
     },
     "SHOPIFY": {

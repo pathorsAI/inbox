@@ -40,8 +40,12 @@ class Api::V1::Accounts::Integrations::GithubController < Api::V1::Accounts::Int
 
   private
 
+  # A leftover personal-token hook has no installation to list or configure;
+  # it can only be deleted or replaced by installing the app.
   def fetch_hook
-    @hook = Current.account.hooks.find_by!(app_id: 'github')
+    hooks = Current.account.hooks.where(app_id: 'github')
+    hooks = hooks.where.not(reference_id: nil) unless action_name == 'destroy'
+    @hook = hooks.first!
   end
 
   def installation_id

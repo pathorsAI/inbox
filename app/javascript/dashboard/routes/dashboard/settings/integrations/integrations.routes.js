@@ -110,6 +110,7 @@ export default {
           },
           props: route => ({
             setupAction: route.query.setup_action,
+            error: route.query.error,
             code: route.query.code,
             installationId: route.query.installation_id,
             state: route.query.state,

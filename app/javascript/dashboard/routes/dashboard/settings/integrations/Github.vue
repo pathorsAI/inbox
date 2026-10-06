@@ -15,6 +15,7 @@ import Button from 'dashboard/components-next/button/Button.vue';
 
 const props = defineProps({
   setupAction: { type: String, default: '' },
+  error: { type: String, default: '' },
   code: { type: String, default: '' },
   installationId: { type: String, default: '' },
   state: { type: String, default: '' },
@@ -47,6 +48,10 @@ const CONNECT_ERROR_NOTICES = {
   connection_failed: {
     color: 'ruby',
     message: t('INTEGRATION_SETTINGS.GITHUB.ERRORS.CONNECTION_FAILED'),
+  },
+  state_expired: {
+    color: 'amber',
+    message: t('INTEGRATION_SETTINGS.GITHUB.ERRORS.STATE_EXPIRED'),
   },
 };
 
@@ -89,13 +94,14 @@ const completeInstall = async ({ code, installationId, state }) => {
 onMounted(async () => {
   // Clearing the install redirect's query also clears these props, so read
   // them first.
-  const { setupAction, code, installationId, state } = props;
-  notice.value = SETUP_ACTION_NOTICES[setupAction] ?? null;
+  const { setupAction, error, code, installationId, state } = props;
+  notice.value =
+    SETUP_ACTION_NOTICES[setupAction] ?? CONNECT_ERROR_NOTICES[error] ?? null;
   if (code && installationId && state) {
     await completeInstall({ code, installationId, state });
   }
   // The code is single-use; a reload must not submit it again.
-  if (setupAction || code || installationId || state) {
+  if (setupAction || error || code || installationId || state) {
     router.replace(route.path);
   }
   await store.dispatch('integrations/get', 'github');

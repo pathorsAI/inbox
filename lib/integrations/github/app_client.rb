@@ -25,7 +25,7 @@ class Integrations::Github::AppClient
     ensure_success!(response)
 
     expires_in = Time.zone.parse(response['expires_at']) - TOKEN_REFRESH_MARGIN - Time.current
-    Rails.cache.write(cache_key, response['token'], expires_in: expires_in)
+    Rails.cache.write(cache_key, response['token'], expires_in: expires_in) if expires_in.positive?
     response['token']
   end
 

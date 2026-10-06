@@ -74,7 +74,7 @@ RSpec.describe Integrations::App do
 
         expect("#{uri.scheme}://#{uri.host}#{uri.path}").to eq('https://github.com/apps/pathors-inbox/installations/new')
         expect(payload['sub']).to eq(account.id)
-        expect(payload['exp'] - payload['iat']).to eq(15.minutes.to_i)
+        expect(payload['exp'] - payload['iat']).to eq(1.hour.to_i)
       end
     end
 

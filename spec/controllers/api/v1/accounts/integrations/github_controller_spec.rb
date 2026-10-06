@@ -127,6 +127,16 @@ RSpec.describe 'GitHub Integration API', type: :request do
       expect(response).to have_http_status(:unprocessable_entity)
       expect(hook.reauthorization_required?).to be(true)
     end
+
+    it 'treats a leftover personal-token hook as not connected' do
+      hook.update!(reference_id: nil)
+
+      get "#{base_url}/repositories", headers: admin.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:not_found)
+      expect(hook.reauthorization_required?).to be(false)
+      expect(WebMock).not_to have_requested(:any, /github\.com/)
+    end
   end
 
   describe 'PATCH /api/v1/accounts/:account_id/integrations/github' do
@@ -160,6 +170,15 @@ RSpec.describe 'GitHub Integration API', type: :request do
       expect(response).to have_http_status(:ok)
       expect(account.hooks.where(app_id: 'github')).to be_empty
       expect(WebMock).not_to have_requested(:any, /github\.com/)
+    end
+
+    it 'removes a leftover personal-token hook' do
+      hook.update!(reference_id: nil)
+
+      delete base_url, headers: admin.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:ok)
+      expect(account.hooks.where(app_id: 'github')).to be_empty
     end
   end
 end
