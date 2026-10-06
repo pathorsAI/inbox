@@ -60,6 +60,24 @@ RSpec.describe Integrations::App do
       end
     end
 
+    context 'when the app is github' do
+      let(:app_name) { 'github' }
+
+      it 'points at the app install page with a state that names the account and expires' do
+        allow(GlobalConfigService).to receive(:load).and_call_original
+        allow(GlobalConfigService).to receive(:load).with('GITHUB_APP_SLUG', nil).and_return('pathors-inbox')
+        allow(GlobalConfigService).to receive(:load).with('GITHUB_APP_CLIENT_SECRET', nil).and_return('github-client-secret')
+
+        uri = URI.parse(app.action)
+        state = CGI.parse(uri.query)['state'].first
+        payload = JWT.decode(state, 'github-client-secret', true, algorithm: 'HS256').first
+
+        expect("#{uri.scheme}://#{uri.host}#{uri.path}").to eq('https://github.com/apps/pathors-inbox/installations/new')
+        expect(payload['sub']).to eq(account.id)
+        expect(payload['exp'] - payload['iat']).to eq(15.minutes.to_i)
+      end
+    end
+
     context 'when the app is pathors' do
       let(:app_name) { 'pathors' }
       let(:connect_secret) { 'test_connect_secret' }
@@ -193,6 +211,41 @@ RSpec.describe Integrations::App do
         account.save!
         allow(GlobalConfigService).to receive(:load).with('LINEAR_CLIENT_ID', nil).and_return('client_id')
         expect(app.active?(account)).to be true
+      end
+    end
+
+    context 'when the app is github' do
+      let(:app_name) { 'github' }
+      let(:github_config) do
+        {
+          'GITHUB_APP_ID' => '123456',
+          'GITHUB_APP_SLUG' => 'pathors-inbox',
+          'GITHUB_APP_CLIENT_ID' => 'Iv1.client',
+          'GITHUB_APP_CLIENT_SECRET' => 'secret',
+          'GITHUB_APP_PRIVATE_KEY' => 'pem',
+          'GITHUB_APP_WEBHOOK_SECRET' => 'hook-secret'
+        }
+      end
+
+      before do
+        allow(GlobalConfigService).to receive(:load).and_call_original
+        github_config.each { |key, value| allow(GlobalConfigService).to receive(:load).with(key, nil).and_return(value) }
+      end
+
+      it 'returns true when every GitHub App credential is configured' do
+        expect(app.active?(account)).to be true
+      end
+
+      it 'returns false when the private key is missing' do
+        allow(GlobalConfigService).to receive(:load).with('GITHUB_APP_PRIVATE_KEY', nil).and_return(nil)
+
+        expect(app.active?(account)).to be false
+      end
+
+      it 'returns false when the webhook secret is missing, since uninstalls would go unnoticed' do
+        allow(GlobalConfigService).to receive(:load).with('GITHUB_APP_WEBHOOK_SECRET', nil).and_return(nil)
+
+        expect(app.active?(account)).to be false
       end
     end
 

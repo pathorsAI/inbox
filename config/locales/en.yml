@@ -504,6 +504,11 @@ en:
       short_description: 'Open a GitHub issue whenever a ticket is created.'
       description: 'Hand cases over to engineering automatically. Whenever a ticket is created, this integration opens an issue in the GitHub repository you configure, carrying the contact, the ticket details and a link back to the conversation.'
       issue_created_note: 'GitHub issue created for this ticket: %{url}'
+      errors:
+        repository_not_granted: 'The GitHub App is not installed on that repository.'
+        access_lost: 'GitHub no longer accepts this installation. Reconnect GitHub to continue.'
+        installation_not_verified: 'Your GitHub account cannot see that installation, so it was not connected.'
+        connection_failed: 'Connecting GitHub failed. Try again.'
       issue:
         contact: 'Contact'
         ticket_type: 'Ticket type'

@@ -453,6 +453,11 @@ Rails.application.routes.draw do
                 get :linked_issues
               end
             end
+            resource :github, controller: 'github', only: [:create, :update, :destroy] do
+              collection do
+                get :repositories
+              end
+            end
             resource :notion, controller: 'notion', only: [] do
               collection do
                 delete :destroy
@@ -736,6 +741,10 @@ Rails.application.routes.draw do
   end
 
   namespace :linear do
+    resource :callback, only: [:show]
+  end
+
+  namespace :github do
     resource :callback, only: [:show]
   end
 

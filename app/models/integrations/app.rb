@@ -1,5 +1,6 @@
 class Integrations::App
   include Linear::IntegrationHelper
+  include Github::IntegrationHelper
   include Pathors::IntegrationHelper
 
   # Pathors: never offered in the catalog. Each of these asks the customer to
@@ -14,6 +15,10 @@ class Integrations::App
   # `{PATHORS_BACKEND}/project/{project_id}/integration/chatwoot/callback`.
   # The presence of such a bot is what "connected to Pathors" means.
   PATHORS_CALLBACK_URL_FRAGMENT = '/integration/chatwoot/callback'.freeze
+
+  GITHUB_APP_CONFIG_KEYS = %w[
+    GITHUB_APP_ID GITHUB_APP_SLUG GITHUB_APP_CLIENT_ID GITHUB_APP_CLIENT_SECRET GITHUB_APP_PRIVATE_KEY GITHUB_APP_WEBHOOK_SECRET
+  ].freeze
 
   attr_accessor :params
 
@@ -62,6 +67,8 @@ class Integrations::App
       "#{params[:action]}&client_id=#{client_id}&redirect_uri=#{self.class.slack_integration_url}"
     when 'linear'
       build_linear_action
+    when 'github'
+      build_github_action
     when 'pathors'
       build_pathors_action
     when 'shopify'
@@ -81,12 +88,14 @@ class Integrations::App
 
   # Whether the instance/account has what this app needs to be usable at all —
   # an OAuth client on the instance, a feature flag on the account, or both.
-  def credentials_available?(account)
+  def credentials_available?(account) # rubocop:disable Metrics/CyclomaticComplexity
     case params[:id]
     when 'slack'
       GlobalConfigService.load('SLACK_CLIENT_SECRET', nil).present?
     when 'linear'
       account.feature_enabled?('linear_integration') && GlobalConfigService.load('LINEAR_CLIENT_ID', nil).present?
+    when 'github'
+      GITHUB_APP_CONFIG_KEYS.all? { |key| GlobalConfigService.load(key, nil).present? }
     when 'shopify'
       shopify_enabled?(account)
     when 'leadsquared'
@@ -111,6 +120,11 @@ class Integrations::App
       'prompt=consent',
       'actor=app'
     ].join('&')
+  end
+
+  def build_github_action
+    slug = GlobalConfigService.load('GITHUB_APP_SLUG', nil)
+    "https://github.com/apps/#{slug}/installations/new?state=#{generate_github_state(Current.account.id)}"
   end
 
   def enabled?(account)

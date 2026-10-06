@@ -15,6 +15,11 @@ class HookPolicy < ApplicationPolicy
     @account_user.administrator?
   end
 
+  # GitHub App repository picker (Integrations::GithubController)
+  def repositories?
+    @account_user.administrator?
+  end
+
   # CRM sync log and backfill (Integrations::CrmSyncController)
   def sync_events?
     @account_user.administrator?
