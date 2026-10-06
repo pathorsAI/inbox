@@ -1,13 +1,19 @@
 class Webhooks::GithubController < ActionController::API
   before_action :verify_signature!
 
+  EVENT_HANDLERS = {
+    'installation' => :handle_installation,
+    'installation_repositories' => :handle_repositories_removed
+  }.freeze
+  INSTALLATION_ACTIONS = {
+    'deleted' => :prompt_reauthorization!,
+    'suspend' => :prompt_reauthorization!,
+    'unsuspend' => :reauthorized!
+  }.freeze
+
   def events
-    case request.headers['X-GitHub-Event']
-    when 'installation'
-      handle_installation
-    when 'installation_repositories'
-      handle_repositories_removed
-    end
+    handler = EVENT_HANDLERS[request.headers['X-GitHub-Event']]
+    send(handler) if handler
 
     head :ok
   end
@@ -24,12 +30,8 @@ class Webhooks::GithubController < ActionController::API
   end
 
   def handle_installation
-    case payload['action']
-    when 'deleted', 'suspend'
-      installation_hooks.find_each(&:prompt_reauthorization!)
-    when 'unsuspend'
-      installation_hooks.find_each(&:reauthorized!)
-    end
+    hook_action = INSTALLATION_ACTIONS[payload['action']]
+    installation_hooks.find_each(&hook_action) if hook_action
   end
 
   def handle_repositories_removed
