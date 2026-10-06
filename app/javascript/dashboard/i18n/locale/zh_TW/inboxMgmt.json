@@ -4,7 +4,7 @@
     "DESCRIPTION": "頻道是客戶與您互動時選擇的溝通方式。收件匣是您管理特定頻道互動的地方，可以包含來自電子郵件、即時聊天和社群媒體等各種來源的通訊。",
     "LEARN_MORE": "進一步了解收件匣",
     "COUNT": "{n} 個收件匣",
-    "SEARCH_PLACEHOLDER": "搜尋收件匣...",
+    "SEARCH_PLACEHOLDER": "搜尋收件匣名稱、頻道或識別碼...",
     "NO_RESULTS": "找不到符合搜尋條件的收件匣",
     "RECONNECTION_REQUIRED": "您的收件匣已斷開連線。在您重新授權之前，將無法接收新訊息。",
     "CLICK_TO_RECONNECT": "點此重新連線。",
@@ -1001,7 +1001,7 @@
         },
         "DISPLAY_NAME_STATUS": {
           "LABEL": "顯示名稱狀態",
-          "TOOLTIP": "Review status of the WhatsApp display name",
+          "TOOLTIP": "Whether Meta has reviewed and approved the WhatsApp display name",
           "DESCRIPTIONS": {
             "APPROVED": "顯示名稱已核准，可顯示在 WhatsApp 聊天室頂端。若收件人已儲存聯絡人名稱，則會顯示該名稱。",
             "AVAILABLE_WITHOUT_REVIEW": "顯示名稱已儲存到您的 WhatsApp 檔案，但在 Meta 審核並核准之前，收件人可能只會看到電話號碼。您的商家達到較高的訊息傳送上限後，Meta 才會開始審核。",
@@ -1025,8 +1025,8 @@
           "TOOLTIP": "Meta 依近期訊息傳送訊號給此電話號碼的品質評等"
         },
         "MESSAGING_LIMIT_TIER": {
-          "LABEL": "訊息限制等級",
-          "TOOLTIP": "Number of customers this phone number can initiate conversations with in 24 hours",
+          "LABEL": "商家訊息傳送上限",
+          "TOOLTIP": "Number of unique customers your business can message outside the customer service window in a rolling 24-hour period",
           "DESCRIPTION": "此上限由商家資產組合中所有 WhatsApp 電話號碼共用。"
         },
         "ACCOUNT_MODE": {
@@ -1083,9 +1083,9 @@
           "DISCONNECTED": "Disconnected",
           "UNKNOWN": "不可用",
           "PENDING_REVIEW": "審核中",
-          "AVAILABLE_WITHOUT_REVIEW": "無需審核即可使用",
-          "REJECTED": "已拒絕",
-          "DECLINED": "已駁回",
+          "AVAILABLE_WITHOUT_REVIEW": "尚未審核",
+          "REJECTED": "未核准",
+          "DECLINED": "未核准",
           "NON_EXISTS": "不存在"
         },
         "MODES": {

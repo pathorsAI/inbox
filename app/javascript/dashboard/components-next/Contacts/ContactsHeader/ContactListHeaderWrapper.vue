@@ -261,6 +261,7 @@ const initializeSegmentToFilterModal = segment => {
 
     return {
       attributeKey: transformed.attributeKey,
+      timezone: transformed.timezone,
       attributeModel: transformed.attributeModel,
       customAttributeType: transformed.customAttributeType,
       filterOperator: transformed.filterOperator,

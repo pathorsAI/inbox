@@ -17,6 +17,7 @@ Metrics/ClassLength:
   Max: 175
   Exclude:
     - 'app/listeners/action_cable_listener.rb'
+    - 'app/builders/messages/message_builder.rb'
     - 'app/models/message.rb'
     - 'app/models/conversation.rb'
     - 'app/models/contact.rb'

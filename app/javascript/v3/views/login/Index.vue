@@ -10,6 +10,7 @@ import SessionStorage from 'shared/helpers/sessionStorage';
 import { useBranding } from 'shared/composables/useBranding';
 import AnalyticsHelper from 'dashboard/helper/AnalyticsHelper';
 import { SESSION_EVENTS } from 'dashboard/helper/AnalyticsHelper/events';
+import { getLoginRedirectURL, getSignupRoute } from 'v3/helpers/AuthHelper';
 
 // components
 import SimpleDivider from '../../components/Divider/SimpleDivider.vue';
@@ -19,11 +20,13 @@ import Spinner from 'shared/components/Spinner.vue';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
 import NextButton from 'dashboard/components-next/button/Button.vue';
 import MfaVerification from 'dashboard/components/auth/MfaVerification.vue';
+import MfaEnforcedSetup from 'dashboard/components/auth/MfaEnforcedSetup.vue';
 import SessionLimitOverlay from 'dashboard/components/auth/SessionLimitOverlay.vue';
 
 const ERROR_MESSAGES = {
   'no-account-found': 'LOGIN.OAUTH.NO_ACCOUNT_FOUND',
   'business-account-only': 'LOGIN.OAUTH.BUSINESS_ACCOUNTS_ONLY',
+  'shopify-installation-failed': 'LOGIN.OAUTH.SHOPIFY_INSTALLATION_FAILED',
   'saml-authentication-failed': 'LOGIN.SAML.API.ERROR_MESSAGE',
   'saml-not-enabled': 'LOGIN.SAML.API.ERROR_MESSAGE',
 };
@@ -40,6 +43,7 @@ export default {
     NextButton,
     SimpleDivider,
     MfaVerification,
+    MfaEnforcedSetup,
     SessionLimitOverlay,
     Icon,
   },
@@ -50,6 +54,7 @@ export default {
     ssoRoutePath: { type: String, default: '' },
     email: { type: String, default: '' },
     authError: { type: String, default: '' },
+    redirectUrl: { type: String, default: '' },
   },
   setup() {
     const { replaceInstallationName } = useBranding();
@@ -74,6 +79,11 @@ export default {
       error: '',
       mfaRequired: false,
       mfaToken: null,
+      mfaSetupRequired: false,
+      mfaSetupToken: null,
+      mfaProvisioningUrl: null,
+      mfaSecret: null,
+      verificationChannel: null,
       sessionsLimitReached: false,
       limitedSessions: [],
     };
@@ -103,10 +113,44 @@ export default {
       );
     },
     showSignupLink() {
-      return window.chatwootConfig.signupEnabled === 'true';
+      return (
+        window.chatwootConfig.signupEnabled === 'true' ||
+        Boolean(this.signupRoute.query?.shopify_pending_install)
+      );
+    },
+    signupRoute() {
+      return getSignupRoute(this.redirectUrl);
+    },
+    resetPasswordRoute() {
+      const route = { name: 'auth_reset_password' };
+      return this.redirectUrl
+        ? {
+            ...route,
+            query: {
+              redirect_url: this.redirectUrl,
+              ...(this.ssoAccountId
+                ? { sso_account_id: this.ssoAccountId }
+                : {}),
+            },
+          }
+        : route;
     },
     showSamlLogin() {
       return this.allowedLoginMethods.includes('saml');
+    },
+    samlLoginRoute() {
+      const route = { name: 'sso_login' };
+      return this.redirectUrl || this.ssoAccountId
+        ? {
+            ...route,
+            query: {
+              redirect_url: this.redirectUrl,
+              ...(this.ssoAccountId
+                ? { sso_account_id: this.ssoAccountId }
+                : {}),
+            },
+          }
+        : route;
     },
   },
   created() {
@@ -139,6 +183,8 @@ export default {
           return this.$t('LOGIN.OAUTH.NO_ACCOUNT_FOUND');
         case 'LOGIN.OAUTH.BUSINESS_ACCOUNTS_ONLY':
           return this.$t('LOGIN.OAUTH.BUSINESS_ACCOUNTS_ONLY');
+        case 'LOGIN.OAUTH.SHOPIFY_INSTALLATION_FAILED':
+          return this.$t('LOGIN.OAUTH.SHOPIFY_INSTALLATION_FAILED');
         case 'LOGIN.API.UNAUTH':
         default:
           return this.$t('LOGIN.API.UNAUTH');
@@ -184,6 +230,7 @@ export default {
         ssoAccountId: this.ssoAccountId,
         ssoConversationId: this.ssoConversationId,
         ssoRoutePath: this.ssoRoutePath,
+        redirectUrl: this.redirectUrl,
       };
 
       login(credentials)
@@ -193,6 +240,17 @@ export default {
             this.loginApi.showLoading = false;
             this.mfaRequired = true;
             this.mfaToken = result.mfaToken;
+            this.verificationChannel = result.verificationChannel || null;
+            return;
+          }
+
+          // Check if the account enforces MFA and setup is pending
+          if (result?.mfaSetupRequired) {
+            this.loginApi.showLoading = false;
+            this.mfaSetupRequired = true;
+            this.mfaSetupToken = result.mfaSetupToken;
+            this.mfaProvisioningUrl = result.provisioningUrl;
+            this.mfaSecret = result.secret;
             return;
           }
 
@@ -213,7 +271,10 @@ export default {
             this.loginApi.showLoading = false;
             this.$router.push({
               name: 'auth_verify_email',
-              state: { email: credentials.email },
+              state: {
+                email: credentials.email,
+                redirectUrl: this.redirectUrl,
+              },
             });
             return;
           }
@@ -236,15 +297,48 @@ export default {
 
       this.submitLogin();
     },
-    handleMfaVerified() {
-      // MFA verification successful, continue with login
+    handleMfaVerified(user) {
+      // Continue with the requested Shopify, account, or conversation destination.
       this.handleImpersonation();
-      window.location = '/app';
+      window.location = getLoginRedirectURL({
+        ssoAccountId: this.ssoAccountId,
+        ssoConversationId: this.ssoConversationId,
+        redirectUrl: this.redirectUrl,
+        user,
+      });
     },
     handleMfaCancel() {
       // User cancelled MFA, reset state
       this.mfaRequired = false;
       this.mfaToken = null;
+      this.verificationChannel = null;
+      this.credentials.password = '';
+    },
+    // Device verification passed but the account still requires enrolment;
+    // swap the challenge screen for the setup wizard.
+    handleMfaSetupRequired(data) {
+      this.mfaRequired = false;
+      this.mfaToken = null;
+      this.verificationChannel = null;
+      this.mfaSetupRequired = true;
+      this.mfaSetupToken = data.mfa_setup_token;
+      this.mfaProvisioningUrl = data.provisioning_url;
+      this.mfaSecret = data.secret;
+    },
+    handleMfaSetupVerified(data) {
+      this.handleImpersonation();
+      window.location = getLoginRedirectURL({
+        ssoAccountId: this.ssoAccountId,
+        ssoConversationId: this.ssoConversationId,
+        redirectUrl: this.redirectUrl,
+        user: data?.data,
+      });
+    },
+    handleMfaSetupCancel() {
+      this.mfaSetupRequired = false;
+      this.mfaSetupToken = null;
+      this.mfaProvisioningUrl = null;
+      this.mfaSecret = null;
       this.credentials.password = '';
     },
     retryLoginWithParams(extraParams) {
@@ -257,6 +351,7 @@ export default {
         ssoAccountId: this.ssoAccountId,
         ssoConversationId: this.ssoConversationId,
         ssoRoutePath: this.ssoRoutePath,
+        redirectUrl: this.redirectUrl,
         ...extraParams,
       };
 
@@ -265,6 +360,13 @@ export default {
       this.loginApi.showLoading = true;
       login(credentials)
         .then(result => {
+          if (result?.mfaRequired) {
+            this.loginApi.showLoading = false;
+            this.mfaRequired = true;
+            this.mfaToken = result.mfaToken;
+            this.verificationChannel = result.verificationChannel || null;
+            return;
+          }
           if (result?.sessionsLimitReached) {
             this.loginApi.showLoading = false;
             this.sessionsLimitReached = true;
@@ -318,7 +420,7 @@ export default {
       </h2>
       <p v-if="showSignupLink" class="mt-3 text-sm text-center text-n-slate-11">
         {{ $t('COMMON.OR') }}
-        <router-link to="auth/signup" class="lowercase text-link text-n-brand">
+        <router-link :to="signupRoute" class="lowercase text-link text-n-brand">
           {{ $t('LOGIN.CREATE_NEW_ACCOUNT') }}
         </router-link>
       </p>
@@ -338,8 +440,21 @@ export default {
     <section v-else-if="mfaRequired" class="mt-11">
       <MfaVerification
         :mfa-token="mfaToken"
+        :verification-channel="verificationChannel"
         @verified="handleMfaVerified"
+        @setup-required="handleMfaSetupRequired"
         @cancel="handleMfaCancel"
+      />
+    </section>
+
+    <!-- Enforced MFA Setup Section -->
+    <section v-else-if="mfaSetupRequired" class="mt-11">
+      <MfaEnforcedSetup
+        :mfa-setup-token="mfaSetupToken"
+        :provisioning-url="mfaProvisioningUrl"
+        :secret="mfaSecret"
+        @verified="handleMfaSetupVerified"
+        @cancel="handleMfaSetupCancel"
       />
     </section>
 
@@ -354,10 +469,14 @@ export default {
     >
       <div v-if="!email">
         <div class="flex flex-col gap-4">
-          <GoogleOAuthButton v-if="showGoogleOAuth" />
+          <GoogleOAuthButton
+            v-if="showGoogleOAuth"
+            :redirect-url="redirectUrl"
+            :sso-account-id="ssoAccountId"
+          />
           <div v-if="showSamlLogin" class="text-center">
             <router-link
-              to="/app/login/sso"
+              :to="samlLoginRoute"
               class="inline-flex justify-center w-full px-4 py-3 items-center bg-n-background dark:bg-n-solid-3 rounded-md shadow-sm ring-1 ring-inset ring-n-container dark:ring-n-container focus:outline-offset-0 hover:bg-n-alpha-2 dark:hover:bg-n-alpha-2"
             >
               <Icon
@@ -402,7 +521,7 @@ export default {
           >
             <p v-if="!globalConfig.disableUserProfileUpdate">
               <router-link
-                to="auth/reset/password"
+                :to="resetPasswordRoute"
                 class="text-sm text-link"
                 tabindex="4"
               >

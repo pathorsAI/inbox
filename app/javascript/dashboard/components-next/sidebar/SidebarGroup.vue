@@ -227,12 +227,8 @@ const isOpen = computed(() => isExpanded.value || hasActiveChild.value);
 
 const areChildrenVisible = computed(() => !hasChildren.value || isOpen.value);
 
-const handleCollapsedClick = () => {
-  if (hasChildren.value && hasAccessibleChildren.value) {
-    const firstItem = accessibleItems.value[0];
-    router.push(firstItem.to);
-  }
-};
+// Groups that only hold children link to their first accessible child
+const linkTo = computed(() => props.to ?? accessibleItems.value[0]?.to);
 
 // The chevron folds the group and nothing else — no navigation, so an agent can
 // peek into a group without leaving the page they are on.
@@ -243,9 +239,7 @@ const toggleTrigger = () => {
 // The name is what navigates: to the group's own page when it has one, else to
 // its first child. Either way the group ends up open.
 const handleActivate = () => {
-  if (!props.to && hasAccessibleChildren.value) {
-    router.push(accessibleItems.value[0].to);
-  }
+  if (linkTo.value) router.push(linkTo.value);
 
   if (hasChildren.value) expandItem(props.name);
 };
@@ -273,14 +267,14 @@ onUnmounted(() => {
     <!-- Collapsed State -->
     <template v-if="isCollapsed">
       <div
+        ref="triggerRef"
         class="relative"
         @mouseenter="handleMouseEnter"
         @mouseleave="handleMouseLeave"
       >
         <component
-          :is="to && !hasChildren ? 'router-link' : 'button'"
-          ref="triggerRef"
-          :to="to && !hasChildren ? to : undefined"
+          :is="linkTo ? 'router-link' : 'button'"
+          :to="linkTo"
           type="button"
           class="flex items-center justify-center size-10 rounded-lg"
           :class="{
@@ -288,7 +282,6 @@ onUnmounted(() => {
             'text-n-slate-11 hover:bg-n-alpha-2': !isActive && !hasActiveChild,
           }"
           :title="label"
-          @click="hasChildren ? handleCollapsedClick() : undefined"
         >
           <Icon v-if="icon" :icon="icon" class="size-4" />
           <SidebarUnreadBadge
@@ -318,7 +311,7 @@ onUnmounted(() => {
         :icon
         :name
         :label
-        :to
+        :to="linkTo"
         :getter-keys="getterKeys"
         :badge-count="areChildrenVisible ? badgeCount : rolledUpBadgeCount"
         :badge-tone="areChildrenVisible ? badgeTone : rolledUpBadgeTone"

@@ -39,6 +39,7 @@ Rails.application.routes.draw do
   end
 
   get '/health', to: 'health#show'
+  get '/robots.txt', to: 'robots#show', format: false
   get '/api', to: 'api#index'
 
   # Legal documents are maintained on the marketing site. These redirects keep
@@ -61,6 +62,20 @@ Rails.application.routes.draw do
         end
 
         scope module: :accounts do
+          if ChatwootApp.enterprise?
+            resources :monitors, only: [:index, :show, :create, :update, :destroy] do
+              collection do
+                post :preview
+                get 'preview/:token', action: :preview_status
+              end
+              member do
+                get :timeseries
+                get :conversations
+                post :retry_evaluations
+                post :resume
+              end
+            end
+          end
           namespace :actions do
             resource :contact_merge, only: [:create]
           end
@@ -82,6 +97,7 @@ Rails.application.routes.draw do
                 get :drilldown
               end
               resource :stats, only: [], controller: :assistant_stats do
+                get :drilldown
                 get :overview
                 get :overview_summary
                 get :resolution_flow
@@ -108,6 +124,10 @@ Rails.application.routes.draw do
             end
             resources :custom_tools do
               post :test, on: :collection
+            end
+            resource :tools_manifest, only: [] do
+              post :preview
+              post :install
             end
             resources :documents, only: [:index, :show, :create, :destroy] do
               post :sync, on: :member
@@ -178,13 +198,14 @@ Rails.application.routes.draw do
               post :filter
             end
             scope module: :conversations do
+              resources :campaign_history, only: [:index] if ChatwootApp.enterprise?
               resources :messages, only: [:index, :create, :destroy, :update] do
                 member do
                   post :translate
                   post :retry
                 end
               end
-              resource :contact_info_request, only: [:create]
+              resource :contact_info_request, only: [:show, :create]
               resources :assignments, only: [:create]
               resources :labels, only: [:create, :index]
               resource :participants, only: [:show, :create, :update, :destroy]
@@ -192,6 +213,10 @@ Rails.application.routes.draw do
               resource :draft_messages, only: [:show, :update, :destroy]
               resource :ticket, only: [:show, :create, :update] do
                 resources :tasks, only: [:create, :update, :destroy], controller: 'ticket_tasks'
+              end
+              resource :suggestions, only: [] do
+                get :labels
+                get :priority
               end
             end
             member do
@@ -240,8 +265,13 @@ Rails.application.routes.draw do
                   get :search
                 end
               end
-              resources :conversations, only: [:index]
+              resources :conversations, only: [:index] do
+                collection do
+                  post :filter
+                end
+              end
               resources :notes, only: [:index]
+              resource :enrichment, only: [:create] if ChatwootApp.enterprise?
             end
           end
           resources :contacts, only: [:index, :show, :update, :create, :destroy] do
@@ -438,6 +468,7 @@ Rails.application.routes.draw do
             resource :shopify, controller: 'shopify', only: [:destroy] do
               collection do
                 post :auth
+                post :complete_install
                 get :orders
               end
             end
@@ -521,6 +552,7 @@ Rails.application.routes.draw do
             post :backup_codes
           end
           resources :sessions, only: [:index, :destroy]
+          resource :trusted_devices, only: [:destroy]
         end
       end
 
@@ -615,6 +647,7 @@ Rails.application.routes.draw do
         namespace :v1 do
           resources :accounts do
             member do
+              post :reconnect_shopify, to: 'shopify#reconnect_shopify'
               get :billing_summary
               post :checkout
               post :subscription
@@ -788,6 +821,11 @@ Rails.application.routes.draw do
       resources :users, only: [:index, :new, :create, :show, :edit, :update, :destroy] do
         delete :avatar, on: :member, action: :destroy_avatar
         post :resend_confirmation, on: :member
+        post :impersonate, on: :member
+        post :impersonation_link, on: :member
+        post :check_email_suppression, on: :member
+        post :clear_email_suppression, on: :member
+        post :send_test_email, on: :member
       end
 
       resources :access_tokens, only: [:index, :show]
