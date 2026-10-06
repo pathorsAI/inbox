@@ -9,8 +9,18 @@ describe Integrations::Github::ProcessorService do
   let(:hook) { create(:integrations_hook, :github, account: account) }
   let(:ticket) { create(:ticket, conversation: conversation, subject: 'Refund never arrived', ticket_type: 'issue') }
   let(:issues_url) { 'https://api.github.com/repos/pathorsAI/chatwoot/issues' }
+  let(:tokens_url) { 'https://api.github.com/app/installations/4242/access_tokens' }
   let(:issue_response) do
     { 'html_url' => 'https://github.com/pathorsAI/chatwoot/issues/42', 'number' => 42 }
+  end
+
+  before do
+    allow(GlobalConfigService).to receive(:load).and_call_original
+    allow(GlobalConfigService).to receive(:load).with('GITHUB_APP_ID', nil).and_return('123456')
+    allow(GlobalConfigService).to receive(:load).with('GITHUB_APP_PRIVATE_KEY', nil).and_return(OpenSSL::PKey::RSA.generate(2048).to_pem)
+    stub_request(:post, tokens_url)
+      .to_return(status: 201, body: { token: 'ghs_installation_token', expires_at: 1.hour.from_now.iso8601 }.to_json,
+                 headers: { 'Content-Type' => 'application/json' })
   end
 
   describe '#perform' do
@@ -27,7 +37,7 @@ describe Integrations::Github::ProcessorService do
         described_class.new(hook: hook, event_name: 'ticket.created', event_data: { ticket: ticket }).perform
 
         expect(WebMock).to have_requested(:post, issues_url)
-          .with(headers: { 'Authorization' => 'Bearer github_pat_token', 'X-GitHub-Api-Version' => '2022-11-28' }) { |request|
+          .with(headers: { 'Authorization' => 'Bearer ghs_installation_token', 'X-GitHub-Api-Version' => '2022-11-28' }) { |request|
             body = JSON.parse(request.body)
             expect(body['title']).to eq('Refund never arrived')
             expect(body['body']).to include('Ada Lovelace <ada@example.com>')
@@ -84,18 +94,86 @@ describe Integrations::Github::ProcessorService do
       end
     end
 
-    context 'when github rejects the request' do
-      it 'logs the failure without raising or recording an issue' do
+    context 'when no repository has been picked yet' do
+      it 'does not call github at all' do
+        hook.update!(settings: {})
+
+        described_class.new(hook: hook, event_name: 'ticket.created', event_data: { ticket: ticket }).perform
+
+        expect(WebMock).not_to have_requested(:post, tokens_url)
+        expect(WebMock).not_to have_requested(:post, issues_url)
+      end
+    end
+
+    context 'when the hook predates the GitHub App' do
+      it 'does not call github at all' do
+        hook.update!(reference_id: nil)
+
+        described_class.new(hook: hook, event_name: 'ticket.created', event_data: { ticket: ticket }).perform
+
+        expect(WebMock).not_to have_requested(:post, tokens_url)
+      end
+    end
+
+    context 'when the hook is waiting for a reconnect' do
+      it 'does not call github at all' do
+        hook.prompt_reauthorization!
+
+        described_class.new(hook: hook, event_name: 'ticket.created', event_data: { ticket: ticket }).perform
+
+        expect(WebMock).not_to have_requested(:post, tokens_url)
+      end
+    end
+
+    context 'when the app no longer reaches the repository' do
+      it 'asks for a reconnect without raising or recording an issue' do
         stub_request(:post, issues_url).to_return(status: 404, body: { message: 'Not Found' }.to_json,
                                                   headers: { 'Content-Type' => 'application/json' })
-        allow(Rails.logger).to receive(:error)
 
         expect do
           described_class.new(hook: hook, event_name: 'ticket.created', event_data: { ticket: ticket }).perform
         end.not_to raise_error
 
-        expect(Rails.logger).to have_received(:error).with(/404.*Not Found/)
+        expect(hook.reauthorization_required?).to be(true)
         expect(conversation.reload.additional_attributes['github_issue']).to be_nil
+      end
+    end
+
+    context 'when github throttles the request' do
+      it 'keeps the hook connected' do
+        stub_request(:post, issues_url).to_return(status: 403, body: { message: 'secondary rate limit' }.to_json,
+                                                  headers: { 'Content-Type' => 'application/json', 'Retry-After' => '60' })
+
+        described_class.new(hook: hook, event_name: 'ticket.created', event_data: { ticket: ticket }).perform
+
+        expect(hook.reauthorization_required?).to be(false)
+      end
+    end
+
+    context 'when the installation is gone' do
+      it 'asks for a reconnect without raising' do
+        stub_request(:post, tokens_url).to_return(status: 404, body: { message: 'Not Found' }.to_json,
+                                                  headers: { 'Content-Type' => 'application/json' })
+
+        expect do
+          described_class.new(hook: hook, event_name: 'ticket.created', event_data: { ticket: ticket }).perform
+        end.not_to raise_error
+
+        expect(hook.reauthorization_required?).to be(true)
+        expect(WebMock).not_to have_requested(:post, issues_url)
+      end
+    end
+
+    context 'when github rejects the issue itself' do
+      it 'logs the failure and keeps the hook connected' do
+        stub_request(:post, issues_url).to_return(status: 422, body: { message: 'Validation Failed' }.to_json,
+                                                  headers: { 'Content-Type' => 'application/json' })
+        allow(Rails.logger).to receive(:error)
+
+        described_class.new(hook: hook, event_name: 'ticket.created', event_data: { ticket: ticket }).perform
+
+        expect(Rails.logger).to have_received(:error).with(/422.*Validation Failed/)
+        expect(hook.reauthorization_required?).to be(false)
       end
     end
   end
