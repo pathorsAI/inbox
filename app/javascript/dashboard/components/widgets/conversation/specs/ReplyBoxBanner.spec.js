@@ -1,5 +1,7 @@
 import { flushPromises, shallowMount } from '@vue/test-utils';
 import { createStore } from 'vuex';
+import { createPinia, setActivePinia } from 'pinia';
+import { usePathorsLiveCallsStore } from 'dashboard/stores/pathorsLiveCalls';
 import Banner from 'dashboard/components/ui/Banner.vue';
 import ReplyBoxBanner from '../ReplyBoxBanner.vue';
 import ConversationApi from 'dashboard/api/inbox/conversation';
@@ -18,6 +20,47 @@ vi.mock('dashboard/composables', () => ({
 
 describe('ReplyBoxBanner', () => {
   const currentUser = { id: 7 };
+
+  beforeEach(() => {
+    setActivePinia(createPinia());
+  });
+
+  const mountBanner = store =>
+    shallowMount(ReplyBoxBanner, {
+      global: { plugins: [store], mocks: { $t: key => key } },
+    });
+
+  const pendingCaptainStore = () =>
+    createStore({
+      state: {
+        chat: {
+          id: 1,
+          status: 'pending',
+          meta: {
+            assignee: { id: 3, name: 'Captain' },
+            assignee_type: 'Captain::Assistant',
+          },
+        },
+      },
+      getters: {
+        getSelectedChat: state => state.chat,
+        getCurrentUser: () => currentUser,
+      },
+    });
+
+  it('hides the bot handoff banner while a Pathors call is live', () => {
+    usePathorsLiveCallsStore().$patch({ records: [{ conversationId: 1 }] });
+
+    expect(
+      mountBanner(pendingCaptainStore()).findComponent(Banner).exists()
+    ).toBe(false);
+  });
+
+  it('shows the bot handoff banner when no Pathors call is live', () => {
+    expect(
+      mountBanner(pendingCaptainStore()).findComponent(Banner).exists()
+    ).toBe(true);
+  });
 
   it.each([false, true])(
     'only updates takeover after assignment succeeds (fails: %s)',

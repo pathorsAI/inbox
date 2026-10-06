@@ -51,6 +51,7 @@ describe('#validateAuthenticateRoutePermission', () => {
         name: 'pathors_connect',
         fullPath: '/app/pathors/connect?organization_id=org-1',
         params: {},
+        query: { organization_id: 'org-1' },
         meta: { accountAgnostic: true, resumeAfterLogin: true },
       };
       store.getters.isLoggedIn = false;

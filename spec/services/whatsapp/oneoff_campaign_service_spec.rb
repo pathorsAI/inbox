@@ -133,7 +133,9 @@ describe Whatsapp::OneoffCampaignService do
         expect(whatsapp_channel).not_to receive(:send_template).with(blocked_contact.phone_number, anything, nil)
         expect(whatsapp_channel).to receive(:send_template).with(unblocked_contact.phone_number, anything, nil).once
 
-        described_class.new(campaign: campaign).perform
+        perform_enqueued_jobs do
+          described_class.new(campaign: campaign).perform
+        end
       end
 
       it 'sends to the contact BSUID when the contact has no phone number and exactly one WhatsApp identity' do
