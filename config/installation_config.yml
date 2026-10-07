@@ -592,12 +592,6 @@
   value:
   locked: false
   description: 'The redirect URI configured in your Google OAuth app'
-- name: ENABLE_GOOGLE_OAUTH_LOGIN
-  display_title: 'Enable Google OAuth login'
-  value: true
-  locked: false
-  description: 'Show Google OAuth as a login option when credentials are configured'
-  type: boolean
 ## ------ End of Configs added for Google OAuth ------ ##
 
 ## ------ Configs added for SAML SSO ------ ##
@@ -655,3 +649,30 @@
   value: 'https://us.cloud.langfuse.com'
   locked: false
 ## ---- End of LLM Observability ---- ##
+
+## ---- Pathors login (pathorsAI/pathors#3316) ---- ##
+- name: PATHORS_LOGIN_CLIENT_ID
+  display_title: 'Pathors Login Client ID'
+  description: 'First-party Pathors OAuth client for signing in to the inbox. With the secret set, password login is turned off and only Pathors login remains'
+  value:
+  locked: false
+- name: PATHORS_LOGIN_CLIENT_SECRET
+  display_title: 'Pathors Login Client Secret'
+  description: 'Secret of the Pathors login OAuth client'
+  value:
+  locked: false
+  type: secret
+# Super admin SSO through Cloudflare Access (OIDC). Read from ENV first: a super
+# admin cannot be expected to configure their own login from inside.
+- name: CF_ACCESS_OIDC_ISSUER
+  display_title: 'Cloudflare Access OIDC Issuer'
+  description: 'Issuer URL of the Cloudflare Access for SaaS application used for super admin sign-in'
+  value:
+- name: CF_ACCESS_OIDC_CLIENT_ID
+  display_title: 'Cloudflare Access OIDC Client ID'
+  value:
+- name: CF_ACCESS_OIDC_CLIENT_SECRET
+  display_title: 'Cloudflare Access OIDC Client Secret'
+  value:
+  type: secret
+## ---- End of Pathors login ---- ##
