@@ -2,8 +2,13 @@ class DeviseOverrides::OmniauthCallbacksController < DeviseTokenAuth::OmniauthCa
   include EmailHelper
 
   SHOPIFY_INSTALL_REDIRECT_PATTERN = %r{\Asettings/integrations/shopify\?shopify_pending_install=([0-9a-f]{32})\z}
+  RECORD_ID_PATTERN = /\A[1-9]\d*\z/
+  # Same rule as SAFE_SSO_ROUTE_PATH_REGEX in app/javascript/v3/helpers/AuthHelper.js.
+  SSO_ROUTE_PATH_PATTERN = %r{\A[A-Za-z0-9_-]+(/[A-Za-z0-9_-]+)*\z}
 
   def omniauth_success
+    return sign_in_with_pathors if auth_hash&.dig('provider') == 'pathors'
+
     get_resource_from_auth_hash
 
     @resource.present? ? sign_in_user(redirect_url: oauth_redirect_url, sso_account_id: oauth_context['sso_account_id']) : sign_up_user
@@ -11,7 +16,36 @@ class DeviseOverrides::OmniauthCallbacksController < DeviseTokenAuth::OmniauthCa
 
   private
 
-  def sign_in_user(redirect_url: nil, sso_account_id: nil)
+  def sign_in_with_pathors
+    @resource = Pathors::LoginUserResolver.new(
+      uid: auth_hash['uid'],
+      email: auth_hash.dig('info', 'email'),
+      name: auth_hash.dig('info', 'name'),
+      email_verified: auth_hash.dig('info', 'email_verified')
+    ).perform
+    sign_in_user(**pathors_deep_link)
+  rescue Pathors::LoginUserResolver::Refused => e
+    redirect_to login_page_url(error: e.message)
+  end
+
+  # Where the login page should land after the round trip to Pathors: the
+  # deep-link params the login form posted to /omniauth/pathors, which
+  # OmniAuth kept in the session. Anything malformed is dropped.
+  def pathors_deep_link
+    stashed = omniauth_params.to_h.stringify_keys
+    {
+      redirect_url: (stashed['redirect_url'] if allowed_redirect?(stashed['redirect_url'])),
+      sso_account_id: stashed['sso_account_id'].to_s[RECORD_ID_PATTERN],
+      sso_conversation_id: stashed['sso_conversation_id'].to_s[RECORD_ID_PATTERN],
+      sso_route_path: stashed['sso_route_path'].to_s[SSO_ROUTE_PATH_PATTERN]
+    }.compact
+  end
+
+  def allowed_redirect?(redirect_url)
+    redirect_url.is_a?(String) && allowed_google_oauth_redirect?(redirect_url)
+  end
+
+  def sign_in_user(redirect_url: nil, sso_account_id: nil, **deep_link)
     # Capture before skip_confirmation! sets confirmed_at, which would
     # make oauth_user_needs_password_reset? return false and skip the
     # password reset for persisted unconfirmed users.
@@ -27,7 +61,8 @@ class DeviseOverrides::OmniauthCallbacksController < DeviseTokenAuth::OmniauthCa
       email: encoded_email,
       sso_auth_token: @resource.generate_sso_auth_token,
       redirect_url: redirect_url,
-      sso_account_id: sso_account_id
+      sso_account_id: sso_account_id,
+      **deep_link
     )
   end
 
@@ -65,12 +100,11 @@ class DeviseOverrides::OmniauthCallbacksController < DeviseTokenAuth::OmniauthCa
     redirect_to login_page_url(error: 'shopify-installation-failed')
   end
 
-  def login_page_url(error: nil, email: nil, sso_auth_token: nil, redirect_url: nil, sso_account_id: nil)
-    frontend_url = omniauth_frontend_url
-    params = { email: email, sso_auth_token: sso_auth_token, redirect_url: redirect_url, sso_account_id: sso_account_id }.compact
+  def login_page_url(error: nil, **query)
+    params = query.compact
     params[:error] = error if error.present?
 
-    "#{frontend_url}/app/login?#{params.to_query}"
+    "#{omniauth_frontend_url}/app/login?#{params.to_query}"
   end
 
   def omniauth_frontend_url
