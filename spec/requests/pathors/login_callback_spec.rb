@@ -117,6 +117,49 @@ RSpec.describe 'Sign in with Pathors', type: :request do
     expect(response).to redirect_to('http://localhost:3000/app/login?error=pathors-login-failed')
   end
 
+  context 'with the real strategy against a stubbed Pathors server' do
+    before { OmniAuth.config.test_mode = false }
+    after { OmniAuth.config.test_mode = true }
+
+    it 'runs authorize with PKCE and state, then reads the identity from userinfo' do
+      stub_request(:post, 'https://api.pathors.com/oauth/token')
+        .to_return(status: 200, headers: { 'Content-Type' => 'application/json' },
+                   body: { access_token: 'pathors-access', token_type: 'Bearer', refresh_token: 'r' }.to_json)
+      identity = { sub: 'pathors-sub-9', email: 'new@example.com', name: 'New Agent', email_verified: true }
+      stub_request(:get, 'https://api.pathors.com/oauth/userinfo')
+        .with(headers: { 'Authorization' => 'Bearer pathors-access' })
+        .to_return(status: 200, headers: { 'Content-Type' => 'application/json' }, body: identity.to_json)
+
+      with_modified_env(pathors_env) do
+        post '/omniauth/pathors?sso_route_path=contacts'
+        authorize = URI.parse(response.location)
+        query = Rack::Utils.parse_query(authorize.query)
+        expect("#{authorize.host}#{authorize.path}").to eq('api.pathors.com/oauth/authorize')
+        expect(query).to include('client_id' => 'inbox-login', 'response_type' => 'code', 'scope' => 'openid email profile',
+                                 'redirect_uri' => 'http://localhost:3000/omniauth/pathors/callback', 'code_challenge_method' => 'S256')
+
+        get '/omniauth/pathors/callback', params: { code: 'pathors-code', state: query['state'] }
+        follow_redirect!
+      end
+
+      expect(a_request(:post, 'https://api.pathors.com/oauth/token')
+        .with(body: hash_including('code' => 'pathors-code', 'redirect_uri' => 'http://localhost:3000/omniauth/pathors/callback',
+                                   'code_verifier' => /\A\h{128}\z/))).to have_been_made
+      expect(User.from_email('new@example.com')).to have_attributes(pathors_uid: 'pathors-sub-9', name: 'New Agent')
+      expect(login_redirect_params['sso_route_path']).to eq('contacts')
+    end
+
+    it 'refuses a callback whose state does not match' do
+      with_modified_env(pathors_env) do
+        post '/omniauth/pathors'
+        get '/omniauth/pathors/callback', params: { code: 'pathors-code', state: 'forged' }
+        follow_redirect! while response.redirect? && response.location.exclude?('/app/login')
+      end
+
+      expect(response).to redirect_to('http://localhost:3000/app/login?error=pathors-login-failed')
+    end
+  end
+
   it 'is not routable while the switch is off' do
     with_modified_env(FRONTEND_URL: 'http://localhost:3000') do
       post '/omniauth/pathors'
