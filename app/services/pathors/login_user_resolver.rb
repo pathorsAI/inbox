@@ -18,13 +18,16 @@ class Pathors::LoginUserResolver
   def link_existing_user
     user = User.from_email(email)
     return if user.nil?
-    raise Refused, 'pathors-account-mismatch' if user.pathors_uid.present?
+    # A system user is Pathors' machine identity in one account, never a person.
+    raise Refused, 'pathors-account-mismatch' if user.pathors_uid.present? || Pathors::Login.system_user?(user)
 
     user.update!(pathors_uid: uid)
     user
   end
 
   def create_user
+    raise Refused, 'pathors-account-mismatch' if Pathors::Login::SYSTEM_USER_EMAIL.match?(email)
+
     user = User.new(
       email: email,
       name: name.presence || email.split('@').first,

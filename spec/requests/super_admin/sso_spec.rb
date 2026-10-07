@@ -75,6 +75,17 @@ RSpec.describe 'Super admin single sign-on', type: :request do
     end
   end
 
+  context 'when Cloudflare sends no email_verified claim' do
+    let(:userinfo) { { email: 'Ops@pathors.com' } }
+
+    it 'signs the existing super admin in' do
+      state = start_sso
+      get '/super_admin/sso/callback', params: { code: 'cf-code', state: state }
+
+      expect(response).to redirect_to(super_admin_root_path)
+    end
+  end
+
   it 'refuses the password form and offers only single sign-on' do
     post '/super_admin/sign_in', params: { super_admin: { email: super_admin.email, password: super_admin.password } }
     expect(response).to redirect_to(super_admin_session_path)

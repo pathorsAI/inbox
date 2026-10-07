@@ -94,6 +94,23 @@ RSpec.describe 'Sign in with Pathors', type: :request do
     expect(response).to redirect_to('http://localhost:3000/app/login?error=pathors-account-mismatch')
   end
 
+  it 'never links or creates a Pathors system user' do
+    system_email = 'system+acct5@inbox.pathors.com'
+    OmniAuth.config.mock_auth[:pathors] = OmniAuth::AuthHash.new(pathors_auth.deep_merge(info: { email: system_email }))
+    system_user = create(:user, email: system_email)
+
+    with_modified_env(pathors_env) { complete_pathors_login }
+
+    expect(response).to redirect_to('http://localhost:3000/app/login?error=pathors-account-mismatch')
+    expect(system_user.reload.pathors_uid).to be_nil
+
+    system_user.destroy!
+    with_modified_env(pathors_env) { complete_pathors_login }
+
+    expect(response).to redirect_to('http://localhost:3000/app/login?error=pathors-account-mismatch')
+    expect(User.from_email(system_email)).to be_nil
+  end
+
   it 'carries valid deep-link params through the round trip and drops malformed ones' do
     create(:user, email: 'agent@example.com')
 

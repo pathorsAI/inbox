@@ -57,7 +57,8 @@ class SuperAdmin::SsoController < ApplicationController
   end
 
   def super_admin_for(info)
-    return unless info['email_verified'] == true
+    # Cloudflare Access's policy is the gate; refuse only an explicit "not verified".
+    return if info['email_verified'] == false
 
     SuperAdmin.from_email(info['email'].to_s)
   end
