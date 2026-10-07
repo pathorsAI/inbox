@@ -15,7 +15,6 @@ import { getLoginRedirectURL, getSignupRoute } from 'v3/helpers/AuthHelper';
 // components
 import SimpleDivider from '../../components/Divider/SimpleDivider.vue';
 import FormInput from '../../components/Form/Input.vue';
-import GoogleOAuthButton from '../../components/GoogleOauth/Button.vue';
 import Spinner from 'shared/components/Spinner.vue';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
 import NextButton from 'dashboard/components-next/button/Button.vue';
@@ -38,7 +37,6 @@ const AUTH_ERROR_TOAST_DURATION = 6000;
 export default {
   components: {
     FormInput,
-    GoogleOAuthButton,
     Spinner,
     NextButton,
     SimpleDivider,
@@ -105,12 +103,6 @@ export default {
     ...mapGetters({ globalConfig: 'globalConfig/get' }),
     allowedLoginMethods() {
       return window.chatwootConfig.allowedLoginMethods || ['email'];
-    },
-    showGoogleOAuth() {
-      return (
-        this.allowedLoginMethods.includes('google_oauth') &&
-        Boolean(window.chatwootConfig.googleOAuthClientId)
-      );
     },
     showSignupLink() {
       return (
@@ -461,19 +453,11 @@ export default {
     <!-- Regular Login Section -->
     <section
       v-else
-      class="bg-white shadow sm:mx-auto mt-11 sm:w-full sm:max-w-lg dark:bg-n-solid-2 p-11 sm:shadow-lg sm:rounded-lg"
-      :class="{
-        'mb-8 mt-15': !showGoogleOAuth,
-        'animate-wiggle': loginApi.hasErrored,
-      }"
+      class="mb-8 bg-white shadow sm:mx-auto mt-15 sm:w-full sm:max-w-lg dark:bg-n-solid-2 p-11 sm:shadow-lg sm:rounded-lg"
+      :class="{ 'animate-wiggle': loginApi.hasErrored }"
     >
       <div v-if="!email">
         <div class="flex flex-col gap-4">
-          <GoogleOAuthButton
-            v-if="showGoogleOAuth"
-            :redirect-url="redirectUrl"
-            :sso-account-id="ssoAccountId"
-          />
           <div v-if="showSamlLogin" class="text-center">
             <router-link
               :to="samlLoginRoute"
@@ -489,7 +473,7 @@ export default {
             </router-link>
           </div>
           <SimpleDivider
-            v-if="showGoogleOAuth || showSamlLogin"
+            v-if="showSamlLogin"
             :label="$t('COMMON.OR')"
             class="uppercase"
           />
