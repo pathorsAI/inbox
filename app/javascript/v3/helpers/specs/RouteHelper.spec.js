@@ -183,6 +183,44 @@ describe('#validateRouteAccess', () => {
     expect(next).toHaveBeenCalledWith();
   });
 
+  it.each([
+    ['auth_signup', { requireSignupEnabled: true }],
+    ['auth_reset_password', undefined],
+    ['auth_password_edit', { ignoreSession: true }],
+    ['sso_login', { requireEnterprise: true }],
+  ])('sends %s to the login page when Pathors login is on', (name, meta) => {
+    next.mockClear();
+    validateRouteAccess({ name, meta, query: {} }, next, {
+      pathorsLoginEnabled: 'true',
+      signupEnabled: 'true',
+      isEnterprise: 'true',
+    });
+    expect(next).toHaveBeenCalledWith('/app/login');
+  });
+
+  it('keeps password reset reachable when Pathors login is off', () => {
+    next.mockClear();
+    validateRouteAccess(
+      { name: 'auth_password_edit', meta: { ignoreSession: true } },
+      next,
+      { pathorsLoginEnabled: 'false' }
+    );
+    expect(next).toHaveBeenCalledWith();
+  });
+
+  it('lets the Pathors SSO return reach the login page', () => {
+    next.mockClear();
+    validateRouteAccess(
+      {
+        name: 'login',
+        query: { sso_auth_token: 'token', email: 'agent@example.com' },
+      },
+      next,
+      { pathorsLoginEnabled: 'true' }
+    );
+    expect(next).toHaveBeenCalledWith();
+  });
+
   it('continues to the route in every other case', () => {
     validateRouteAccess({ name: 'reset_password' }, next);
     expect(clearBrowserSessionCookies).not.toHaveBeenCalled();

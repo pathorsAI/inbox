@@ -4,6 +4,14 @@ import { getShopifyBillingRedirect, hasAuthCookie } from './AuthHelper';
 import { DEFAULT_REDIRECT_URL } from 'dashboard/constants/globals';
 import { replaceRouteWithReload } from './CommonHelper';
 import { rememberLoginReturnPath } from 'dashboard/helper/loginReturnPath';
+import { isPathorsLoginEnabled } from 'shared/helpers/pathorsLogin';
+
+const NON_PATHORS_AUTH_ROUTES = [
+  'auth_signup',
+  'auth_reset_password',
+  'auth_password_edit',
+  'sso_login',
+];
 
 const validateSSOLoginParams = to => {
   const isLoginRoute = to.name === 'login';
@@ -18,6 +26,14 @@ export const validateRouteAccess = (to, next, chatwootConfig = {}) => {
   // session that is sent straight on to the dashboard below.
   if (to.name === 'login' && to.query?.return_to) {
     rememberLoginReturnPath(to.query.return_to);
+  }
+
+  if (
+    isPathorsLoginEnabled(chatwootConfig) &&
+    NON_PATHORS_AUTH_ROUTES.includes(to.name)
+  ) {
+    next(frontendURL('login'));
+    return;
   }
 
   // Pages with ignoreSession:true would be rendered
