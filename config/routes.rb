@@ -806,6 +806,8 @@ Rails.application.routes.draw do
   devise_for :super_admins, path: 'super_admin', controllers: { sessions: 'super_admin/devise/sessions' }
   devise_scope :super_admin do
     get 'super_admin/logout', to: 'super_admin/devise/sessions#destroy'
+    get 'super_admin/sso', to: 'super_admin/sso#new', as: :super_admin_sso
+    get 'super_admin/sso/callback', to: 'super_admin/sso#callback', as: :super_admin_sso_callback
     namespace :super_admin do
       root to: 'dashboard#index'
 
