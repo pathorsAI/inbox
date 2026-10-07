@@ -15,6 +15,7 @@ import { getLoginRedirectURL, getSignupRoute } from 'v3/helpers/AuthHelper';
 // components
 import SimpleDivider from '../../components/Divider/SimpleDivider.vue';
 import FormInput from '../../components/Form/Input.vue';
+import PathorsLoginButton from '../../components/PathorsLogin/Button.vue';
 import Spinner from 'shared/components/Spinner.vue';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
 import NextButton from 'dashboard/components-next/button/Button.vue';
@@ -28,6 +29,9 @@ const ERROR_MESSAGES = {
   'shopify-installation-failed': 'LOGIN.OAUTH.SHOPIFY_INSTALLATION_FAILED',
   'saml-authentication-failed': 'LOGIN.SAML.API.ERROR_MESSAGE',
   'saml-not-enabled': 'LOGIN.SAML.API.ERROR_MESSAGE',
+  'pathors-email-unverified': 'LOGIN.PATHORS.EMAIL_UNVERIFIED',
+  'pathors-account-mismatch': 'LOGIN.PATHORS.ACCOUNT_MISMATCH',
+  'pathors-login-failed': 'LOGIN.PATHORS.LOGIN_FAILED',
 };
 
 const IMPERSONATION_URL_SEARCH_KEY = 'impersonation';
@@ -37,6 +41,7 @@ const AUTH_ERROR_TOAST_DURATION = 6000;
 export default {
   components: {
     FormInput,
+    PathorsLoginButton,
     Spinner,
     NextButton,
     SimpleDivider,
@@ -104,7 +109,11 @@ export default {
     allowedLoginMethods() {
       return window.chatwootConfig.allowedLoginMethods || ['email'];
     },
+    showPathorsLogin() {
+      return this.allowedLoginMethods.includes('pathors');
+    },
     showSignupLink() {
+      if (this.showPathorsLogin) return false;
       return (
         window.chatwootConfig.signupEnabled === 'true' ||
         Boolean(this.signupRoute.query?.shopify_pending_install)
@@ -177,6 +186,12 @@ export default {
           return this.$t('LOGIN.OAUTH.BUSINESS_ACCOUNTS_ONLY');
         case 'LOGIN.OAUTH.SHOPIFY_INSTALLATION_FAILED':
           return this.$t('LOGIN.OAUTH.SHOPIFY_INSTALLATION_FAILED');
+        case 'LOGIN.PATHORS.EMAIL_UNVERIFIED':
+          return this.$t('LOGIN.PATHORS.EMAIL_UNVERIFIED');
+        case 'LOGIN.PATHORS.ACCOUNT_MISMATCH':
+          return this.$t('LOGIN.PATHORS.ACCOUNT_MISMATCH');
+        case 'LOGIN.PATHORS.LOGIN_FAILED':
+          return this.$t('LOGIN.PATHORS.LOGIN_FAILED');
         case 'LOGIN.API.UNAUTH':
         default:
           return this.$t('LOGIN.API.UNAUTH');
@@ -457,73 +472,82 @@ export default {
       :class="{ 'animate-wiggle': loginApi.hasErrored }"
     >
       <div v-if="!email">
-        <div class="flex flex-col gap-4">
-          <div v-if="showSamlLogin" class="text-center">
-            <router-link
-              :to="samlLoginRoute"
-              class="inline-flex justify-center w-full px-4 py-3 items-center bg-n-background dark:bg-n-solid-3 rounded-md shadow-sm ring-1 ring-inset ring-n-container dark:ring-n-container focus:outline-offset-0 hover:bg-n-alpha-2 dark:hover:bg-n-alpha-2"
-            >
-              <Icon
-                icon="i-lucide-lock-keyhole"
-                class="size-5 text-n-slate-11"
-              />
-              <span class="ml-2 text-base font-medium text-n-slate-12">
-                {{ $t('LOGIN.SAML.LABEL') }}
-              </span>
-            </router-link>
-          </div>
-          <SimpleDivider
-            v-if="showSamlLogin"
-            :label="$t('COMMON.OR')"
-            class="uppercase"
-          />
-        </div>
-        <form class="space-y-5" @submit.prevent="submitFormLogin">
-          <FormInput
-            v-model="credentials.email"
-            name="email_address"
-            type="text"
-            data-testid="email_input"
-            :tabindex="1"
-            required
-            :label="$t('LOGIN.EMAIL.LABEL')"
-            :placeholder="$t('LOGIN.EMAIL.PLACEHOLDER')"
-            :has-error="v$.credentials.email.$error"
-            @input="v$.credentials.email.$touch"
-          />
-          <FormInput
-            v-model="credentials.password"
-            type="password"
-            name="password"
-            data-testid="password_input"
-            required
-            :tabindex="2"
-            :label="$t('LOGIN.PASSWORD.LABEL')"
-            :placeholder="$t('LOGIN.PASSWORD.PLACEHOLDER')"
-            :has-error="v$.credentials.password.$error"
-            @input="v$.credentials.password.$touch"
-          >
-            <p v-if="!globalConfig.disableUserProfileUpdate">
+        <PathorsLoginButton
+          v-if="showPathorsLogin"
+          :redirect-url="redirectUrl"
+          :sso-account-id="ssoAccountId"
+          :sso-conversation-id="ssoConversationId"
+          :sso-route-path="ssoRoutePath"
+        />
+        <template v-else>
+          <div class="flex flex-col gap-4">
+            <div v-if="showSamlLogin" class="text-center">
               <router-link
-                :to="resetPasswordRoute"
-                class="text-sm text-link"
-                tabindex="4"
+                :to="samlLoginRoute"
+                class="inline-flex justify-center w-full px-4 py-3 items-center bg-n-background dark:bg-n-solid-3 rounded-md shadow-sm ring-1 ring-inset ring-n-container dark:ring-n-container focus:outline-offset-0 hover:bg-n-alpha-2 dark:hover:bg-n-alpha-2"
               >
-                {{ $t('LOGIN.FORGOT_PASSWORD') }}
+                <Icon
+                  icon="i-lucide-lock-keyhole"
+                  class="size-5 text-n-slate-11"
+                />
+                <span class="ml-2 text-base font-medium text-n-slate-12">
+                  {{ $t('LOGIN.SAML.LABEL') }}
+                </span>
               </router-link>
-            </p>
-          </FormInput>
-          <NextButton
-            lg
-            type="submit"
-            data-testid="submit_button"
-            class="w-full"
-            :tabindex="3"
-            :label="$t('LOGIN.SUBMIT')"
-            :disabled="loginApi.showLoading"
-            :is-loading="loginApi.showLoading"
-          />
-        </form>
+            </div>
+            <SimpleDivider
+              v-if="showSamlLogin"
+              :label="$t('COMMON.OR')"
+              class="uppercase"
+            />
+          </div>
+          <form class="space-y-5" @submit.prevent="submitFormLogin">
+            <FormInput
+              v-model="credentials.email"
+              name="email_address"
+              type="text"
+              data-testid="email_input"
+              :tabindex="1"
+              required
+              :label="$t('LOGIN.EMAIL.LABEL')"
+              :placeholder="$t('LOGIN.EMAIL.PLACEHOLDER')"
+              :has-error="v$.credentials.email.$error"
+              @input="v$.credentials.email.$touch"
+            />
+            <FormInput
+              v-model="credentials.password"
+              type="password"
+              name="password"
+              data-testid="password_input"
+              required
+              :tabindex="2"
+              :label="$t('LOGIN.PASSWORD.LABEL')"
+              :placeholder="$t('LOGIN.PASSWORD.PLACEHOLDER')"
+              :has-error="v$.credentials.password.$error"
+              @input="v$.credentials.password.$touch"
+            >
+              <p v-if="!globalConfig.disableUserProfileUpdate">
+                <router-link
+                  :to="resetPasswordRoute"
+                  class="text-sm text-link"
+                  tabindex="4"
+                >
+                  {{ $t('LOGIN.FORGOT_PASSWORD') }}
+                </router-link>
+              </p>
+            </FormInput>
+            <NextButton
+              lg
+              type="submit"
+              data-testid="submit_button"
+              class="w-full"
+              :tabindex="3"
+              :label="$t('LOGIN.SUBMIT')"
+              :disabled="loginApi.showLoading"
+              :is-loading="loginApi.showLoading"
+            />
+          </form>
+        </template>
       </div>
       <div v-else class="flex items-center justify-center">
         <Spinner color-scheme="primary" size="" />

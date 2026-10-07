@@ -1,3 +1,5 @@
+import { mount } from '@vue/test-utils';
+import { createStore } from 'vuex';
 import Login from './Index.vue';
 import routes from '../routes';
 import { getLoginRedirectURL } from '../../helpers/AuthHelper';
@@ -126,5 +128,101 @@ describe('Shopify signup and password recovery', () => {
         redirectUrl: pendingInstallRedirect,
       },
     });
+  });
+});
+
+describe('login methods', () => {
+  const mountLogin = (props = {}) =>
+    mount(Login, {
+      props,
+      global: {
+        plugins: [
+          createStore({
+            modules: {
+              globalConfig: {
+                namespaced: true,
+                getters: { get: () => ({ logo: '/logo.svg' }) },
+              },
+            },
+          }),
+        ],
+        mocks: { $t: key => key, $route: { query: {} } },
+        stubs: {
+          RouterLink: { template: '<a><slot /></a>' },
+          FluentIcon: true,
+        },
+      },
+    });
+
+  afterEach(() => {
+    window.chatwootConfig = {};
+  });
+
+  it('offers only the Pathors button when Pathors login is the allowed method', () => {
+    window.chatwootConfig = {
+      allowedLoginMethods: ['pathors'],
+      signupEnabled: 'true',
+    };
+
+    const wrapper = mountLogin({ redirectUrl: 'settings/billing' });
+
+    expect(wrapper.find('[data-testid="pathors-login-button"]').exists()).toBe(
+      true
+    );
+    expect(wrapper.find('[data-testid="email_input"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="password_input"]').exists()).toBe(false);
+    expect(wrapper.text()).not.toContain('LOGIN.FORGOT_PASSWORD');
+    expect(wrapper.text()).not.toContain('LOGIN.CREATE_NEW_ACCOUNT');
+    expect(
+      wrapper.find('form[data-testid="pathors-login"]').attributes('action')
+    ).toBe('/omniauth/pathors?redirect_url=settings%2Fbilling');
+  });
+
+  it('offers the password form when Pathors login is off', () => {
+    window.chatwootConfig = {
+      allowedLoginMethods: ['email'],
+      signupEnabled: 'true',
+    };
+
+    const wrapper = mountLogin();
+
+    expect(wrapper.find('[data-testid="pathors-login-button"]').exists()).toBe(
+      false
+    );
+    expect(wrapper.find('[data-testid="email_input"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="password_input"]').exists()).toBe(true);
+    expect(wrapper.text()).toContain('LOGIN.FORGOT_PASSWORD');
+    expect(wrapper.text()).toContain('LOGIN.CREATE_NEW_ACCOUNT');
+  });
+
+  it('auto-submits the SSO token returned from Pathors instead of showing the button', () => {
+    window.chatwootConfig = { allowedLoginMethods: ['pathors'] };
+    login.mockReturnValue(new Promise(() => {}));
+
+    const wrapper = mountLogin({
+      email: 'agent%40example.com',
+      ssoAuthToken: 'sso-token',
+      ssoAccountId: '42',
+    });
+
+    expect(wrapper.find('[data-testid="pathors-login-button"]').exists()).toBe(
+      false
+    );
+    expect(login).toHaveBeenCalledWith(
+      expect.objectContaining({
+        email: 'agent@example.com',
+        sso_auth_token: 'sso-token',
+        ssoAccountId: '42',
+      })
+    );
+  });
+
+  it('explains a Pathors account mismatch from the error code', () => {
+    expect(
+      Login.methods.getTranslatedMessage.call(
+        { $t: key => key },
+        'LOGIN.PATHORS.ACCOUNT_MISMATCH'
+      )
+    ).toBe('LOGIN.PATHORS.ACCOUNT_MISMATCH');
   });
 });
