@@ -280,6 +280,9 @@ en:
       no_payment_method: No payment methods found. Please add a payment method before making a purchase.
     reports:
       date_range_too_long: Date range cannot exceed 6 months
+    pathors_login:
+      password_disabled: This inbox signs in with Pathors only. Sign in with your Pathors account instead.
+      email_managed_by_pathors: Your email address comes from your Pathors account. Change it in Pathors.
   profile:
     mfa:
       enabled: MFA enabled successfully

@@ -2,6 +2,7 @@ class DeviseOverrides::SessionsController < DeviseTokenAuth::SessionsController
   include MfaAuthenticationHelper
   include DeviceVerificationGuard
   include ImpersonationLogging
+  include PathorsLoginGuard
 
   # Prevent session parameter from being passed
   # Unpermitted parameter: session
@@ -17,6 +18,8 @@ class DeviseOverrides::SessionsController < DeviseTokenAuth::SessionsController
   end
 
   def create
+    # The one-time sso_auth_token (Pathors callback, super admin impersonation) is the only way in.
+    return render_pathors_login_only if Pathors::Login.enabled? && !sso_authentication_request?
     return handle_mfa_setup_verification if mfa_setup_verification_request?
     return handle_mfa_verification if mfa_verification_request?
     return handle_sso_authentication if sso_authentication_request?

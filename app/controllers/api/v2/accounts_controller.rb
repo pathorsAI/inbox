@@ -1,9 +1,11 @@
 class Api::V2::AccountsController < Api::BaseController
   include AuthHelper
   include MfaEnforcementGuard
+  include PathorsLoginGuard
 
   skip_before_action :authenticate_user!, :set_current_user, :handle_with_exception,
                      only: [:create], raise: false
+  before_action :refuse_password_signup_for_pathors_login, only: [:create]
   before_action :check_signup_enabled, only: [:create]
   before_action :validate_captcha, only: [:create]
   before_action :check_user_mfa_enforcement, if: :authenticate_by_access_token?, only: [:create]
