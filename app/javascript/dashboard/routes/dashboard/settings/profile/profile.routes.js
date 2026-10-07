@@ -1,5 +1,5 @@
 import { frontendURL } from '../../../../helper/URLHelper';
-import { parseBoolean } from '@chatwoot/utils';
+import { isProfileMfaAvailable } from 'shared/helpers/pathorsLogin';
 
 import SettingsWrapper from '../SettingsWrapper.vue';
 import Index from './Index.vue';
@@ -31,9 +31,7 @@ export default {
             permissions: ['administrator', 'agent', 'custom_role'],
           },
           beforeEnter: (to, from, next) => {
-            // Check if MFA is enabled globally
-            if (!parseBoolean(window.chatwootConfig?.isMfaEnabled)) {
-              // Redirect to profile settings if MFA is disabled
+            if (!isProfileMfaAvailable()) {
               next({ name: 'profile_settings_index' });
             } else {
               next();
