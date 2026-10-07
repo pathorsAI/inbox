@@ -226,7 +226,13 @@ class User < ApplicationRecord
   end
 
   def mfa_enforcement_pending?
-    !mfa_enabled? && mfa_enforced?
+    !mfa_enabled? && !mfa_enforcement_exempt? && mfa_enforced?
+  end
+
+  # Pathors owns the second factor of people who sign in through it, and its
+  # system users call the API with a token and cannot enrol a TOTP.
+  def mfa_enforcement_exempt?
+    pathors_uid.present? || Pathors::Login.system_user?(self)
   end
 
   # Workaround for Devise 4.9.x race condition vulnerability (GHSA-57hq-95w6-v4fc).
