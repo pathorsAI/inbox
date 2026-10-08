@@ -26,6 +26,9 @@ class Api::V1::Accounts::Pathors::CallsController < Api::V1::Accounts::BaseContr
   # of the conversation list. Voice conversations sit in `pending` under the
   # Pathors bot, so the regular list never shows a call the AI is handling.
   def active
+    # A call that lost its end webhook would otherwise stay pinned forever, and
+    # this list is where it shows, so it is ended the moment anyone looks.
+    account_calls.pathors.stale.find_each(&:expire!)
     @calls = account_calls.pathors.active.where(conversation_id: accessible_conversations)
                           .includes(:contact, :inbox, :conversation, :accepted_by_agent).order(:started_at)
   end

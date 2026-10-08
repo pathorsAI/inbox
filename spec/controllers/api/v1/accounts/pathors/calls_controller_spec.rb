@@ -1160,6 +1160,19 @@ RSpec.describe 'Pathors Calls API', type: :request do
         expect(ids).to eq([ringing_call.id, live_call.id, other_inbox_call.id])
       end
 
+      it 'ends a call still live past the maximum duration instead of listing it' do
+        message = create(:message, account: account, conversation: conversation, inbox: conversation.inbox,
+                                   content_type: :voice_call, updated_at: 3.hours.ago)
+        stale_call = create(:call, :pathors, account: account, conversation: conversation, inbox: conversation.inbox,
+                                             contact: conversation.contact, message: message, started_at: 3.hours.ago)
+
+        get active_url, headers: admin.create_new_auth_token, as: :json
+
+        expect(response.parsed_body['payload'].pluck('id')).not_to include(stale_call.id)
+        expect(stale_call.reload).to have_attributes(status: 'completed', end_reason: 'stale', ended_at: nil)
+        expect(message.reload.updated_at).to be > 1.minute.ago
+      end
+
       it 'carries what the list row and the bubble need, transcript included' do
         get active_url, headers: admin.create_new_auth_token, as: :json
 

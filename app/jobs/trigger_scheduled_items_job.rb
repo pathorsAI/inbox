@@ -22,9 +22,6 @@ class TriggerScheduledItemsJob < ApplicationJob
 
     # Job to trigger pending executions
     AutomationRules::TriggerPendingExecutionsJob.perform_later
-
-    # Job to end Pathors calls whose end webhook never arrived
-    Pathors::ExpireStaleCallsJob.perform_later
   end
 end
 
