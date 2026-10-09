@@ -1,4 +1,8 @@
-import { validateRouteAccess, isOnOnboardingView } from '../RouteHelper';
+import {
+  validateAuthRouteAccess,
+  validateRouteAccess,
+  isOnOnboardingView,
+} from '../RouteHelper';
 import { clearBrowserSessionCookies } from 'dashboard/store/utils/api';
 import { replaceRouteWithReload } from '../CommonHelper';
 import Cookies from 'js-cookie';
@@ -183,6 +187,14 @@ describe('#validateRouteAccess', () => {
     expect(next).toHaveBeenCalledWith();
   });
 
+  it('continues to the route in every other case', () => {
+    validateRouteAccess({ name: 'reset_password' }, next);
+    expect(clearBrowserSessionCookies).not.toHaveBeenCalled();
+    expect(next).toHaveBeenCalledWith();
+  });
+});
+
+describe('#validateAuthRouteAccess', () => {
   it.each([
     ['auth_signup', { requireSignupEnabled: true }],
     ['auth_reset_password', undefined],
@@ -190,7 +202,7 @@ describe('#validateRouteAccess', () => {
     ['sso_login', { requireEnterprise: true }],
   ])('sends %s to the login page when Pathors login is on', (name, meta) => {
     next.mockClear();
-    validateRouteAccess({ name, meta, query: {} }, next, {
+    validateAuthRouteAccess({ name, meta, query: {} }, next, {
       pathorsLoginEnabled: 'true',
       signupEnabled: 'true',
       isEnterprise: 'true',
@@ -200,7 +212,7 @@ describe('#validateRouteAccess', () => {
 
   it('keeps password reset reachable when Pathors login is off', () => {
     next.mockClear();
-    validateRouteAccess(
+    validateAuthRouteAccess(
       { name: 'auth_password_edit', meta: { ignoreSession: true } },
       next,
       { pathorsLoginEnabled: 'false' }
@@ -210,7 +222,7 @@ describe('#validateRouteAccess', () => {
 
   it('lets the Pathors SSO return reach the login page', () => {
     next.mockClear();
-    validateRouteAccess(
+    validateAuthRouteAccess(
       {
         name: 'login',
         query: { sso_auth_token: 'token', email: 'agent@example.com' },
@@ -218,12 +230,6 @@ describe('#validateRouteAccess', () => {
       next,
       { pathorsLoginEnabled: 'true' }
     );
-    expect(next).toHaveBeenCalledWith();
-  });
-
-  it('continues to the route in every other case', () => {
-    validateRouteAccess({ name: 'reset_password' }, next);
-    expect(clearBrowserSessionCookies).not.toHaveBeenCalled();
     expect(next).toHaveBeenCalledWith();
   });
 });

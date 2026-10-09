@@ -2,7 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router';
 
 import routes from './routes';
 import AnalyticsHelper from 'dashboard/helper/AnalyticsHelper';
-import { validateRouteAccess } from '../helpers/RouteHelper';
+import { validateAuthRouteAccess } from '../helpers/RouteHelper';
 
 export const router = createRouter({ history: createWebHistory(), routes });
 
@@ -17,7 +17,7 @@ export const initalizeRouter = () => {
       });
     }
 
-    return validateRouteAccess(to, next, window.chatwootConfig);
+    return validateAuthRouteAccess(to, next, window.chatwootConfig);
   });
 };
 
