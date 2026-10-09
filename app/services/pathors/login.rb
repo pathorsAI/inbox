@@ -7,6 +7,9 @@ module Pathors::Login
   # Pathors' per-account admin users, which call the API with an access token
   # and cannot enrol a TOTP. Must match the address Pathors generates in
   # packages/shared/src/integrations/chatwoot-admin-credentials.ts (pathorsAI/pathors).
+  # This is a security boundary (it exempts the user from enforced MFA) that relies on
+  # Pathors alone controlling the inbox.pathors.com mailbox domain; Pathors login also
+  # refuses to link or create users with these addresses.
   SYSTEM_USER_EMAIL = /\Asystem\+acct\d+@inbox\.pathors\.com\z/i
 
   module_function
