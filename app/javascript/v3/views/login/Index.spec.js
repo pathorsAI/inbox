@@ -160,7 +160,7 @@ describe('login methods', () => {
 
   it('offers only the Pathors button when Pathors login is the allowed method', () => {
     window.chatwootConfig = {
-      allowedLoginMethods: ['pathors'],
+      allowedLoginMethods: ['pathors', 'saml'],
       signupEnabled: 'true',
     };
 
@@ -173,6 +173,8 @@ describe('login methods', () => {
     expect(wrapper.find('[data-testid="password_input"]').exists()).toBe(false);
     expect(wrapper.text()).not.toContain('LOGIN.FORGOT_PASSWORD');
     expect(wrapper.text()).not.toContain('LOGIN.CREATE_NEW_ACCOUNT');
+    expect(wrapper.text()).not.toContain('LOGIN.SAML.LABEL');
+    expect(wrapper.text()).not.toContain('COMMON.OR');
     expect(
       wrapper.find('form[data-testid="pathors-login"]').attributes('action')
     ).toBe('/omniauth/pathors?redirect_url=settings%2Fbilling');

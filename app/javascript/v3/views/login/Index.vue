@@ -137,6 +137,7 @@ export default {
         : route;
     },
     showSamlLogin() {
+      if (this.showPathorsLogin) return false;
       return this.allowedLoginMethods.includes('saml');
     },
     samlLoginRoute() {
@@ -472,82 +473,84 @@ export default {
       :class="{ 'animate-wiggle': loginApi.hasErrored }"
     >
       <div v-if="!email">
-        <PathorsLoginButton
-          v-if="showPathorsLogin"
-          :redirect-url="redirectUrl"
-          :sso-account-id="ssoAccountId"
-          :sso-conversation-id="ssoConversationId"
-          :sso-route-path="ssoRoutePath"
-        />
-        <template v-else>
-          <div class="flex flex-col gap-4">
-            <div v-if="showSamlLogin" class="text-center">
-              <router-link
-                :to="samlLoginRoute"
-                class="inline-flex justify-center w-full px-4 py-3 items-center bg-n-background dark:bg-n-solid-3 rounded-md shadow-sm ring-1 ring-inset ring-n-container dark:ring-n-container focus:outline-offset-0 hover:bg-n-alpha-2 dark:hover:bg-n-alpha-2"
-              >
-                <Icon
-                  icon="i-lucide-lock-keyhole"
-                  class="size-5 text-n-slate-11"
-                />
-                <span class="ml-2 text-base font-medium text-n-slate-12">
-                  {{ $t('LOGIN.SAML.LABEL') }}
-                </span>
-              </router-link>
-            </div>
-            <SimpleDivider
-              v-if="showSamlLogin"
-              :label="$t('COMMON.OR')"
-              class="uppercase"
-            />
-          </div>
-          <form class="space-y-5" @submit.prevent="submitFormLogin">
-            <FormInput
-              v-model="credentials.email"
-              name="email_address"
-              type="text"
-              data-testid="email_input"
-              :tabindex="1"
-              required
-              :label="$t('LOGIN.EMAIL.LABEL')"
-              :placeholder="$t('LOGIN.EMAIL.PLACEHOLDER')"
-              :has-error="v$.credentials.email.$error"
-              @input="v$.credentials.email.$touch"
-            />
-            <FormInput
-              v-model="credentials.password"
-              type="password"
-              name="password"
-              data-testid="password_input"
-              required
-              :tabindex="2"
-              :label="$t('LOGIN.PASSWORD.LABEL')"
-              :placeholder="$t('LOGIN.PASSWORD.PLACEHOLDER')"
-              :has-error="v$.credentials.password.$error"
-              @input="v$.credentials.password.$touch"
+        <div class="flex flex-col gap-4">
+          <PathorsLoginButton
+            v-if="showPathorsLogin"
+            :redirect-url="redirectUrl"
+            :sso-account-id="ssoAccountId"
+            :sso-conversation-id="ssoConversationId"
+            :sso-route-path="ssoRoutePath"
+          />
+          <div v-if="showSamlLogin" class="text-center">
+            <router-link
+              :to="samlLoginRoute"
+              class="inline-flex justify-center w-full px-4 py-3 items-center bg-n-background dark:bg-n-solid-3 rounded-md shadow-sm ring-1 ring-inset ring-n-container dark:ring-n-container focus:outline-offset-0 hover:bg-n-alpha-2 dark:hover:bg-n-alpha-2"
             >
-              <p v-if="!globalConfig.disableUserProfileUpdate">
-                <router-link
-                  :to="resetPasswordRoute"
-                  class="text-sm text-link"
-                  tabindex="4"
-                >
-                  {{ $t('LOGIN.FORGOT_PASSWORD') }}
-                </router-link>
-              </p>
-            </FormInput>
-            <NextButton
-              lg
-              type="submit"
-              data-testid="submit_button"
-              class="w-full"
-              :tabindex="3"
-              :label="$t('LOGIN.SUBMIT')"
-              :disabled="loginApi.showLoading"
-              :is-loading="loginApi.showLoading"
-            />
-          </form>
-        </template>
+              <Icon
+                icon="i-lucide-lock-keyhole"
+                class="size-5 text-n-slate-11"
+              />
+              <span class="ml-2 text-base font-medium text-n-slate-12">
+                {{ $t('LOGIN.SAML.LABEL') }}
+              </span>
+            </router-link>
+          </div>
+          <SimpleDivider
+            v-if="showSamlLogin"
+            :label="$t('COMMON.OR')"
+            class="uppercase"
+          />
+        </div>
+        <form
+          v-if="!showPathorsLogin"
+          class="space-y-5"
+          @submit.prevent="submitFormLogin"
+        >
+          <FormInput
+            v-model="credentials.email"
+            name="email_address"
+            type="text"
+            data-testid="email_input"
+            :tabindex="1"
+            required
+            :label="$t('LOGIN.EMAIL.LABEL')"
+            :placeholder="$t('LOGIN.EMAIL.PLACEHOLDER')"
+            :has-error="v$.credentials.email.$error"
+            @input="v$.credentials.email.$touch"
+          />
+          <FormInput
+            v-model="credentials.password"
+            type="password"
+            name="password"
+            data-testid="password_input"
+            required
+            :tabindex="2"
+            :label="$t('LOGIN.PASSWORD.LABEL')"
+            :placeholder="$t('LOGIN.PASSWORD.PLACEHOLDER')"
+            :has-error="v$.credentials.password.$error"
+            @input="v$.credentials.password.$touch"
+          >
+            <p v-if="!globalConfig.disableUserProfileUpdate">
+              <router-link
+                :to="resetPasswordRoute"
+                class="text-sm text-link"
+                tabindex="4"
+              >
+                {{ $t('LOGIN.FORGOT_PASSWORD') }}
+              </router-link>
+            </p>
+          </FormInput>
+          <NextButton
+            lg
+            type="submit"
+            data-testid="submit_button"
+            class="w-full"
+            :tabindex="3"
+            :label="$t('LOGIN.SUBMIT')"
+            :disabled="loginApi.showLoading"
+            :is-loading="loginApi.showLoading"
+          />
+        </form>
       </div>
       <div v-else class="flex items-center justify-center">
         <Spinner color-scheme="primary" size="" />
