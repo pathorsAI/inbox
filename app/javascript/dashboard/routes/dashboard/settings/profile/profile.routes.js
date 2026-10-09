@@ -31,10 +31,10 @@ export default {
             permissions: ['administrator', 'agent', 'custom_role'],
           },
           beforeEnter: (to, from, next) => {
-            if (!isProfileMfaAvailable()) {
-              next({ name: 'profile_settings_index' });
-            } else {
+            if (isProfileMfaAvailable()) {
               next();
+            } else {
+              next({ name: 'profile_settings_index' });
             }
           },
         },

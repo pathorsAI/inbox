@@ -15,7 +15,7 @@ const store = useStore();
 const isOnChatwootCloud = useMapGetter('globalConfig/isOnChatwootCloud');
 const currentUser = useMapGetter('getCurrentUser');
 
-const canCreateAccount = window.chatwootConfig?.signupEnabled === 'true';
+const canCreateAccount = globalThis.chatwootConfig?.signupEnabled === 'true';
 const accountName = ref('');
 const isCreating = ref(false);
 
@@ -37,7 +37,7 @@ const createAccount = async () => {
     const accountId = await store.dispatch('accounts/create', {
       account_name: accountName.value.trim(),
     });
-    window.location = `/app/accounts/${accountId}/dashboard`;
+    globalThis.location = `/app/accounts/${accountId}/dashboard`;
   } catch (error) {
     isCreating.value = false;
     useAlert(
