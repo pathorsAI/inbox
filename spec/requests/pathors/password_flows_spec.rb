@@ -26,6 +26,18 @@ RSpec.describe 'Password flows under Pathors login', type: :request do
     expect(response.parsed_body.dig('data', 'email')).to eq('agent@example.com')
   end
 
+  it 'answers a stale sso_auth_token with bad credentials, not the Pathors-only refusal' do
+    token = user.generate_sso_auth_token
+    user.invalidate_sso_auth_token(token)
+
+    post user_session_path, params: { email: user.email, sso_auth_token: token }, as: :json
+    expect(response).to have_http_status(:unauthorized)
+
+    post user_session_path, params: { email: user.email, sso_auth_token: 'unknown', password: 'Password1!' }, as: :json
+    expect(response).to have_http_status(:unauthorized)
+    expect(response.headers['access-token']).to be_nil
+  end
+
   it 'refuses password reset requests and resets' do
     post user_password_path, params: { email: user.email }, as: :json
     expect(response).to have_http_status(:forbidden)
