@@ -17,7 +17,7 @@ export const initalizeRouter = () => {
       });
     }
 
-    return validateAuthRouteAccess(to, next, window.chatwootConfig);
+    return validateAuthRouteAccess(to, next, globalThis.chatwootConfig);
   });
 };
 
