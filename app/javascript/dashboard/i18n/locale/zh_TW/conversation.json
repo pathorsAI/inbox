@@ -1,5 +1,12 @@
 {
   "CONVERSATION": {
+    "REFERRAL": {
+      "AD_LABEL": "Ad",
+      "POST_LABEL": "Post",
+      "VIEW_AD": "View ad",
+      "WELCOME_MESSAGE_LABEL": "Pre-filled message: ",
+      "REPLIED_BELOW": "Customer replied below"
+    },
     "SELECT_A_CONVERSATION": "請從左側窗格選擇一個對話",
     "CSAT_REPLY_MESSAGE": "請為此對話評分",
     "404": "抱歉，找不到該對話。請再試一次",
@@ -67,6 +74,9 @@
     "UNSUPPORTED_MESSAGE_TIKTOK": "此訊息不受支援。您可以在 TikTok 應用程式中檢視此訊息。",
     "UNSUPPORTED_MESSAGE_WHATSAPP": "This message is unsupported. You can view this message on the WhatsApp app.",
     "WHATSAPP_FLOW_RESPONSE": "Submitted a flow response",
+    "WHATSAPP_REFERRAL": {
+      "AD": "Ad"
+    },
     "SUCCESS_DELETE_MESSAGE": "已成功刪除訊息",
     "FAIL_DELETE_MESSSAGE": "無法刪除訊息！請再試一次",
     "NO_RESPONSE": "無回應",
@@ -118,17 +128,17 @@
       "CALL_IN_PROGRESS": "通話中",
       "NO_ANSWER": "未接聽",
       "NO_ANSWER_OUTBOUND_LABEL": "未接聽",
-      "NO_ANSWER_OUTBOUND_SUBTEXT": "Contact didn't pick up",
+      "NO_ANSWER_OUTBOUND_SUBTEXT": "對方未接聽",
       "MISSED_CALL": "未接來電",
-      "MISSED_CALL_INBOUND_SUBTEXT": "No agent picked up",
-      "MISSED_CALL_DECLINED_BY": "Declined by {agentName}",
+      "MISSED_CALL_INBOUND_SUBTEXT": "沒有專員接聽",
+      "MISSED_CALL_DECLINED_BY": "{agentName} 已拒接",
       "CALL_ENDED": "通話結束",
-      "HANDLED_BY": "Handled by {agentName}",
+      "HANDLED_BY": "由 {agentName} 接聽",
       "NOT_ANSWERED_YET": "尚未接聽",
-      "CALLING": "Calling…",
+      "CALLING": "撥號中…",
       "THEY_ANSWERED": "對方已接聽",
       "YOU_ANSWERED": "您已接聽",
-      "AGENT_ANSWERED": "{agentName} answered",
+      "AGENT_ANSWERED": "{agentName} 已接聽",
       "JOIN_CALL": "加入通話",
       "TAKE_OVER_CALL": "接手通話",
       "HANGUP_CALL": "結束通話",
@@ -138,9 +148,9 @@
       "JOIN_FAILED": "無法加入通話",
       "HANGUP_FAILED": "無法結束通話，您仍在通話中",
       "ENABLE_AUDIO": "點此開啟通話聲音",
-      "CALL_BACK": "Call back",
-      "TRANSCRIPT_SHOW_MORE": "Show more",
-      "TRANSCRIPT_SHOW_LESS": "Show less",
+      "CALL_BACK": "回撥",
+      "TRANSCRIPT_SHOW_MORE": "顯示更多",
+      "TRANSCRIPT_SHOW_LESS": "顯示較少",
       "LIVE": {
         "STAT_DURATION": "通話時間",
         "STAT_TURNS": "輪數",
@@ -202,6 +212,34 @@
     "MENTION": {
       "AGENTS": "客服人員",
       "TEAMS": "團隊"
+    },
+    "PICKER": {
+      "VARIABLE": {
+        "SEARCH_PLACEHOLDER": "Search variables",
+        "DESCRIPTION": "描述",
+        "VALUE": "Value",
+        "NO_VALUE": "No value for this conversation"
+      },
+      "EMOJI": {
+        "SEARCH_PLACEHOLDER": "搜尋表情符號",
+        "EMPTY_STATE": "Type to search emojis"
+      },
+      "MACRO": {
+        "SEARCH_PLACEHOLDER": "搜尋巨集",
+        "ACTION_COUNT": "1 action | {count} actions"
+      },
+      "MENTION": {
+        "SEARCH_PLACEHOLDER": "Search agents and teams",
+        "FILTER": {
+          "ALL": "全部"
+        },
+        "AVAILABILITY": "上線狀態",
+        "ROLE": "角色",
+        "AUTO_ASSIGN": "Auto assign",
+        "ENABLED": "已啟用",
+        "DISABLED": "已停用",
+        "YOU_ARE_A_MEMBER": "You are a member of this team"
+      }
     },
     "CUSTOM_SNOOZE": {
       "TITLE": "延後至",

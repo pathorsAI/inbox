@@ -18,6 +18,30 @@ describe '/app/login', type: :request do
     end
   end
 
+  context 'with Pathors login configured' do
+    after { GlobalConfig.clear_cache }
+
+    it 'offers only the Pathors login method' do
+      GlobalConfig.clear_cache
+      with_modified_env PATHORS_LOGIN_CLIENT_ID: 'inbox-login', PATHORS_LOGIN_CLIENT_SECRET: 'secret' do
+        get '/app/login'
+      end
+
+      expect(response.body).to include('allowedLoginMethods: ["pathors"]')
+      expect(response.body).to include("pathorsLoginEnabled: 'true'")
+    end
+
+    it 'keeps password login without the client secret' do
+      GlobalConfig.clear_cache
+      with_modified_env PATHORS_LOGIN_CLIENT_ID: 'inbox-login' do
+        get '/app/login'
+      end
+
+      expect(response.body).to include('allowedLoginMethods: ["email"]')
+      expect(response.body).to include("pathorsLoginEnabled: 'false'")
+    end
+  end
+
   context 'with non-HTML format' do
     it 'returns not acceptable for JSON with error message' do
       get '/app/login', headers: { 'Accept' => 'application/json' }

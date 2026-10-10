@@ -154,6 +154,7 @@ class Conversation < ApplicationRecord
   before_create :ensure_waiting_since
   before_create :prioritize_vip_sender
   before_create :apply_sender_triage_labels
+  after_create :mark_contact_as_lead
 
   after_update_commit :execute_after_update_commit_callbacks
   after_create_commit :notify_conversation_creation
@@ -205,6 +206,10 @@ class Conversation < ApplicationRecord
   end
 
   def bot_handoff!(dispatch_event: true)
+    # Best-effort eligibility check, not a lock against concurrent takeovers.
+    # The dashboard checks assignment/status again before playing the alert.
+    return false unless pending?
+
     update(waiting_since: Time.current) if waiting_since.blank?
     self.ai_assignee = nil
     open!
@@ -316,6 +321,10 @@ class Conversation < ApplicationRecord
 
   def ensure_waiting_since
     self.waiting_since = created_at
+  end
+
+  def mark_contact_as_lead
+    contact.update(contact_type: :lead) if contact.visitor?
   end
 
   def validate_additional_attributes

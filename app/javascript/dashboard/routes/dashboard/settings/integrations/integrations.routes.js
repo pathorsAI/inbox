@@ -1,5 +1,6 @@
 import { FEATURE_FLAGS } from '../../../../featureFlags';
 import { frontendURL } from '../../../../helper/URLHelper';
+import store from 'dashboard/store';
 import SettingsWrapper from '../SettingsWrapper.vue';
 import IntegrationHooks from './IntegrationHooks.vue';
 import Index from './Index.vue';
@@ -11,6 +12,28 @@ import Linear from './Linear.vue';
 import Notion from './Notion.vue';
 import Shopify from './Shopify.vue';
 import Github from './Github.vue';
+
+export const redirectShopifyIfUnavailable = async (to, _from, next) => {
+  const accountId = Number(to.params.accountId);
+  const account = store.getters['accounts/getAccount'](accountId);
+  if (!account.id) {
+    await store.dispatch('accounts/get', { accountId, silent: true });
+  }
+
+  const isShopifyEnabled = store.getters['accounts/isFeatureEnabledonAccount'](
+    accountId,
+    FEATURE_FLAGS.SHOPIFY
+  );
+
+  next(
+    isShopifyEnabled
+      ? undefined
+      : {
+          name: 'settings_applications',
+          params: { accountId: to.params.accountId },
+        }
+  );
+};
 
 export default {
   routes: [
@@ -95,9 +118,10 @@ export default {
           name: 'settings_integrations_shopify',
           component: Shopify,
           meta: {
-            featureFlag: FEATURE_FLAGS.INTEGRATIONS,
+            featureFlag: FEATURE_FLAGS.SHOPIFY,
             permissions: ['administrator'],
           },
+          beforeEnter: redirectShopifyIfUnavailable,
           props: route => ({ error: route.query.error }),
         },
         {

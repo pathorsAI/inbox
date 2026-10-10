@@ -68,6 +68,22 @@ RSpec.describe 'Devise::Mailer' do
         expect(mail.body).to include('app/auth/password/edit?reset_password_token')
         expect(mail.body).not_to include('app/auth/confirmation')
       end
+
+      context 'with Pathors login configured' do
+        around do |example|
+          GlobalConfig.clear_cache
+          with_modified_env(PATHORS_LOGIN_CLIENT_ID: 'inbox-login', PATHORS_LOGIN_CLIENT_SECRET: 'secret') { example.run }
+          GlobalConfig.clear_cache
+        end
+
+        it 'sends the invitee to the login page instead of a password form' do
+          expect(mail_body).to include('Accept invitation')
+          expect(mail_body).to include("Sign in with your Pathors account using #{confirmable_user.email} to start collaborating with your team.")
+          expect(mail.body).to include('/app/login')
+          expect(mail.body).not_to include('reset_password_token')
+          expect(confirmable_user.reload.reset_password_token).to be_nil
+        end
+      end
     end
 
     context 'when user updates the email' do

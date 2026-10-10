@@ -1,4 +1,5 @@
 export const SESSION_STORAGE_KEYS = {
   IMPERSONATION_USER: 'impersonationUser',
   LOGIN_RETURN_PATH: 'loginReturnPath',
+  REPLY_BOX_COLLAPSED: 'replyBoxCollapsed',
 };

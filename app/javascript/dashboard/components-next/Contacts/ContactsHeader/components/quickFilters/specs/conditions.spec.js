@@ -146,6 +146,7 @@ describe('quick filter conditions', () => {
             attribute_key: 'last_activity_at',
             filter_operator: 'is_greater_than',
             values: ['2026-09-23'],
+            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
           },
         ],
       ],

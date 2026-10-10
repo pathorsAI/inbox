@@ -65,7 +65,7 @@ class User < ApplicationRecord
          :confirmable,
          :password_has_required_content,
          :two_factor_authenticatable,
-         :omniauthable, omniauth_providers: [:google_oauth2, :saml]
+         :omniauthable, omniauth_providers: [:pathors, :saml]
 
   # TODO: remove in a future version once online status is moved to account users
   # remove the column availability from users
@@ -128,8 +128,34 @@ class User < ApplicationRecord
   end
 
   def send_devise_notification(notification, *)
-    devise_mailer.with(account: Current.account).send(notification, self, *).deliver_later
+    mailer_params = { account: Current.account }
+    mailer_params[:redirect_url] = @confirmation_redirect_url if notification == :confirmation_instructions && @confirmation_redirect_url.present?
+    devise_mailer.with(mailer_params).send(notification, self, *).deliver_later
   end
+
+  def send_confirmation_instructions_with_redirect(redirect_url:)
+    @confirmation_redirect_url = redirect_url
+    send_confirmation_instructions
+  ensure
+    @confirmation_redirect_url = nil
+  end
+
+  def send_reset_password_instructions(redirect_url: nil, sso_account_id: nil)
+    @reset_password_account_id = sso_account_id
+    @reset_password_redirect_url = redirect_url
+    super()
+  ensure
+    @reset_password_account_id = nil
+    @reset_password_redirect_url = nil
+  end
+
+  def send_reset_password_instructions_notification(token)
+    devise_mailer
+      .with(account: Current.account, redirect_url: @reset_password_redirect_url, sso_account_id: @reset_password_account_id)
+      .reset_password_instructions(self, token)
+      .deliver_later
+  end
+  private :send_reset_password_instructions_notification
 
   def set_password_and_uid
     self.uid = email
@@ -193,6 +219,21 @@ class User < ApplicationRecord
 
   def mfa_feature_available?
     Chatwoot.mfa_enabled?
+  end
+
+  def mfa_enforced?
+    mfa_feature_available? && accounts.any?(&:enforce_mfa?)
+  end
+
+  def mfa_enforcement_pending?
+    !mfa_enabled? && !mfa_enforcement_exempt? && mfa_enforced?
+  end
+
+  # Pathors owns the second factor of people who sign in through it, but only
+  # while the switch is on: with it off they sign in with a password again.
+  # Its system users call the API with a token and cannot enrol a TOTP.
+  def mfa_enforcement_exempt?
+    (Pathors::Login.enabled? && pathors_uid.present?) || Pathors::Login.system_user?(self)
   end
 
   # Workaround for Devise 4.9.x race condition vulnerability (GHSA-57hq-95w6-v4fc).
