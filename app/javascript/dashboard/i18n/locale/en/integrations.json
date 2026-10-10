@@ -119,6 +119,56 @@
       },
       "LIST_SEPARATOR": ", "
     },
+    "GITHUB": {
+      "HEADER": "GitHub",
+      "DELETE": {
+        "TITLE": "Disconnect GitHub?",
+        "MESSAGE": "Agents will stop opening GitHub issues from conversations. Issues that were already opened stay on GitHub."
+      },
+      "FORM": {
+        "TITLE": "Repository for new issues",
+        "DESCRIPTION": "Issues opened from conversations are created in this repository."
+      },
+      "REPOSITORY": {
+        "LABEL": "Repository",
+        "PLACEHOLDER": "Select a repository",
+        "SEARCH_PLACEHOLDER": "Search repositories",
+        "LOADING": "Loading repositories...",
+        "HELP": "Only repositories the GitHub App can access are listed.",
+        "EMPTY": "The GitHub App can't access any repositories yet. Grant it access to a repository on GitHub, then reload this page.",
+        "NO_MATCH": "No repositories match your search",
+        "LOAD_ERROR": "Couldn't load repositories from GitHub. Try again in a moment."
+      },
+      "LABEL": {
+        "LABEL": "Issue label",
+        "PLACEHOLDER": "e.g. support",
+        "HELP": "Optional. Added to every issue opened from a conversation."
+      },
+      "SAVE": "Save",
+      "CANCEL": "Cancel",
+      "CHANGE": "Change",
+      "UPDATE_SUCCESS": "GitHub settings saved",
+      "UPDATE_ERROR": "Couldn't save the GitHub settings. Try again.",
+      "CONNECTED_SUCCESS": "GitHub connected",
+      "CONNECTED": {
+        "TITLE": "Where issues are opened",
+        "DESCRIPTION": "Issues opened from conversations are created in this repository.",
+        "REPOSITORY": "Repository",
+        "LABEL": "Label",
+        "NO_LABEL": "None"
+      },
+      "RECONNECT": {
+        "TITLE": "GitHub needs to be reconnected",
+        "DESCRIPTION": "The GitHub App was uninstalled, suspended, or lost access to the selected repository. Reconnect to resume opening issues.",
+        "BUTTON": "Reconnect GitHub"
+      },
+      "AWAITING_APPROVAL": "Waiting for your GitHub organization owner to approve the installation. You'll be able to pick a repository once they approve.",
+      "ERRORS": {
+        "INSTALLATION_NOT_VERIFIED": "The GitHub account you signed in with can't see that installation, so it wasn't connected. Install the app with an account that has access to it, or ask an organization owner to connect it.",
+        "CONNECTION_FAILED": "Something went wrong while connecting GitHub. Try connecting again.",
+        "STATE_EXPIRED": "The connect link expired before GitHub sent you back. The app may already be installed on GitHub; press Connect again to finish."
+      }
+    },
     "SHOPIFY": {
       "HEADER": "Shopify",
       "DELETE": {

@@ -47,7 +47,8 @@ FactoryBot.define do
 
     trait :github do
       app_id { 'github' }
-      settings { { 'access_token' => 'github_pat_token', 'repository' => 'pathorsAI/chatwoot' } }
+      reference_id { '4242' }
+      settings { { 'repository' => 'pathorsAI/chatwoot' } }
     end
 
     trait :shopify do

@@ -119,6 +119,56 @@
       },
       "LIST_SEPARATOR": "、"
     },
+    "GITHUB": {
+      "HEADER": "GitHub",
+      "DELETE": {
+        "TITLE": "要解除連接 GitHub 嗎？",
+        "MESSAGE": "客服人員將無法再從對話建立 GitHub Issue。已經建立的 Issue 會保留在 GitHub 上。"
+      },
+      "FORM": {
+        "TITLE": "新 Issue 要開在哪個儲存庫",
+        "DESCRIPTION": "從對話建立的 Issue 會開在這個儲存庫。"
+      },
+      "REPOSITORY": {
+        "LABEL": "儲存庫",
+        "PLACEHOLDER": "選擇儲存庫",
+        "SEARCH_PLACEHOLDER": "搜尋儲存庫",
+        "LOADING": "正在載入儲存庫...",
+        "HELP": "只會列出 GitHub App 有權限存取的儲存庫。",
+        "EMPTY": "GitHub App 目前無法存取任何儲存庫。請先到 GitHub 授權它存取至少一個儲存庫，再重新整理此頁面。",
+        "NO_MATCH": "找不到符合的儲存庫",
+        "LOAD_ERROR": "無法從 GitHub 載入儲存庫，請稍後再試。"
+      },
+      "LABEL": {
+        "LABEL": "Issue 標籤",
+        "PLACEHOLDER": "例如：support",
+        "HELP": "選填。從對話建立的每個 Issue 都會加上這個標籤。"
+      },
+      "SAVE": "儲存",
+      "CANCEL": "取消",
+      "CHANGE": "變更",
+      "UPDATE_SUCCESS": "已儲存 GitHub 設定",
+      "UPDATE_ERROR": "無法儲存 GitHub 設定，請再試一次。",
+      "CONNECTED_SUCCESS": "已連接 GitHub",
+      "CONNECTED": {
+        "TITLE": "Issue 建立位置",
+        "DESCRIPTION": "從對話建立的 Issue 會開在這個儲存庫。",
+        "REPOSITORY": "儲存庫",
+        "LABEL": "標籤",
+        "NO_LABEL": "無"
+      },
+      "RECONNECT": {
+        "TITLE": "需要重新連接 GitHub",
+        "DESCRIPTION": "GitHub App 已被解除安裝、已被暫停，或失去所選儲存庫的存取權限。重新連接後即可繼續建立 Issue。",
+        "BUTTON": "重新連接 GitHub"
+      },
+      "AWAITING_APPROVAL": "正在等待你的 GitHub 組織擁有者核准安裝。核准後，你就能在這裡選擇儲存庫。",
+      "ERRORS": {
+        "INSTALLATION_NOT_VERIFIED": "你登入的 GitHub 帳號看不到這個安裝，因此沒有完成連接。請改用有權限存取它的帳號安裝，或請組織擁有者來連接。",
+        "CONNECTION_FAILED": "連接 GitHub 時發生問題，請再試一次。",
+        "STATE_EXPIRED": "連接的連結在回到這裡之前就過期了。App 可能已經裝在 GitHub 上，再按一次「連接」就能完成。"
+      }
+    },
     "SHOPIFY": {
       "HEADER": "Shopify",
       "DELETE": {

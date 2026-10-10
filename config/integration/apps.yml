@@ -373,46 +373,21 @@ github:
   id: github
   logo: github.png
   i18n_key: github
-  action: /github
   hook_type: account
   allow_multiple_hooks: false
+  # The installation id lives in reference_id; GitHub tokens are minted per request and never stored.
   settings_json_schema:
     {
       'type': 'object',
       'properties':
         {
-          'access_token': { 'type': 'string' },
           'repository':
             { 'type': 'string', 'pattern': '^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$' },
           'label': { 'type': 'string' },
         },
-      'required': ['access_token', 'repository'],
+      'required': [],
       'additionalProperties': false,
     }
-  settings_form_schema:
-    [
-      {
-        'label': 'Personal Access Token',
-        'type': 'password',
-        'name': 'access_token',
-        'validation': 'required',
-        'help': 'A GitHub personal access token that is allowed to create issues in the repository below.',
-      },
-      {
-        'label': 'Repository',
-        'type': 'text',
-        'name': 'repository',
-        'validation': 'required',
-        'help': 'The repository issues are created in, in owner/repository format.',
-      },
-      {
-        'label': 'Label',
-        'type': 'text',
-        'name': 'label',
-        'validation': '',
-        'help': 'Optional. Applied to every issue this integration creates.',
-      },
-    ]
   visible_properties: ['repository', 'label']
 
 # Twenty CRM (fork). Links contacts to Twenty people, keeps both sides' blank

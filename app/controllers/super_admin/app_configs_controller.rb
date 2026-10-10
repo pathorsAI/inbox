@@ -52,7 +52,8 @@ class SuperAdmin::AppConfigsController < SuperAdmin::ApplicationController
     @config = params[:config] || 'general'
   end
 
-  def allowed_configs
+  # The page table is upstream's and grows with every integration; keeping it inline keeps upstream syncs clean.
+  def allowed_configs # rubocop:disable Metrics/MethodLength
     general_configs = GENERAL_CONFIGS + (ChatwootApp.chatwoot_cloud? ? META_INCIDENT_CONFIGS : [])
 
     mapping = {
@@ -62,6 +63,8 @@ class SuperAdmin::AppConfigsController < SuperAdmin::ApplicationController
       'microsoft' => %w[AZURE_APP_ID AZURE_APP_SECRET],
       'email' => %w[MAILER_INBOUND_EMAIL_DOMAIN ACCOUNT_EMAILS_LIMIT ACCOUNT_EMAILS_PLAN_LIMITS],
       'linear' => %w[LINEAR_CLIENT_ID LINEAR_CLIENT_SECRET],
+      'github' => %w[GITHUB_APP_ID GITHUB_APP_SLUG GITHUB_APP_CLIENT_ID GITHUB_APP_CLIENT_SECRET GITHUB_APP_PRIVATE_KEY
+                     GITHUB_APP_WEBHOOK_SECRET],
       'slack' => %w[SLACK_CLIENT_ID SLACK_CLIENT_SECRET SLACK_SIGNING_SECRET],
       'instagram' => %w[INSTAGRAM_APP_ID INSTAGRAM_APP_SECRET INSTAGRAM_VERIFY_TOKEN INSTAGRAM_API_VERSION ENABLE_INSTAGRAM_CHANNEL_HUMAN_AGENT],
       'tiktok' => %w[TIKTOK_APP_ID TIKTOK_APP_SECRET TIKTOK_API_VERSION],

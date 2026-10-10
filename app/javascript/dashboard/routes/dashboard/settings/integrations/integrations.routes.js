@@ -11,6 +11,7 @@ import Slack from './Slack.vue';
 import Linear from './Linear.vue';
 import Notion from './Notion.vue';
 import Shopify from './Shopify.vue';
+import Github from './Github.vue';
 
 export const redirectShopifyIfUnavailable = async (to, _from, next) => {
   const accountId = Number(to.params.accountId);
@@ -122,6 +123,22 @@ export default {
           },
           beforeEnter: redirectShopifyIfUnavailable,
           props: route => ({ error: route.query.error }),
+        },
+        {
+          path: 'github',
+          name: 'settings_integrations_github',
+          component: Github,
+          meta: {
+            featureFlag: FEATURE_FLAGS.INTEGRATIONS,
+            permissions: ['administrator'],
+          },
+          props: route => ({
+            setupAction: route.query.setup_action,
+            error: route.query.error,
+            code: route.query.code,
+            installationId: route.query.installation_id,
+            state: route.query.state,
+          }),
         },
         {
           path: ':integration_id',

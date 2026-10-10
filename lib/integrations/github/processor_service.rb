@@ -7,24 +7,36 @@ class Integrations::Github::ProcessorService
   include ::Rails.application.routes.url_helpers
 
   ISSUES_URL = 'https://api.github.com/repos/%<repository>s/issues'.freeze
-  API_VERSION = '2022-11-28'.freeze
   DESCRIPTION_LIMIT = 500
 
   pattr_initialize [:hook!, :event_name!, :event_data!]
 
   def perform
-    return unless event_name == 'ticket.created'
-    # The event can reach us more than once (job re-enqueue, replayed dispatch);
-    # a case that already has an issue must not get a second one.
-    return if conversation.additional_attributes['github_issue'].present?
+    return unless issue_wanted?
 
     response = create_issue
+    return hook.prompt_reauthorization! if access_lost?(response)
     return log_failure(response) unless response.success?
 
     record_issue(response.parsed_response)
+  rescue Integrations::Github::AppClient::AuthorizationError => e
+    Rails.logger.warn("GitHub installation #{hook.reference_id} refused hook #{hook.id}: #{e.message}")
+    hook.prompt_reauthorization!
   end
 
   private
+
+  def issue_wanted?
+    return false unless event_name == 'ticket.created'
+    # Not installed through the app yet (a hook left over from the old token
+    # setup), no repository picked, or GitHub already told us the installation
+    # is gone: nothing to do until an admin finishes the setup.
+    return false if hook.reference_id.blank? || settings[:repository].blank? || hook.reauthorization_required?
+
+    # The event can reach us more than once (job re-enqueue, replayed dispatch);
+    # a case that already has an issue must not get a second one.
+    conversation.additional_attributes['github_issue'].blank?
+  end
 
   def ticket
     event_data[:ticket]
@@ -42,13 +54,17 @@ class Integrations::Github::ProcessorService
     HTTParty.post(
       format(ISSUES_URL, repository: settings[:repository]),
       headers: {
-        'Authorization' => "Bearer #{settings[:access_token]}",
+        'Authorization' => "Bearer #{installation_token}",
         'Accept' => 'application/vnd.github+json',
-        'X-GitHub-Api-Version' => API_VERSION,
+        'X-GitHub-Api-Version' => Integrations::Github::AppClient::API_VERSION,
         'Content-Type' => 'application/json'
       },
       body: issue_payload.to_json
     )
+  end
+
+  def installation_token
+    Integrations::Github::AppClient.new.installation_token(hook.reference_id, repository: settings[:repository])
   end
 
   def issue_payload
@@ -99,6 +115,14 @@ class Integrations::Github::ProcessorService
       private: true,
       content: I18n.t('integration_apps.github.issue_created_note', url: issue['html_url'])
     )
+  end
+
+  # Uninstalled, suspended, or the repository left the installation. A 403 that
+  # carries rate-limit headers is throttling, which passes on its own.
+  def access_lost?(response)
+    return true if [401, 404].include?(response.code)
+
+    response.code == 403 && response.headers['retry-after'].blank? && response.headers['x-ratelimit-remaining'] != '0'
   end
 
   def log_failure(response)
