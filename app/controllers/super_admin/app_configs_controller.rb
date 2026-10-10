@@ -52,7 +52,8 @@ class SuperAdmin::AppConfigsController < SuperAdmin::ApplicationController
     @config = params[:config] || 'general'
   end
 
-  def allowed_configs
+  # The page table is upstream's and grows with every integration; keeping it inline keeps upstream syncs clean.
+  def allowed_configs # rubocop:disable Metrics/MethodLength
     general_configs = GENERAL_CONFIGS + (ChatwootApp.chatwoot_cloud? ? META_INCIDENT_CONFIGS : [])
 
     mapping = {
