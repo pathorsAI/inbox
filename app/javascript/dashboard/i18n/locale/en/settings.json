@@ -275,6 +275,12 @@
       "TITLE": "No account found",
       "MESSAGE_CLOUD": "You are not part of any accounts right now. If you think this is a mistake, please reach out to our support team.",
       "MESSAGE_SELF_HOSTED": "You are not part of any accounts right now. Please reach out to your administrator.",
+      "MESSAGE_PATHORS_INVITE": "You are not part of any accounts right now. Ask an administrator to invite you using {email}.",
+      "CREATE": {
+        "TITLE": "Create your account",
+        "MESSAGE": "You are not part of any accounts yet. Name your account to get started.",
+        "SUBMIT": "Create account"
+      },
       "LOGOUT": "Log out"
     }
   },

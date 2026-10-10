@@ -2,6 +2,7 @@ class DeviseOverrides::SessionsController < DeviseTokenAuth::SessionsController
   include MfaAuthenticationHelper
   include DeviceVerificationGuard
   include ImpersonationLogging
+  include PathorsLoginGuard
 
   # Prevent session parameter from being passed
   # Unpermitted parameter: session
@@ -17,6 +18,8 @@ class DeviseOverrides::SessionsController < DeviseTokenAuth::SessionsController
   end
 
   def create
+    # The one-time sso_auth_token (Pathors callback, super admin impersonation) is the only way in.
+    return refuse_non_sso_login if Pathors::Login.enabled? && !sso_authentication_request?
     return handle_mfa_setup_verification if mfa_setup_verification_request?
     return handle_mfa_verification if mfa_verification_request?
     return handle_sso_authentication if sso_authentication_request?
@@ -63,6 +66,14 @@ class DeviseOverrides::SessionsController < DeviseTokenAuth::SessionsController
 
   def sso_authentication_request?
     params[:sso_auth_token].present? && @resource.present?
+  end
+
+  # An expired or already used sso_auth_token is a failed Pathors sign in, not a
+  # password attempt, and must never fall through to the password check.
+  def refuse_non_sso_login
+    return render_create_error_bad_credentials if params[:sso_auth_token].present?
+
+    render_pathors_login_only
   end
 
   def handle_sso_authentication

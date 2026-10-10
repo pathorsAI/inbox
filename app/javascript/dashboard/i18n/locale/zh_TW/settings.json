@@ -271,6 +271,12 @@
       "TITLE": "找不到帳戶",
       "MESSAGE_CLOUD": "您目前未加入任何帳戶。若您認為這是一個錯誤，請聯繫我們的客服團隊。",
       "MESSAGE_SELF_HOSTED": "您目前未加入任何帳戶，請聯繫您的管理員。",
+      "MESSAGE_PATHORS_INVITE": "您目前未加入任何帳戶。請管理員使用 {email} 邀請您加入。",
+      "CREATE": {
+        "TITLE": "建立您的帳戶",
+        "MESSAGE": "您目前還沒有加入任何帳戶。替帳戶取個名稱就可以開始使用。",
+        "SUBMIT": "建立帳戶"
+      },
       "LOGOUT": "登出"
     }
   },

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_09_30_120000) do
+ActiveRecord::Schema[7.2].define(version: 2026_10_07_000000) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -1764,9 +1764,11 @@ ActiveRecord::Schema[7.2].define(version: 2026_09_30_120000) do
     t.boolean "otp_required_for_login", default: false
     t.text "otp_backup_codes"
     t.integer "device_trust_version", default: 0, null: false
+    t.string "pathors_uid"
     t.index ["email"], name: "index_users_on_email"
     t.index ["otp_required_for_login"], name: "index_users_on_otp_required_for_login"
     t.index ["otp_secret"], name: "index_users_on_otp_secret", unique: true
+    t.index ["pathors_uid"], name: "index_users_on_pathors_uid", unique: true, where: "(pathors_uid IS NOT NULL)"
     t.index ["pubsub_token"], name: "index_users_on_pubsub_token", unique: true
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
     t.index ["uid", "provider"], name: "index_users_on_uid_and_provider", unique: true

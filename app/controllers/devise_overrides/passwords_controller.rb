@@ -1,9 +1,11 @@
 class DeviseOverrides::PasswordsController < Devise::PasswordsController
   include AuthHelper
   include MfaAuthenticationHelper
+  include PathorsLoginGuard
 
   skip_before_action :require_no_authentication, raise: false
   skip_before_action :authenticate_user!, raise: false
+  before_action :refuse_password_flow_for_pathors_login
 
   def create
     unless params[:redirect_url].nil? || params[:redirect_url].is_a?(String)

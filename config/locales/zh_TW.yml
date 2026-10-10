@@ -230,6 +230,9 @@ zh_TW:
       no_payment_method: 找不到付款方式，請先新增付款方式再進行購買。
     reports:
       date_range_too_long: 日期範圍不能超過 6 個月
+    pathors_login:
+      password_disabled: 這個收件匣只能用 Pathors 登入，請改用您的 Pathors 帳號登入。
+      email_managed_by_pathors: 您的電子郵件來自 Pathors 帳號，請到 Pathors 修改。
   profile:
     mfa:
       enabled: MFA 啟用成功

@@ -65,7 +65,7 @@ class User < ApplicationRecord
          :confirmable,
          :password_has_required_content,
          :two_factor_authenticatable,
-         :omniauthable, omniauth_providers: [:google_oauth2, :saml]
+         :omniauthable, omniauth_providers: [:pathors, :saml]
 
   # TODO: remove in a future version once online status is moved to account users
   # remove the column availability from users
@@ -226,7 +226,14 @@ class User < ApplicationRecord
   end
 
   def mfa_enforcement_pending?
-    !mfa_enabled? && mfa_enforced?
+    !mfa_enabled? && !mfa_enforcement_exempt? && mfa_enforced?
+  end
+
+  # Pathors owns the second factor of people who sign in through it, but only
+  # while the switch is on: with it off they sign in with a password again.
+  # Its system users call the API with a token and cannot enrol a TOTP.
+  def mfa_enforcement_exempt?
+    (Pathors::Login.enabled? && pathors_uid.present?) || Pathors::Login.system_user?(self)
   end
 
   # Workaround for Devise 4.9.x race condition vulnerability (GHSA-57hq-95w6-v4fc).

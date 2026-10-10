@@ -4,6 +4,14 @@ import { getShopifyBillingRedirect, hasAuthCookie } from './AuthHelper';
 import { DEFAULT_REDIRECT_URL } from 'dashboard/constants/globals';
 import { replaceRouteWithReload } from './CommonHelper';
 import { rememberLoginReturnPath } from 'dashboard/helper/loginReturnPath';
+import { isPathorsLoginEnabled } from 'shared/helpers/pathorsLogin';
+
+const NON_PATHORS_AUTH_ROUTES = new Set([
+  'auth_signup',
+  'auth_reset_password',
+  'auth_password_edit',
+  'sso_login',
+]);
 
 const validateSSOLoginParams = to => {
   const isLoginRoute = to.name === 'login';
@@ -88,6 +96,18 @@ export const validateRouteAccess = (to, next, chatwootConfig = {}) => {
   }
 
   next();
+};
+
+// Wraps validateRouteAccess so the upstream function stays unedited.
+export const validateAuthRouteAccess = (to, next, chatwootConfig = {}) => {
+  if (
+    isPathorsLoginEnabled(chatwootConfig) &&
+    NON_PATHORS_AUTH_ROUTES.has(to.name)
+  ) {
+    next(frontendURL('login'));
+    return;
+  }
+  validateRouteAccess(to, next, chatwootConfig);
 };
 
 export const isOnOnboardingView = route => {

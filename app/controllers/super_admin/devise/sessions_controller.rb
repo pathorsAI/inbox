@@ -6,6 +6,10 @@ class SuperAdmin::Devise::SessionsController < Devise::SessionsController
   end
 
   def create
+    if SuperAdmin::SsoController.enabled?
+      return redirect_to(super_admin_session_path, flash: { error: 'Password sign-in is turned off. Sign in with single sign-on.' })
+    end
+
     redirect_to(super_admin_session_path, flash: { error: @error_message }) && return unless valid_credentials?
 
     sign_in(:super_admin, @super_admin)

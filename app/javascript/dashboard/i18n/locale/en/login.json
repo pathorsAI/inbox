@@ -21,6 +21,12 @@
       "NO_ACCOUNT_FOUND": "We couldn't find an account for your email address.",
       "SHOPIFY_INSTALLATION_FAILED": "We couldn't complete your Shopify installation. Please restart installation from Shopify."
     },
+    "PATHORS": {
+      "LOGIN": "Sign in with Pathors",
+      "EMAIL_UNVERIFIED": "Your Pathors account email is not verified yet. Verify it in Pathors, then sign in again.",
+      "ACCOUNT_MISMATCH": "This email is linked to a different Pathors account. Please contact your administrator.",
+      "LOGIN_FAILED": "We couldn't sign you in with Pathors. Please try again."
+    },
     "FORGOT_PASSWORD": "Forgot your password?",
     "CREATE_NEW_ACCOUNT": "Create a new account",
     "SUBMIT": "Login",

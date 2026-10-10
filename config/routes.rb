@@ -3,6 +3,7 @@ Rails.application.routes.draw do
   mount_devise_token_auth_for 'User', at: 'auth', controllers: {
     confirmations: 'devise_overrides/confirmations',
     passwords: 'devise_overrides/passwords',
+    registrations: 'devise_overrides/registrations',
     sessions: 'devise_overrides/sessions',
     token_validations: 'devise_overrides/token_validations',
     omniauth_callbacks: 'devise_overrides/omniauth_callbacks'
@@ -805,6 +806,8 @@ Rails.application.routes.draw do
   devise_for :super_admins, path: 'super_admin', controllers: { sessions: 'super_admin/devise/sessions' }
   devise_scope :super_admin do
     get 'super_admin/logout', to: 'super_admin/devise/sessions#destroy'
+    get 'super_admin/sso', to: 'super_admin/sso#new', as: :super_admin_sso
+    get 'super_admin/sso/callback', to: 'super_admin/sso#callback', as: :super_admin_sso_callback
     namespace :super_admin do
       root to: 'dashboard#index'
 

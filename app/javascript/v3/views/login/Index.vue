@@ -15,7 +15,7 @@ import { getLoginRedirectURL, getSignupRoute } from 'v3/helpers/AuthHelper';
 // components
 import SimpleDivider from '../../components/Divider/SimpleDivider.vue';
 import FormInput from '../../components/Form/Input.vue';
-import GoogleOAuthButton from '../../components/GoogleOauth/Button.vue';
+import PathorsLoginButton from '../../components/PathorsLogin/Button.vue';
 import Spinner from 'shared/components/Spinner.vue';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
 import NextButton from 'dashboard/components-next/button/Button.vue';
@@ -29,6 +29,9 @@ const ERROR_MESSAGES = {
   'shopify-installation-failed': 'LOGIN.OAUTH.SHOPIFY_INSTALLATION_FAILED',
   'saml-authentication-failed': 'LOGIN.SAML.API.ERROR_MESSAGE',
   'saml-not-enabled': 'LOGIN.SAML.API.ERROR_MESSAGE',
+  'pathors-email-unverified': 'LOGIN.PATHORS.EMAIL_UNVERIFIED',
+  'pathors-account-mismatch': 'LOGIN.PATHORS.ACCOUNT_MISMATCH',
+  'pathors-login-failed': 'LOGIN.PATHORS.LOGIN_FAILED',
 };
 
 const IMPERSONATION_URL_SEARCH_KEY = 'impersonation';
@@ -38,7 +41,7 @@ const AUTH_ERROR_TOAST_DURATION = 6000;
 export default {
   components: {
     FormInput,
-    GoogleOAuthButton,
+    PathorsLoginButton,
     Spinner,
     NextButton,
     SimpleDivider,
@@ -106,13 +109,11 @@ export default {
     allowedLoginMethods() {
       return window.chatwootConfig.allowedLoginMethods || ['email'];
     },
-    showGoogleOAuth() {
-      return (
-        this.allowedLoginMethods.includes('google_oauth') &&
-        Boolean(window.chatwootConfig.googleOAuthClientId)
-      );
+    showPathorsLogin() {
+      return this.allowedLoginMethods.includes('pathors');
     },
     showSignupLink() {
+      if (this.showPathorsLogin) return false;
       return (
         window.chatwootConfig.signupEnabled === 'true' ||
         Boolean(this.signupRoute.query?.shopify_pending_install)
@@ -136,6 +137,7 @@ export default {
         : route;
     },
     showSamlLogin() {
+      if (this.showPathorsLogin) return false;
       return this.allowedLoginMethods.includes('saml');
     },
     samlLoginRoute() {
@@ -185,6 +187,12 @@ export default {
           return this.$t('LOGIN.OAUTH.BUSINESS_ACCOUNTS_ONLY');
         case 'LOGIN.OAUTH.SHOPIFY_INSTALLATION_FAILED':
           return this.$t('LOGIN.OAUTH.SHOPIFY_INSTALLATION_FAILED');
+        case 'LOGIN.PATHORS.EMAIL_UNVERIFIED':
+          return this.$t('LOGIN.PATHORS.EMAIL_UNVERIFIED');
+        case 'LOGIN.PATHORS.ACCOUNT_MISMATCH':
+          return this.$t('LOGIN.PATHORS.ACCOUNT_MISMATCH');
+        case 'LOGIN.PATHORS.LOGIN_FAILED':
+          return this.$t('LOGIN.PATHORS.LOGIN_FAILED');
         case 'LOGIN.API.UNAUTH':
         default:
           return this.$t('LOGIN.API.UNAUTH');
@@ -461,18 +469,17 @@ export default {
     <!-- Regular Login Section -->
     <section
       v-else
-      class="bg-white shadow sm:mx-auto mt-11 sm:w-full sm:max-w-lg dark:bg-n-solid-2 p-11 sm:shadow-lg sm:rounded-lg"
-      :class="{
-        'mb-8 mt-15': !showGoogleOAuth,
-        'animate-wiggle': loginApi.hasErrored,
-      }"
+      class="mb-8 bg-white shadow sm:mx-auto mt-15 sm:w-full sm:max-w-lg dark:bg-n-solid-2 p-11 sm:shadow-lg sm:rounded-lg"
+      :class="{ 'animate-wiggle': loginApi.hasErrored }"
     >
       <div v-if="!email">
         <div class="flex flex-col gap-4">
-          <GoogleOAuthButton
-            v-if="showGoogleOAuth"
+          <PathorsLoginButton
+            v-if="showPathorsLogin"
             :redirect-url="redirectUrl"
             :sso-account-id="ssoAccountId"
+            :sso-conversation-id="ssoConversationId"
+            :sso-route-path="ssoRoutePath"
           />
           <div v-if="showSamlLogin" class="text-center">
             <router-link
@@ -489,12 +496,16 @@ export default {
             </router-link>
           </div>
           <SimpleDivider
-            v-if="showGoogleOAuth || showSamlLogin"
+            v-if="showSamlLogin"
             :label="$t('COMMON.OR')"
             class="uppercase"
           />
         </div>
-        <form class="space-y-5" @submit.prevent="submitFormLogin">
+        <form
+          v-if="!showPathorsLogin"
+          class="space-y-5"
+          @submit.prevent="submitFormLogin"
+        >
           <FormInput
             v-model="credentials.email"
             name="email_address"

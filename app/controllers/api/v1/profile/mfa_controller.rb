@@ -1,5 +1,9 @@
 class Api::V1::Profile::MfaController < Api::BaseController
+  include PathorsLoginGuard
+
   before_action :ensure_interactive_session
+  # Pathors owns the second factor for people who sign in through it.
+  before_action :refuse_password_flow_for_pathors_login, except: [:show]
   before_action :check_mfa_feature_available
   before_action :check_mfa_not_enforced, only: [:destroy]
   before_action :check_mfa_enabled, only: [:destroy, :backup_codes]

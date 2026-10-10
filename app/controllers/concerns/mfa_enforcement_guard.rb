@@ -18,7 +18,7 @@ module MfaEnforcementGuard
   end
 
   def mfa_enforcement_applies?(user)
-    user.is_a?(User) && !user.mfa_enabled? && user.provider != 'saml'
+    user.is_a?(User) && !user.mfa_enabled? && user.provider != 'saml' && !user.mfa_enforcement_exempt?
   end
 
   def render_mfa_enrollment_required

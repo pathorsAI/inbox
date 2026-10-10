@@ -49,6 +49,7 @@
         googleOAuthClientId: '<%= ENV.fetch('GOOGLE_OAUTH_CLIENT_ID', nil) %>',
         googleOAuthCallbackUrl: '<%= ENV.fetch('GOOGLE_OAUTH_CALLBACK_URL', nil) %>',
         allowedLoginMethods: <%= @global_config['ALLOWED_LOGIN_METHODS'].to_json.html_safe %>,
+        pathorsLoginEnabled: '<%= Pathors::Login.enabled? %>',
         fbApiVersion: '<%= @global_config['FACEBOOK_API_VERSION'] %>',
         fbLoginConfigId: '<%= @global_config['FACEBOOK_LOGIN_CONFIG_ID'] %>',
         whatsappAppId: '<%= @global_config['WHATSAPP_APP_ID'] %>',

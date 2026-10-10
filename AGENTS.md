@@ -94,6 +94,7 @@
   - Preserve product and brand names, OAuth scopes, API values, and other machine-readable identifiers unless an official localized form exists
   - When reviewing Crowdin syncs, verify protected terms remain unchanged. Add newly introduced product names, brand names, and machine-readable identifiers to the Crowdin glossary as non-translatable, and keep the glossary current
   - Backend i18n → `en.yml`, Frontend i18n → `en.json`
+  - In pathorsAI/inbox, zh_TW has no Crowdin sync: edit `zh_TW.yml` and `zh_TW/*.json` by hand alongside `en`, and do not flag those edits
 - **Frontend**:
   - Use `components-next/` for message bubbles (the rest is being deprecated)
 

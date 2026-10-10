@@ -107,8 +107,9 @@ class DashboardController < ActionController::Base
   end
 
   def allowed_login_methods
+    return ['pathors'] if Pathors::Login.enabled?
+
     methods = ['email']
-    methods << 'google_oauth' if GlobalConfigService.load('ENABLE_GOOGLE_OAUTH_LOGIN', 'true').to_s != 'false'
     methods << 'saml' if ChatwootHub.pricing_plan != 'community' && GlobalConfigService.load('ENABLE_SAML_SSO_LOGIN', 'true').to_s != 'false'
     methods
   end
