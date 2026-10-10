@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter, useRoute } from 'vue-router';
-import { parseBoolean } from '@chatwoot/utils';
+import { isProfileMfaAvailable } from 'shared/helpers/pathorsLogin';
 import mfaAPI from 'dashboard/api/mfa';
 import { useAlert } from 'dashboard/composables';
 import { emitter } from 'shared/helpers/mitt';
@@ -18,6 +18,7 @@ const route = useRoute();
 
 // State
 const mfaEnabled = ref(false);
+const mfaEnforced = ref(false);
 const backupCodesGenerated = ref(false);
 const showSetup = ref(false);
 const provisioningUri = ref('');
@@ -31,9 +32,7 @@ const managementActionsRef = ref(null);
 
 // Load MFA status on mount
 onMounted(async () => {
-  // Check if MFA is enabled globally
-  if (!parseBoolean(window.chatwootConfig?.isMfaEnabled)) {
-    // Redirect to profile settings if MFA is disabled
+  if (!isProfileMfaAvailable()) {
     router.push({
       name: 'profile_settings_index',
       params: {
@@ -46,6 +45,7 @@ onMounted(async () => {
   try {
     const response = await mfaAPI.get();
     mfaEnabled.value = response.data.enabled;
+    mfaEnforced.value = response.data.enforced;
     backupCodesGenerated.value = response.data.backup_codes_generated;
   } catch (error) {
     // Handle error silently
@@ -75,13 +75,26 @@ const startMfaSetup = async () => {
   }
 };
 
+// Complete MFA setup
+const completeMfaSetup = () => {
+  mfaEnabled.value = true;
+  backupCodesGenerated.value = true;
+  showSetup.value = false;
+  emitter.emit(BUS_EVENTS.MFA_STATE_CHANGED);
+  useAlert(t('MFA_SETTINGS.SETUP.SUCCESS'));
+};
+
 // Verify OTP code
 const verifyCode = async verificationCode => {
   try {
     const response = await mfaAPI.verify(verificationCode);
-    // Store backup codes returned from verification
+    // Store backup codes returned from verification; the wizard advances to
+    // the backup step when they arrive. Without fresh codes there is no
+    // backup step to show, so finish directly.
     if (response.data.backup_codes) {
       backupCodes.value = response.data.backup_codes;
+    } else {
+      completeMfaSetup();
     }
     return true;
   } catch (error) {
@@ -90,15 +103,6 @@ const verifyCode = async verificationCode => {
     );
     throw error;
   }
-};
-
-// Complete MFA setup
-const completeMfaSetup = () => {
-  mfaEnabled.value = true;
-  backupCodesGenerated.value = true;
-  showSetup.value = false;
-  emitter.emit(BUS_EVENTS.MFA_STATE_CHANGED);
-  useAlert(t('MFA_SETTINGS.SETUP.SUCCESS'));
 };
 
 // Cancel setup
@@ -169,6 +173,7 @@ const regenerateBackupCodes = async ({ otpCode }) => {
       <MfaManagementActions
         ref="managementActionsRef"
         :mfa-enabled="mfaEnabled"
+        :mfa-enforced="mfaEnforced"
         :backup-codes="backupCodes"
         @disable-mfa="disableMfa"
         @regenerate-backup-codes="regenerateBackupCodes"

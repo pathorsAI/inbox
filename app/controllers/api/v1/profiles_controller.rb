@@ -1,5 +1,12 @@
 class Api::V1::ProfilesController < Api::BaseController
+  include MfaEnforcementGuard
+  include PathorsLoginGuard
+
   before_action :set_user
+  # show leaks pubsub_token, which grants realtime access; the rest of the
+  # profile surface is equally off-limits to a token that MFA enforcement blocks.
+  before_action :check_user_mfa_enforcement, if: :authenticate_by_access_token?
+  before_action :refuse_pathors_managed_changes, only: [:update]
 
   def show; end
 
@@ -44,6 +51,15 @@ class Api::V1::ProfilesController < Api::BaseController
   end
 
   private
+
+  # The password is Pathors' and the email is the Pathors account's.
+  def refuse_pathors_managed_changes
+    return unless Pathors::Login.enabled?
+    return render_pathors_login_only if password_params[:password].present?
+
+    email = profile_params[:email]
+    render_pathors_login_only('errors.pathors_login.email_managed_by_pathors') if email.present? && !email.casecmp?(@user.email)
+  end
 
   def set_user
     @user = current_user

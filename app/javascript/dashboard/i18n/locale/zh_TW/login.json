@@ -17,8 +17,14 @@
     },
     "OAUTH": {
       "GOOGLE_LOGIN": "使用 Google 登入",
-      "BUSINESS_ACCOUNTS_ONLY": "請使用您的公司電子郵件地址登入",
+      "BUSINESS_ACCOUNTS_ONLY": "You can't create a new account with a personal email address. Please sign up using your work email.",
       "NO_ACCOUNT_FOUND": "找不到與您的電子郵件地址相關聯的帳戶。"
+    },
+    "PATHORS": {
+      "LOGIN": "用 Pathors 登入",
+      "EMAIL_UNVERIFIED": "您的 Pathors 帳號電子郵件尚未驗證。請先到 Pathors 完成驗證，再重新登入。",
+      "ACCOUNT_MISMATCH": "這個電子郵件已綁定到另一個 Pathors 帳號，請聯絡管理員。",
+      "LOGIN_FAILED": "無法透過 Pathors 登入，請再試一次。"
     },
     "FORGOT_PASSWORD": "忘記密碼了？",
     "CREATE_NEW_ACCOUNT": "建立新帳戶",

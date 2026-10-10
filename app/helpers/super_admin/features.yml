@@ -104,6 +104,12 @@ line:
   icon: 'icon-line-line'
 
 # ------- OAuth & Authentication ------- #
+pathors_login:
+  name: 'Pathors login'
+  description: 'Sign in to the inbox with a Pathors account only. Setting both values turns password login off'
+  enabled: true
+  icon: 'icon-lock-line'
+  config_key: 'pathors_login'
 google:
   name: 'Google'
   description: 'Configuration for setting up Google OAuth Integration'

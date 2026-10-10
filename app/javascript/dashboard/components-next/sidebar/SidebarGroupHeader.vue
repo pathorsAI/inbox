@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useRouter } from 'vue-router';
 import { useMapGetter } from 'dashboard/composables/store.js';
 import Icon from 'next/icon/Icon.vue';
 import SidebarUnreadBadge from './SidebarUnreadBadge.vue';
@@ -24,6 +25,7 @@ const emit = defineEmits(['toggle', 'activate']);
 
 const { t } = useI18n();
 
+const router = useRouter();
 const showBadge = useMapGetter(props.getterKeys.badge);
 const dynamicCount = useMapGetter(props.getterKeys.count);
 // An expandable group used to have no room for a number because its children
@@ -32,22 +34,32 @@ const dynamicCount = useMapGetter(props.getterKeys.count);
 const count = computed(() =>
   props.expandable ? props.badgeCount : dynamicCount.value
 );
+
+// A real link so Cmd/Ctrl-click opens it in a new tab; a plain click stays
+// in-app and lets the group decide where to go.
+const href = computed(() => (props.to ? router.resolve(props.to).href : null));
+
+const onClick = event => {
+  if (event.metaKey || event.altKey || event.ctrlKey || event.shiftKey) return;
+  event.preventDefault();
+  emit('activate');
+};
 </script>
 
 <template>
   <component
-    :is="to ? 'router-link' : 'div'"
+    :is="to ? 'a' : 'div'"
     class="flex items-center gap-2 px-1.5 py-1 rounded-lg h-8 min-w-0"
     role="button"
     draggable="false"
-    :to="to"
+    :href="href"
     :title="label"
     :class="{
       'text-n-slate-12 bg-n-alpha-2 font-medium': isActive && !hasActiveChild,
       'text-n-slate-12 font-medium': hasActiveChild,
       'text-n-slate-11 hover:bg-n-alpha-2': !isActive && !hasActiveChild,
     }"
-    @click.stop="emit('activate')"
+    @click.stop="onClick"
   >
     <div v-if="icon" class="relative flex items-center gap-2">
       <Icon v-if="icon" :icon="icon" class="size-4" />

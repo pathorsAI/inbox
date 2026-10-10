@@ -91,9 +91,12 @@ const showDivider = index => {
         <TabsTrigger
           :ref="el => (tabRefs[index] = el?.$el ?? el)"
           :value="String(index)"
-          class="relative z-10 px-4 truncate py-1.5 text-sm border-0 outline-1 outline-transparent rounded-lg transition-all duration-fast ease-out-soft motion-reduce:transition-none hover:text-n-brand active:scale-[1.02] data-[state=active]:text-n-blue-11 data-[state=active]:scale-100 data-[state=inactive]:text-n-slate-10 data-[state=inactive]:scale-[0.98]"
+          class="relative z-10 inline-flex items-center min-w-0 gap-1.5 px-4 py-1.5 text-sm border-0 outline-1 outline-transparent rounded-lg transition-all duration-fast ease-out-soft motion-reduce:transition-none hover:text-n-brand active:scale-[1.02] data-[state=active]:text-n-blue-11 data-[state=active]:scale-100 data-[state=inactive]:text-n-slate-10 data-[state=inactive]:scale-[0.98]"
         >
-          {{ tab.label }} {{ tab.count ? `(${tab.count})` : '' }}
+          <span v-if="tab.icon" :class="tab.icon" class="size-4 shrink-0" />
+          <span class="truncate">
+            {{ tab.label }} {{ tab.count ? `(${tab.count})` : '' }}
+          </span>
         </TabsTrigger>
         <div
           v-if="index < tabs.length - 1"

@@ -8,6 +8,7 @@ import {
   useSidebarRouteMeta,
 } from './provider';
 import { useAccount } from 'dashboard/composables/useAccount';
+import { useConfig } from 'dashboard/composables/useConfig';
 import { useKbd } from 'dashboard/composables/utils/useKbd';
 import { useMapGetter } from 'dashboard/composables/store';
 import { useEmitter } from 'dashboard/composables/emitter';
@@ -53,6 +54,7 @@ const emit = defineEmits([
 ]);
 
 const { accountScopedRoute, isOnChatwootCloud } = useAccount();
+const { isEnterprise } = useConfig();
 const store = useStore();
 const route = useRoute();
 
@@ -87,6 +89,14 @@ const isFeatureEnabledonAccount = useMapGetter(
 // edition; the voice feature flag is the only gate.
 const isCallsAvailable = computed(() =>
   isFeatureEnabledonAccount.value(accountId.value, FEATURE_FLAGS.CHANNEL_VOICE)
+);
+
+const isMonitorsAvailable = computed(
+  () =>
+    (isOnChatwootCloud.value || isEnterprise) &&
+    [FEATURE_FLAGS.REPORTS, FEATURE_FLAGS.CONVERSATION_MONITORS].every(flag =>
+      isFeatureEnabledonAccount.value(accountId.value, flag)
+    )
 );
 
 const hasAdvancedAssignment = computed(() => {
@@ -922,6 +932,16 @@ const menuItems = computed(() => {
           label: t('SIDEBAR.REPORTS_BOT'),
           to: accountScopedRoute('bot_reports'),
         },
+        ...(isMonitorsAvailable.value
+          ? [
+              {
+                name: 'Monitors',
+                label: t('MONITORS.TITLE'),
+                to: accountScopedRoute('monitor_reports_index'),
+                activeOn: ['monitor_reports_show'],
+              },
+            ]
+          : []),
       ],
     },
     {

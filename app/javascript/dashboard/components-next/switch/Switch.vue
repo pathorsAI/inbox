@@ -2,6 +2,7 @@
 import { SwitchRoot, SwitchThumb } from 'reka-ui';
 import { useI18n } from 'vue-i18n';
 
+defineProps({ disabled: { type: Boolean, default: false } });
 const emit = defineEmits(['change']);
 
 const { t } = useI18n();
@@ -20,7 +21,8 @@ const updateValue = value => {
 <template>
   <SwitchRoot
     :model-value="modelValue"
-    class="group relative h-4 rounded-full w-7 flex-shrink-0 select-none focus:outline-none focus:ring-1 focus:ring-n-brand focus:ring-offset-n-slate-2 focus:ring-offset-2 transition-colors duration-fast ease-out-soft motion-reduce:transition-none data-[state=checked]:bg-n-brand data-[state=unchecked]:bg-n-slate-6"
+    :disabled="disabled"
+    class="group relative h-4 rounded-full w-7 flex-shrink-0 select-none focus:outline-none focus:ring-1 focus:ring-n-brand focus:ring-offset-n-slate-2 focus:ring-offset-2 transition-colors duration-fast ease-out-soft motion-reduce:transition-none data-[state=checked]:bg-n-brand data-[state=unchecked]:bg-n-slate-6 disabled:cursor-not-allowed disabled:opacity-50"
     @update:model-value="updateValue"
   >
     <span class="sr-only">{{ t('SWITCH.TOGGLE') }}</span>

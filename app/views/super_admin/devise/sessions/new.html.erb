@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
+    <meta name="robots" content="noindex">
     <title>SuperAdmin | Chatwoot</title>
     <%= vite_client_tag %>
     <%= vite_javascript_tag 'superadmin' %>
@@ -17,6 +18,14 @@
         </section>
         <section class="bg-white shadow sm:mx-auto mt-11 sm:w-full sm:max-w-lg dark:bg-slate-800 p-11 sm:shadow-lg sm:rounded-lg mb-8 mt-15">
           <div>
+            <% if SuperAdmin::SsoController.enabled? %>
+              <% if flash[:error].present? %>
+                <div data-alert class="rounded-md bg-red-500 p-4 text-white text-sm mb-5"><%= flash[:error] %></div>
+              <% end %>
+              <%= link_to super_admin_sso_path, class: "flex items-center w-full justify-center rounded-md bg-woot-500 py-3 px-3 text-base font-medium text-white shadow-sm hover:bg-woot-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-woot-500" do %>
+                <span>Sign in with single sign-on</span>
+              <% end %>
+            <% else %>
             <%= form_for(resource, as: resource_name, url: '/super_admin/sign_in') do |f| %>
               <% if flash[:error].present? %>
                 <div data-alert class="rounded-md bg-red-500 p-4 text-white text-sm mb-5"><%= flash[:error] %></div>
@@ -40,6 +49,7 @@
               <button type="submit" class="flex items-center w-full justify-center rounded-md bg-woot-500 py-3 px-3 text-base font-medium text-white shadow-sm hover:bg-woot-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-woot-500 cursor-pointer">
                 <span>Login</span>
               </button>
+            <% end %>
             <% end %>
           </div>
         </section>

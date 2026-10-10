@@ -40,6 +40,8 @@ module Chatwoot
     config.rails_i18n.enabled_modules = [:pluralization]
 
     config.eager_load_paths << Rails.root.join('lib')
+    # OmniAuth strategies live in the gem's namespace and are required by the initializer.
+    Rails.autoloaders.main.ignore(Rails.root.join('lib/omniauth'))
     config.eager_load_paths << Rails.root.join('enterprise/lib')
     config.eager_load_paths << Rails.root.join('enterprise/listeners')
     # rubocop:disable Rails/FilePath
