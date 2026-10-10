@@ -41,6 +41,11 @@ class Call < ApplicationRecord
   DISPLAY_STATUSES = { 'in_progress' => 'in-progress', 'no_answer' => 'no-answer' }.freeze
   # The dashboard speaks inbound/outbound; the column stores incoming/outgoing.
   DISPLAY_DIRECTIONS = { 'incoming' => 'inbound', 'outgoing' => 'outbound' }.freeze
+  # A Pathors call only ends when the backend's call.ended webhook arrives, and
+  # the backend does not retry it. No real call runs this long, so a call still
+  # live past it lost that webhook; see #expire!.
+  MAX_LIVE_DURATION = 2.hours
+  STALE_END_REASON = 'stale'.freeze
   # Calls handled end-to-end by the Pathors voice agent have no human answerer,
   # so the bubble gets a synthetic handler name instead of a blank subtext.
   PATHORS_AGENT_NAME = 'Pathors AI'.freeze
@@ -69,6 +74,7 @@ class Call < ApplicationRecord
   validates :status, inclusion: { in: STATUSES }
 
   scope :active, -> { where(status: ACTIVE_STATUSES) }
+  scope :stale, -> { active.where(started_at: ...MAX_LIVE_DURATION.ago) }
 
   def self.normalize_timestamp(value)
     return nil if value.blank?
@@ -95,6 +101,17 @@ class Call < ApplicationRecord
 
   def terminal?
     TERMINAL_STATUSES.include?(status)
+  end
+
+  # Ends a call whose end webhook never arrived. `completed`, not `failed`: an
+  # inbound failed call reads as "Missed call". When it really ended is unknown,
+  # so ended_at stays blank. The touch fires MESSAGE_UPDATED so every dashboard
+  # drops it from the live list.
+  def expire!
+    update!(status: 'completed', end_reason: STALE_END_REASON)
+    # rubocop:disable Rails/SkipsModelValidations
+    message&.touch
+    # rubocop:enable Rails/SkipsModelValidations
   end
 
   def display_status
