@@ -78,6 +78,8 @@ describe ActionCableListener do
           conversation_id: conversation.display_id,
           inbox_id: inbox.id,
           live: call.live,
+          needs_action: false,
+          accepted_by_agent_id: nil,
           account_id: account.id
         }
       )

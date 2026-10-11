@@ -436,6 +436,8 @@ Rails.application.routes.draw do
                 post :hangup
                 post :handoff
                 put :live
+                post :dismiss
+                post :resolve_follow_up
               end
             end
             resource :context, only: [:show]

@@ -1,12 +1,7 @@
 class Api::V1::Accounts::Pathors::CallsController < Api::V1::Accounts::BaseController
   # Accepts both the Pathors backend vocabulary (inbound/outbound) and the
   # persisted one (incoming/outgoing) so either side can evolve independently.
-  DIRECTIONS = {
-    'inbound' => 'incoming',
-    'incoming' => 'incoming',
-    'outbound' => 'outgoing',
-    'outgoing' => 'outgoing'
-  }.freeze
+  DIRECTIONS = { 'inbound' => 'incoming', 'incoming' => 'incoming', 'outbound' => 'outgoing', 'outgoing' => 'outgoing' }.freeze
 
   # create/update are backend-to-backend webhooks: bots use the whitelisted bot
   # token (see BOT_ACCESSIBLE_ENDPOINTS), agents their own token. `handoff` and
@@ -15,12 +10,13 @@ class Api::V1::Accounts::Pathors::CallsController < Api::V1::Accounts::BaseContr
   # account administrator (the Pathors backend uses the admin's token; bot
   # tokens are not whitelisted) and reject anyone else with 401. `join` and
   # `hangup` are dashboard actions authorized on conversation access (see
-  # #authorize_call_access); `active` is scoped to it.
+  # #authorize_call_access), and so are `dismiss` and `resolve_follow_up`, the
+  # agent's own answers to a call that needs attention; `active` is scoped to it.
   before_action :fetch_conversation, only: [:create]
   before_action :check_admin_authorization?, only: [:handoff, :live]
   before_action :fetch_call, only: [:update]
-  before_action :fetch_pathors_call, only: [:join, :hangup, :handoff, :live]
-  before_action :authorize_call_access, only: [:join, :hangup]
+  before_action :fetch_pathors_call, only: [:join, :hangup, :handoff, :live, :dismiss, :resolve_follow_up]
+  before_action :authorize_call_access, only: [:join, :hangup, :dismiss, :resolve_follow_up]
 
   # The live Pathors calls the viewer can open, for the pinned group at the top
   # of the conversation list. Voice conversations sit in `pending` under the
@@ -43,6 +39,7 @@ class Api::V1::Accounts::Pathors::CallsController < Api::V1::Accounts::BaseContr
     existing = existing_call
     return render_call(existing) if existing.present?
 
+    ::Pathors::CallAttributeDefinitions.ensure_once!(Current.account)
     render_call(create_call_with_message(direction, status))
   rescue ActiveRecord::RecordNotUnique
     # Lost a create race on (provider, provider_call_id) — the winner's row is
@@ -52,6 +49,9 @@ class Api::V1::Accounts::Pathors::CallsController < Api::V1::Accounts::BaseContr
 
   def update
     return render_error('Invalid recording_url') if invalid_recording_url?
+
+    error = summary&.validation_error
+    return render_error(error) if error
 
     stale_status? ? apply_post_call_artifacts : apply_update
 
@@ -65,7 +65,7 @@ class Api::V1::Accounts::Pathors::CallsController < Api::V1::Accounts::BaseContr
     return render json: { error: 'call_ended' }, status: :gone if @call.terminal?
 
     result = ::Pathors::CallJoinService.new(call: @call, user: Current.user).perform
-    record_join if result.ok?
+    ::Pathors::CallLifecycleService.new(call: @call).joined(Current.user) if result.ok?
 
     render json: result.body, status: result.status
   end
@@ -105,24 +105,21 @@ class Api::V1::Accounts::Pathors::CallsController < Api::V1::Accounts::BaseContr
     render json: { applied: service.perform }, status: :ok
   end
 
+  # "略過": mutes the call's attention alert for this agent only; everyone else
+  # in the inbox keeps seeing it until someone joins.
+  def dismiss
+    ::Pathors::CallLifecycleService.new(call: @call).dismiss(Current.user)
+    render json: { dismissed: true }, status: :ok
+  end
+
+  # "標記已處理": the call-back is done. Only the flag is cleared; the
+  # conversation is the agent's to resolve, like any other.
+  def resolve_follow_up
+    ::Pathors::CallLifecycleService.new(call: @call).resolve_follow_up
+    render json: @call.push_event_data.merge(message_id: @call.message_id, follow_up: false), status: :ok
+  end
+
   private
-
-  def record_join
-    @call.update(accepted_by_agent_id: Current.user.id)
-    # So every other dashboard sees who answered.
-    rebroadcast_bubble
-    assign_conversation_to_joiner
-  end
-
-  # Answering an unassigned conversation claims it, mirroring what a human
-  # picking up a phone means. An existing assignee is never overwritten.
-  def assign_conversation_to_joiner
-    conversation = @call.conversation
-    return if conversation.blank?
-    return if conversation.assignee_id.present? || conversation.assignee_agent_bot_id.present?
-
-    ::Conversations::AssignmentService.new(conversation: conversation, assignee_id: Current.user.id).perform
-  end
 
   def create_call_with_message(direction, status)
     ActiveRecord::Base.transaction do
@@ -173,8 +170,10 @@ class Api::V1::Accounts::Pathors::CallsController < Api::V1::Accounts::BaseContr
   # status. They are therefore the fields a stale-status webhook may still
   # carry that are worth keeping — the guard exists to block status
   # regressions, not to block the artifacts of a finished call.
+  # The summary is written after the call too, so it counts as one of them.
   def apply_post_call_artifacts
     attributes = update_params.slice(:recording_url, :transcript).to_h.compact_blank
+    attributes[:summary] = summary.to_h if summary
     return if attributes.blank?
 
     persist(attributes)
@@ -184,8 +183,11 @@ class Api::V1::Accounts::Pathors::CallsController < Api::V1::Accounts::BaseContr
     attributes = update_params.slice(:duration_seconds, :end_reason, :ended_at, :recording_url, :transcript).to_h
     status = normalized_status(update_params[:status])
     attributes[:status] = status if status.present?
+    attributes[:summary] = summary.to_h if summary
 
     persist(attributes)
+    # A terminal to terminal correction runs it again; see CallLifecycleService#ended.
+    ::Pathors::CallLifecycleService.new(call: @call).ended if @call.pathors? && @call.terminal? && @call.saved_change_to_status?
   end
 
   def persist(attributes)
@@ -259,6 +261,11 @@ class Api::V1::Accounts::Pathors::CallsController < Api::V1::Accounts::BaseContr
 
   def render_call(call)
     render json: call.push_event_data.merge(message_id: call.message_id), status: :ok
+  end
+
+  # Optional, and shaped by the AI rather than by `permit`; see Pathors::CallSummary.
+  def summary
+    @summary ||= params.to_unsafe_h[:summary]&.then { |payload| ::Pathors::CallSummary.new(payload) }
   end
 
   def render_error(message)
