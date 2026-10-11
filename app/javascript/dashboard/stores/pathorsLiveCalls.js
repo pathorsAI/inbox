@@ -7,18 +7,23 @@ import { isLiveCallStatus } from 'dashboard/helper/pathorsLiveCall';
 import { MESSAGE_TYPE } from 'shared/constants/messages';
 
 /**
- * Pathors calls that are still on the line, for the pinned "AI handling" group
- * at the top of the conversation list, and what the AI is doing on each of
- * them for the voice_call bubble.
+ * Pathors calls that are still on the line, for the calls page, the attention
+ * alerts on every page and the voice_call bubble, and what the AI is doing on
+ * each of them.
  *
  * - `records`: the calls themselves (camelized `call` shape plus the
- *   conversation, inbox and caller fields the message keeps). Seeded from
- *   GET pathors/calls/active, then kept current by the voice_call message
- *   broadcasts every status change already produces (see helper/voice.js).
- * - `liveById`: the per-turn live state (counters and transcript). Message
- *   payloads never carry it, because message events also reach the contact;
- *   it comes only from the active endpoint and the agent-only
+ *   conversation, inbox and caller fields the message keeps, and the handling
+ *   state: needsAction, followUp, dismissed, acceptedAt, takeoverRequested).
+ *   Seeded from GET pathors/calls/active, then kept current by the voice_call
+ *   message broadcasts every status change already produces (see
+ *   helper/voice.js) and by `pathors_call.live_updated`, which carries
+ *   needsAction and the agent on the call.
+ * - `liveById`: the per-turn live state (counters, transcript, attention).
+ *   Message payloads never carry it, because message events also reach the
+ *   contact; it comes only from the active endpoint and the agent-only
  *   `pathors_call.live_updated` broadcast.
+ * - `openCallId`: the call open in the calls page sheet, which the attention
+ *   alerts leave out — the agent is already looking at it.
  */
 
 // Ended calls stay out even if a fetch that started before the call ended
@@ -36,14 +41,44 @@ const syncedSinceFetch = new Set();
 const isOlder = (current, incoming) =>
   !!current?.seq && !!incoming?.seq && incoming.seq < current.seq;
 
+// When the AI asked for help or the transfer failed, for ordering the alerts.
+const attentionAt = (record, live) =>
+  live?.attention?.takeoverRequest?.at ??
+  live?.attention?.transfer?.at ??
+  (record.startedAt ? Date.parse(record.startedAt) : 0);
+
 export const usePathorsLiveCallsStore = defineStore('pathorsLiveCalls', {
   state: () => ({
     records: [],
     liveById: {},
     hasLoaded: false,
+    openCallId: null,
   }),
 
   getters: {
+    // Changes whenever a call starts or ends, asks for a human or gets one —
+    // what moves a call between the calls page sections and the sidebar
+    // badges — and not on every AI turn.
+    handlingSignature: state =>
+      state.records
+        .map(
+          record =>
+            `${record.id}:${record.needsAction ? 1 : 0}:${record.acceptedByAgentId ?? ''}`
+        )
+        .sort()
+        .join(','),
+
+    // Live calls a human is needed on that this agent has not muted, most
+    // recent request first, each with its live state attached.
+    attentionCalls: state =>
+      state.records
+        .filter(record => record.needsAction && !record.dismissed)
+        .map(record => ({ ...record, live: state.liveById[record.id] || null }))
+        .sort(
+          (a, b) =>
+            attentionAt(b, b.live) - attentionAt(a, a.live) || b.id - a.id
+        ),
+
     hasLiveCallInConversation: state => conversationDisplayId =>
       !!conversationDisplayId &&
       state.records.some(
@@ -113,11 +148,46 @@ export const usePathorsLiveCallsStore = defineStore('pathorsLiveCalls', {
     },
 
     /**
-     * @param {{ id: number, live: Object }} data raw `pathors_call.live_updated` payload
+     * @param {{ id: number, live: Object, needs_action?: boolean,
+     *   accepted_by_agent_id?: number|null }} data raw `pathors_call.live_updated` payload
      */
     handleLiveUpdated(data) {
       if (!data?.id || !data.live) return;
-      this.applyLive(data.id, camelcaseKeys(data.live, { deep: true }));
+      const live = camelcaseKeys(data.live, { deep: true });
+      if (endedCallIds.has(data.id) || isOlder(this.liveById[data.id], live)) {
+        return;
+      }
+      this.applyLive(data.id, live);
+
+      const record = this.records.find(item => item.id === data.id);
+      if (!record) return;
+      if ('needs_action' in data) record.needsAction = data.needs_action;
+      if ('accepted_by_agent_id' in data) {
+        record.acceptedByAgentId = data.accepted_by_agent_id;
+      }
+    },
+
+    /**
+     * "略過": hides the call's alert for this agent at once; the server keeps
+     * it muted across tabs and reloads. Reverted, and rethrown for the caller
+     * to report, when the request fails.
+     * @param {number} callId
+     */
+    async dismiss(callId) {
+      const record = this.records.find(item => item.id === callId);
+      const previous = record?.dismissed ?? false;
+      if (record) record.dismissed = true;
+      try {
+        await PathorsCallsAPI.dismiss(callId);
+      } catch (error) {
+        if (record) record.dismissed = previous;
+        throw error;
+      }
+    },
+
+    /** @param {number|null} callId */
+    setOpenCallId(callId) {
+      this.openCallId = callId;
     },
 
     /**

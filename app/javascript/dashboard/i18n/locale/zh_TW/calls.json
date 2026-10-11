@@ -1,46 +1,137 @@
 {
   "CALLS_PAGE": {
     "HEADER": "通話",
-    "ALL_CALLS": "所有通話",
-    "ALL_CALLS_COUNT": "所有通話（{count}）",
     "EMPTY_STATE": "沒有通話紀錄",
     "SETUP": {
       "TITLE": "在同一個地方撥打與接聽電話",
       "SUBTITLE": "設定語音渠道，就能和團隊一起處理來電。每一通電話與錄音都會顯示在這裡。",
       "ACTION": "設定語音渠道"
     },
+    "VIEWS": {
+      "NEED": "需要處理",
+      "LIVE": "通話中",
+      "ALL": "所有通話",
+      "MINE": "我接過的"
+    },
+    "LIVE_COUNT": "通話中 {count}",
+    "SEGMENTS": {
+      "NEED": "需要處理",
+      "LIVE": "通話中",
+      "ENDED": "已結束",
+      "ALL": "全部"
+    },
     "FILTERS": {
-      "MISSED": "未接",
-      "NO_REPLY": "未回應",
-      "OTHER_ACTIVITY": "其他活動",
-      "INCOMING": "來電",
-      "OUTGOING": "撥出",
-      "IN_PROGRESS": "通話中",
-      "ASSIGNEE": "負責人",
-      "ALL_ASSIGNEES": "所有負責人",
-      "MORE_FILTERS": "更多篩選",
-      "INBOX": "收件匣",
-      "ALL_INBOXES": "所有收件匣"
+      "SEARCH_PLACEHOLDER": "搜尋電話或姓名",
+      "DATE_ANY": "不限",
+      "DATE_TODAY": "今天",
+      "DATE_YESTERDAY": "昨天",
+      "DATE_7D": "7 天內",
+      "OUTCOME_ANY": "所有結果",
+      "LINE_ANY": "所有線路"
     },
-    "STATUS": {
-      "ONGOING": "進行中",
-      "INCOMING": "來電",
-      "OUTGOING": "撥出",
-      "MISSED": "未接",
-      "NO_REPLY": "未回應",
-      "FAILED": "失敗"
+    "OUTCOME": {
+      "AI_DONE": "AI 完成",
+      "TRANSFERRED": "已轉接",
+      "HUMAN": "真人接手",
+      "TRANSFER_FAILED": "轉接失敗",
+      "HANGUP": "客人掛斷",
+      "NO_ANSWER": "未接通",
+      "TAKEOVER_REQUESTED": "請求過支援"
     },
-    "ROW": {
-      "PICKED_BY": "接聽者",
-      "DIALED_BY": "撥號者",
-      "ANSWERED": "已接聽",
-      "RINGING": "響鈴中",
-      "IN_PROGRESS": "通話中",
-      "NO_AGENT": "沒有客服接聽這通電話",
-      "NO_CONTACT_ANSWER": "對方未接聽",
-      "FAILED": "這通電話無法接通",
+    "TRANSFER_FAILURE": {
+      "NO_ANSWER": "無人接聽",
+      "BUSY": "專員忙線",
+      "TIMEOUT": "無人接聽",
+      "CALLER_HUNG_UP": "來電者已掛斷",
+      "NO_TRUNK": "沒有可轉接的線路",
+      "ERROR": "系統問題"
+    },
+    "REASON": {
+      "LOOPING": "對話鬼打牆",
+      "CUSTOMER_CONFUSED": "客人一直無法理解",
+      "CANNOT_HEAR": "聽不清楚客人",
+      "WANTS_HUMAN_NO_TARGET": "客人要真人，但沒有轉接對象",
+      "OUT_OF_SCOPE": "超出 AI 範圍",
+      "OTHER": "其他"
+    },
+    "STATE": {
+      "ENDED": "已結束",
+      "TRANSFERRED": "已轉接",
+      "DIALING": "轉接撥號中",
+      "DIALING_NO_JOIN": "撥號中不能接手，轉接失敗時會自動開放",
+      "HUMAN": "{name} 接手中",
+      "HUMAN_ME": "你正在通話中",
+      "REQUESTED": "AI 請求支援",
+      "TRANSFER_FAILED": "轉接失敗",
+      "AI": "AI 通話中",
+      "LIVE": "通話中"
+    },
+    "DETAIL": {
+      "TRANSFER_TARGET": "轉給 {target}",
+      "DIALING": "正在撥給 {target}",
+      "TRANSFERRED_TO": "已轉接給 {target}"
+    },
+    "CHIPS": {
+      "FOLLOW_UP": "待回電",
+      "REQUESTED_HELP": "請求過支援"
+    },
+    "SECTIONS": {
+      "NEED": "需要處理",
+      "LIVE": "通話中",
+      "TODAY": "今天",
       "YESTERDAY": "昨天",
-      "DELETED_CONTACT": "已刪除的聯絡人"
+      "EARLIER": "更早"
+    },
+    "TABLE": {
+      "TIME": "時間",
+      "CALLER": "來電",
+      "LINE": "線路",
+      "STATUS": "狀態",
+      "CONTENT": "內容",
+      "LENGTH": "長度",
+      "HANDLER": "處理",
+      "HANDLER_AI": "AI",
+      "UNKNOWN_CALLER": "未知來電"
+    },
+    "EMPTY": {
+      "NEED": "目前沒有需要處理的通話",
+      "NEED_HINT": "AI 請求支援或轉接失敗時會出現在這裡",
+      "LIVE": "目前沒有進行中的通話",
+      "FILTERED": "沒有符合篩選條件的通話"
+    },
+    "SHEET": {
+      "NOT_FOUND": "找不到這通電話，或你沒有權限查看。",
+      "OPEN_CONVERSATION": "開啟對話",
+      "CLOSE": "關閉",
+      "SIGNAL_AGO": "{label} · {time}",
+      "RESOLVE_FOLLOW_UP": "標記已處理",
+      "RESOLVE_FOLLOW_UP_FAILED": "無法標記為已處理",
+      "TRANSCRIPT": "逐字稿",
+      "NO_TRANSCRIPT": "還沒有逐字稿",
+      "ROLE_AI": "AI",
+      "ROLE_CALLER": "客人",
+      "INTERRUPTED": "被打斷",
+      "SUMMARY": "AI 摘要",
+      "VARIABLES": "AI 擷取",
+      "NOT_CAPTURED": "未取得",
+      "METRICS": "指標",
+      "METRIC_DURATION": "通話時間",
+      "METRIC_TURNS": "輪數",
+      "METRIC_INTERRUPTIONS": "打斷",
+      "CALL": "通話",
+      "FACT_NUMBER": "號碼",
+      "FACT_LINE": "線路",
+      "FACT_HANDLER": "處理人",
+      "RECORDING": "錄音"
+    },
+    "ATTENTION": {
+      "REGION": "需要接手的通話",
+      "GO_TAKE_OVER": "前往接手",
+      "DISMISS": "略過",
+      "DISMISS_FAILED": "無法略過這通通話",
+      "MINUTES_AGO": "{minutes} 分鐘前",
+      "JUST_NOW": "剛剛",
+      "MORE": "還有 {count} 通"
     }
   }
 }

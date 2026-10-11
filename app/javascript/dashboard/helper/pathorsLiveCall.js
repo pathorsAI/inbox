@@ -6,8 +6,8 @@ import { VOICE_CALL_STATUS } from 'dashboard/components-next/message/constants';
  *
  * `live` is what the Pathors backend pushes on every AI turn (camelized):
  * `{ seq, turns, interruptions, transferFailed, transcript, updatedAt }`.
- * Alerts are computed here, from `live` plus the clock, so the bubble and the
- * conversation list can never disagree about them.
+ * Alerts are computed here, from `live` plus the clock; helper/pathorsCallState
+ * turns them into the one state every calls surface shows.
  */
 
 // A call is over the line once it goes past these, not when it reaches them.
@@ -28,11 +28,6 @@ export const PATHORS_ALERT_TYPE = Object.freeze({
   LONG_CALL: 'long_call',
   MANY_TURNS: 'many_turns',
 });
-
-const SEVERITY_RANK = {
-  [PATHORS_ALERT_LEVEL.RED]: 2,
-  [PATHORS_ALERT_LEVEL.AMBER]: 1,
-};
 
 const SECONDS_PER_MINUTE = 60;
 const MS_PER_SECOND = 1000;
@@ -128,35 +123,4 @@ export const getPathorsCallAlerts = (call, elapsedSeconds) => {
     );
   }
   return alerts;
-};
-
-/**
- * @param {PathorsCallAlert[]} alerts
- * @returns {string|null} the most severe level, or null without alerts
- */
-export const highestAlertLevel = alerts =>
-  alerts.reduce(
-    (highest, alert) =>
-      (SEVERITY_RANK[alert.level] || 0) > (SEVERITY_RANK[highest] || 0)
-        ? alert.level
-        : highest,
-    null
-  );
-
-/**
- * Most severe first, then the longest-running.
- * @param {Array<{ status?: string, acceptedByAgentId?: number|null, live?: Object|null, startedAt?: string }>} calls
- * @param {number} now epoch ms
- * @returns {Array} a sorted copy
- */
-export const sortLiveCalls = (calls, now) => {
-  const rank = call => {
-    const elapsed = callElapsedSeconds(call.startedAt, now);
-    const level = highestAlertLevel(getPathorsCallAlerts(call, elapsed));
-    return { severity: SEVERITY_RANK[level] || 0, elapsed };
-  };
-  return calls
-    .map(call => ({ call, ...rank(call) }))
-    .sort((a, b) => b.severity - a.severity || b.elapsed - a.elapsed)
-    .map(({ call }) => call);
 };

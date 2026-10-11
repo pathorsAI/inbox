@@ -9,6 +9,7 @@ import {
   getVoiceCallProvider,
   getVoiceCallIcon,
   isVoiceCallEnabled,
+  isCallLineInbox,
   searchInboxes,
 } from '../inbox';
 
@@ -364,6 +365,23 @@ describe('#Inbox Helpers', () => {
       expect(getVoiceCallProvider({ channel_type: INBOX_TYPES.TWILIO })).toBe(
         null
       );
+    });
+  });
+
+  describe('isCallLineInbox', () => {
+    it('counts a Voice inbox and a voice-enabled Twilio inbox as call lines', () => {
+      expect(isCallLineInbox({ channel_type: INBOX_TYPES.VOICE })).toBe(true);
+      expect(
+        isCallLineInbox({
+          channel_type: INBOX_TYPES.TWILIO,
+          voice_enabled: true,
+        })
+      ).toBe(true);
+    });
+
+    it('leaves out messaging inboxes', () => {
+      expect(isCallLineInbox({ channel_type: INBOX_TYPES.TWILIO })).toBe(false);
+      expect(isCallLineInbox({ channel_type: INBOX_TYPES.WEB })).toBe(false);
     });
   });
 

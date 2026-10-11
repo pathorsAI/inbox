@@ -4,9 +4,7 @@ import {
   PATHORS_ALERT_TYPE,
   callElapsedSeconds,
   getPathorsCallAlerts,
-  highestAlertLevel,
   isAiHandlingCall,
-  sortLiveCalls,
 } from '../pathorsLiveCall';
 
 const NOW = Date.parse('2026-10-04T10:00:00Z');
@@ -121,41 +119,5 @@ describe('getPathorsCallAlerts', () => {
     expect(
       getPathorsCallAlerts(aiCall(noisy, { status: 'completed' }), 900)
     ).toEqual([]);
-  });
-});
-
-describe('highestAlertLevel', () => {
-  it('picks red over amber and null without alerts', () => {
-    expect(highestAlertLevel([])).toBeNull();
-    expect(highestAlertLevel([{ level: 'amber' }])).toBe('amber');
-    expect(highestAlertLevel([{ level: 'amber' }, { level: 'red' }])).toBe(
-      'red'
-    );
-  });
-});
-
-describe('sortLiveCalls', () => {
-  it('orders by severity, then by how long the call has run', () => {
-    const calm = { id: 1, ...aiCall(), startedAt: secondsAgo(200) };
-    const calmer = { id: 2, ...aiCall(), startedAt: secondsAgo(30) };
-    const amber = {
-      id: 3,
-      ...aiCall({ interruptions: 5 }),
-      startedAt: secondsAgo(10),
-    };
-    const red = {
-      id: 4,
-      ...aiCall({ transferFailed: true }),
-      startedAt: secondsAgo(5),
-    };
-    const takenOver = {
-      id: 5,
-      ...aiCall({ transferFailed: true }, { acceptedByAgentId: 9 }),
-      startedAt: secondsAgo(600),
-    };
-
-    const sorted = sortLiveCalls([calmer, takenOver, amber, calm, red], NOW);
-
-    expect(sorted.map(call => call.id)).toEqual([4, 3, 5, 1, 2]);
   });
 });
