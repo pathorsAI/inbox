@@ -12,6 +12,12 @@ class Api::V1::Accounts::CallsController < Api::V1::Accounts::BaseController
     @handoff_variables = result[:handoff_variables]
   end
 
+  def show
+    result = CallFinder.new(Current.user, Current.account, params).find(params[:id])
+    @call = result[:call]
+    @handoff_variables = result[:handoff_variables]
+  end
+
   private
 
   def validate_filters

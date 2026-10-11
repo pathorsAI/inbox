@@ -36,6 +36,16 @@ class CallFinder
     { calls: calls, count: @calls.count, counts: counts, handoff_variables: handoff_variables(calls) }
   end
 
+  # One call by id, behind the same visibility as the list — what the calls
+  # page sheet opens when the call is not on the page it has loaded (a link
+  # from a conversation). Raises RecordNotFound for a call the viewer can't see.
+  def find(id)
+    @calls = Call.where(account_id: @current_account.id)
+    filter_by_visibility
+    call = @calls.includes(:contact, :conversation, :accepted_by_agent, inbox: :channel).find(id)
+    { call: call, handoff_variables: handoff_variables([call]) }
+  end
+
   private
 
   # Administrators see the whole account; everyone else sees the calls that sit

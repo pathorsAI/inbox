@@ -163,7 +163,7 @@ Rails.application.routes.draw do
               post :reauthorize_page
             end
           end
-          resources :calls, only: [:index]
+          resources :calls, only: [:index, :show]
           resources :canned_responses, only: [:index, :create, :update, :destroy]
           resources :automation_rules, only: [:index, :create, :show, :update, :destroy] do
             post :clone

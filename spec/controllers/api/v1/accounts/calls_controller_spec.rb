@@ -210,4 +210,31 @@ RSpec.describe 'Calls API', type: :request do
       end
     end
   end
+
+  describe 'GET /api/v1/accounts/{account.id}/calls/:id' do
+    let(:other_inbox) { create(:inbox, account: account) }
+    let(:other_conversation) { create(:conversation, account: account, inbox: other_inbox) }
+    let!(:visible_call) do
+      create(:call, :pathors, account: account, conversation: conversation, inbox: inbox, contact: conversation.contact,
+                              status: 'completed', meta: { 'outcome' => 'ai_done' })
+    end
+    let!(:hidden_call) do
+      create(:call, account: account, conversation: other_conversation, inbox: other_inbox, contact: other_conversation.contact)
+    end
+
+    before { create(:inbox_member, user: agent, inbox: inbox) }
+
+    it 'returns a call the agent can see, in the list shape' do
+      get "/api/v1/accounts/#{account.id}/calls/#{visible_call.id}", headers: agent.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(response.parsed_body).to include('id' => visible_call.id, 'outcome' => 'ai_done')
+    end
+
+    it 'does not reveal a call in a conversation the agent cannot open' do
+      get "/api/v1/accounts/#{account.id}/calls/#{hidden_call.id}", headers: agent.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:not_found)
+    end
+  end
 end
