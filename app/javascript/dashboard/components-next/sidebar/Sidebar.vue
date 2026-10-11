@@ -18,6 +18,9 @@ import { useSidebarKeyboardShortcuts } from './useSidebarKeyboardShortcuts';
 import { vOnClickOutside } from '@vueuse/components';
 import { FEATURE_FLAGS } from 'dashboard/featureFlags';
 import wootConstants from 'dashboard/constants/globals';
+import { INBOX_TYPES, isCallLineInbox } from 'dashboard/helper/inbox';
+import { useCallCountsStore } from 'dashboard/stores/callCounts';
+import { usePathorsLiveCallsStore } from 'dashboard/stores/pathorsLiveCalls';
 import { useWindowSize, useEventListener } from '@vueuse/core';
 
 import Button from 'dashboard/components-next/button/Button.vue';
@@ -287,6 +290,27 @@ const getSidebarSectionSort = useMapGetter(
 // the counts are seeded here rather than waiting for a list view to mount.
 const TICKET_COUNTS_POLL_MS = 60000;
 let ticketCountsPollTimer = null;
+const CALL_COUNTS_POLL_MS = 60000;
+let callCountsPollTimer = null;
+
+const callCountsStore = useCallCountsStore();
+const pathorsLiveCallsStore = usePathorsLiveCallsStore();
+const callCounts = computed(() => callCountsStore.counts);
+
+// Waits on the feature flag for the same reason as the ticket counts below.
+const fetchCallCounts = () => {
+  if (!isCallsAvailable.value) return;
+  callCountsStore.fetch();
+};
+
+// A call that starts, ends, asks for help or gets answered moves both badges;
+// the live store sees all of that first.
+watch(
+  () => pathorsLiveCallsStore.handlingSignature,
+  () => {
+    if (isCallsAvailable.value) callCountsStore.scheduleFetch();
+  }
+);
 
 // Waits on the feature flag: the account (and with it `hasTickets`) resolves
 // after the sidebar mounts, so an unguarded call on mount fetches nothing.
@@ -307,10 +331,12 @@ onMounted(() => {
   // Realtime events cover the common case; this is the backstop for a tab that
   // has been sitting on a page nothing broadcasts to.
   ticketCountsPollTimer = setInterval(fetchTicketCounts, TICKET_COUNTS_POLL_MS);
+  callCountsPollTimer = setInterval(fetchCallCounts, CALL_COUNTS_POLL_MS);
 });
 
 onUnmounted(() => {
   clearInterval(ticketCountsPollTimer);
+  clearInterval(callCountsPollTimer);
 });
 
 // The conversation list, when it is mounted, re-dispatches this with its own
@@ -321,6 +347,8 @@ useEmitter('fetch_conversation_stats', () => {
 });
 
 watch([accountId, hasTickets], fetchTicketCounts, { immediate: true });
+
+watch([accountId, isCallsAvailable], fetchCallCounts, { immediate: true });
 
 watch([accountId, hasConversationUnreadCounts], fetchConversationUnreadCounts, {
   immediate: true,
@@ -377,8 +405,20 @@ const sortedTeams = computed(() =>
   })
 );
 
+// Calls have their own group; a Pathors voice line has no chat to list.
+const conversationInboxes = computed(() =>
+  inboxes.value.filter(inbox => inbox.channel_type !== INBOX_TYPES.VOICE)
+);
+
+const callLineInboxes = computed(() =>
+  sortSidebarItems(inboxes.value.filter(isCallLineInbox), {
+    sortBy: getSortForSection(SIDEBAR_SORT_SECTIONS.CHANNELS),
+    labelKey: inbox => inbox.name,
+  })
+);
+
 const sortedInboxes = computed(() =>
-  sortSidebarItems(inboxes.value, {
+  sortSidebarItems(conversationInboxes.value, {
     sortBy: getSortForSection(SIDEBAR_SORT_SECTIONS.CHANNELS),
     labelKey: inbox => inbox.name,
     unreadCountKey: inbox => getInboxUnreadCount.value(inbox.id),
@@ -812,8 +852,63 @@ const menuItems = computed(() => {
             name: 'Calls',
             label: t('SIDEBAR.CALLS'),
             icon: 'i-lucide-phone',
-            to: accountScopedRoute('calls_dashboard_index'),
-            activeOn: ['calls_dashboard_index'],
+            // Ordered like Tickets: what needs someone, what is on the line,
+            // the archive, then the agent's own.
+            children: [
+              {
+                name: 'Calls Need',
+                label: t('SIDEBAR.CALL_VIEWS.NEED'),
+                icon: 'i-lucide-bell-ring',
+                badgeCount: callCounts.value.need,
+                badgeTone: 'danger',
+                badgeTitle: t('SIDEBAR.CALL_VIEWS.NEED_TOOLTIP', {
+                  count: callCounts.value.need,
+                }),
+                to: accountScopedRoute('calls_need'),
+              },
+              {
+                name: 'Calls Live',
+                label: t('SIDEBAR.CALL_VIEWS.LIVE'),
+                icon: 'i-lucide-phone-call',
+                badgeCount: callCounts.value.live,
+                badgeTitle: t('SIDEBAR.CALL_VIEWS.LIVE_TOOLTIP', {
+                  count: callCounts.value.live,
+                }),
+                to: accountScopedRoute('calls_live'),
+              },
+              {
+                name: 'All Calls',
+                label: t('SIDEBAR.CALL_VIEWS.ALL'),
+                icon: 'i-lucide-list',
+                to: accountScopedRoute('calls_all'),
+              },
+              {
+                name: 'My Calls',
+                label: t('SIDEBAR.CALL_VIEWS.MINE'),
+                icon: 'i-lucide-user-round-check',
+                to: accountScopedRoute('calls_mine'),
+              },
+              {
+                name: 'Call Lines',
+                label: t('SIDEBAR.CALL_VIEWS.LINES'),
+                icon: 'i-lucide-phone-forwarded',
+                collapsible: true,
+                showTreeLine: true,
+                children: callLineInboxes.value.map(inbox => ({
+                  name: `call-line-${inbox.id}`,
+                  label: inbox.name,
+                  icon: h(ChannelIcon, { inbox, class: 'size-[16px]' }),
+                  to: accountScopedRoute('calls_line', { inboxId: inbox.id }),
+                  activeOn: ['calls_line'],
+                })),
+              },
+              {
+                name: 'Manage Call Lines',
+                label: t('SIDEBAR.CALL_VIEWS.MANAGE_LINES'),
+                icon: 'i-lucide-settings-2',
+                to: accountScopedRoute('settings_inbox_list'),
+              },
+            ],
           },
         ]
       : []),

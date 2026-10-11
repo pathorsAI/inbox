@@ -1,46 +1,137 @@
 {
   "CALLS_PAGE": {
     "HEADER": "Calls",
-    "ALL_CALLS": "All Calls",
-    "ALL_CALLS_COUNT": "All Calls ({count})",
     "EMPTY_STATE": "No calls found",
     "SETUP": {
       "TITLE": "Make and receive calls in one place",
       "SUBTITLE": "Set up a voice channel to start handling calls with your team. Every call, along with its recording, will appear here.",
       "ACTION": "Set up voice channel"
     },
+    "VIEWS": {
+      "NEED": "Needs attention",
+      "LIVE": "On the line",
+      "ALL": "All calls",
+      "MINE": "My calls"
+    },
+    "LIVE_COUNT": "{count} on the line",
+    "SEGMENTS": {
+      "NEED": "Needs attention",
+      "LIVE": "On the line",
+      "ENDED": "Ended",
+      "ALL": "All"
+    },
     "FILTERS": {
-      "MISSED": "Missed",
-      "NO_REPLY": "No reply",
-      "OTHER_ACTIVITY": "Other activity",
-      "INCOMING": "Incoming",
-      "OUTGOING": "Outgoing",
-      "IN_PROGRESS": "In progress",
-      "ASSIGNEE": "Assignee",
-      "ALL_ASSIGNEES": "All assignees",
-      "MORE_FILTERS": "More filters",
-      "INBOX": "Inbox",
-      "ALL_INBOXES": "All inboxes"
+      "SEARCH_PLACEHOLDER": "Search by number or name",
+      "DATE_ANY": "Any date",
+      "DATE_TODAY": "Today",
+      "DATE_YESTERDAY": "Yesterday",
+      "DATE_7D": "Last 7 days",
+      "OUTCOME_ANY": "Any outcome",
+      "LINE_ANY": "All lines"
     },
-    "STATUS": {
-      "ONGOING": "Ongoing",
-      "INCOMING": "Incoming",
-      "OUTGOING": "Outgoing",
-      "MISSED": "Missed",
-      "NO_REPLY": "No reply",
-      "FAILED": "Failed"
+    "OUTCOME": {
+      "AI_DONE": "Handled by AI",
+      "TRANSFERRED": "Transferred",
+      "HUMAN": "Taken over",
+      "TRANSFER_FAILED": "Transfer failed",
+      "HANGUP": "Caller hung up",
+      "NO_ANSWER": "Not connected",
+      "TAKEOVER_REQUESTED": "AI asked for help"
     },
-    "ROW": {
-      "PICKED_BY": "Picked by",
-      "DIALED_BY": "Dialed by",
-      "ANSWERED": "Answered",
-      "RINGING": "Ringing",
-      "IN_PROGRESS": "In progress",
-      "NO_AGENT": "No agent answered this call",
-      "NO_CONTACT_ANSWER": "Contact did not answer",
-      "FAILED": "This call could not be connected",
+    "TRANSFER_FAILURE": {
+      "NO_ANSWER": "No answer",
+      "BUSY": "Line busy",
+      "TIMEOUT": "No one picked up",
+      "CALLER_HUNG_UP": "The caller hung up",
+      "NO_TRUNK": "No line to transfer to",
+      "ERROR": "System problem"
+    },
+    "REASON": {
+      "LOOPING": "The conversation is going in circles",
+      "CUSTOMER_CONFUSED": "The caller can't follow the AI",
+      "CANNOT_HEAR": "The AI can't hear the caller",
+      "WANTS_HUMAN_NO_TARGET": "The caller wants a person, but there is no one to transfer to",
+      "OUT_OF_SCOPE": "Beyond what the AI can handle",
+      "OTHER": "Other"
+    },
+    "STATE": {
+      "ENDED": "Ended",
+      "TRANSFERRED": "Transferred",
+      "DIALING": "Dialing transfer",
+      "DIALING_NO_JOIN": "You can't take over while the transfer is dialing; it opens up again if the transfer fails",
+      "HUMAN": "{name} is on the call",
+      "HUMAN_ME": "You're on this call",
+      "REQUESTED": "AI asked for help",
+      "TRANSFER_FAILED": "Transfer failed",
+      "AI": "AI on call",
+      "LIVE": "On the line"
+    },
+    "DETAIL": {
+      "TRANSFER_TARGET": "To {target}",
+      "DIALING": "Calling {target}",
+      "TRANSFERRED_TO": "Transferred to {target}"
+    },
+    "CHIPS": {
+      "FOLLOW_UP": "Call back",
+      "REQUESTED_HELP": "AI asked for help"
+    },
+    "SECTIONS": {
+      "NEED": "Needs attention",
+      "LIVE": "On the line",
+      "TODAY": "Today",
       "YESTERDAY": "Yesterday",
-      "DELETED_CONTACT": "Deleted contact"
+      "EARLIER": "Earlier"
+    },
+    "TABLE": {
+      "TIME": "Time",
+      "CALLER": "Caller",
+      "LINE": "Line",
+      "STATUS": "Status",
+      "CONTENT": "Details",
+      "LENGTH": "Length",
+      "HANDLER": "Handled by",
+      "HANDLER_AI": "AI",
+      "UNKNOWN_CALLER": "Unknown caller"
+    },
+    "EMPTY": {
+      "NEED": "No calls need attention right now",
+      "NEED_HINT": "Calls show up here when the AI asks for help or a transfer fails",
+      "LIVE": "No calls on the line right now",
+      "FILTERED": "No calls match these filters"
+    },
+    "SHEET": {
+      "NOT_FOUND": "This call could not be found, or you do not have access to it.",
+      "OPEN_CONVERSATION": "Open conversation",
+      "CLOSE": "Close",
+      "SIGNAL_AGO": "{label} · {time}",
+      "RESOLVE_FOLLOW_UP": "Mark as handled",
+      "RESOLVE_FOLLOW_UP_FAILED": "Couldn't mark this call as handled",
+      "TRANSCRIPT": "Transcript",
+      "NO_TRANSCRIPT": "No transcript yet",
+      "ROLE_AI": "AI",
+      "ROLE_CALLER": "Caller",
+      "INTERRUPTED": "Interrupted",
+      "SUMMARY": "AI summary",
+      "VARIABLES": "Captured by AI",
+      "NOT_CAPTURED": "Not captured",
+      "METRICS": "Metrics",
+      "METRIC_DURATION": "Duration",
+      "METRIC_TURNS": "Turns",
+      "METRIC_INTERRUPTIONS": "Interruptions",
+      "CALL": "Call",
+      "FACT_NUMBER": "Number",
+      "FACT_LINE": "Line",
+      "FACT_HANDLER": "Handled by",
+      "RECORDING": "Recording"
+    },
+    "ATTENTION": {
+      "REGION": "Calls that need someone",
+      "GO_TAKE_OVER": "Go take over",
+      "DISMISS": "Dismiss",
+      "DISMISS_FAILED": "Couldn't dismiss this call",
+      "MINUTES_AGO": "{minutes} min ago",
+      "JUST_NOW": "Just now",
+      "MORE": "{count} more"
     }
   }
 }

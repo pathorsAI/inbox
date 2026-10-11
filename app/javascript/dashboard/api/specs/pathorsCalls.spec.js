@@ -41,6 +41,16 @@ describe('#PathorsCallsAPI', () => {
       expect(data).toEqual({ ok: true });
     });
 
+    it.each([
+      ['dismiss', 'dismiss'],
+      ['resolveFollowUp', 'resolve_follow_up'],
+    ])('#%s posts to the account-scoped %s route', async (method, action) => {
+      await pathorsCallsAPI[method](42, 3);
+      expect(axiosMock.post).toHaveBeenCalledWith(
+        `/api/v1/accounts/3/pathors/calls/42/${action}`
+      );
+    });
+
     it('#active gets the live calls and returns data', async () => {
       const data = await pathorsCallsAPI.active();
       expect(axiosMock.get).toHaveBeenCalledWith(

@@ -16,12 +16,16 @@ import { useCallActions } from 'dashboard/composables/useCallSession';
 import { useWhatsappCallSession } from 'dashboard/composables/useWhatsappCallSession';
 import {
   usePathorsCallSession,
-  PATHORS_JOIN_ERROR,
+  PATHORS_JOIN_ERROR_LABELS,
 } from 'dashboard/composables/usePathorsCallSession';
 import { useCallsStore } from 'dashboard/stores/calls';
 import { usePathorsLiveCallsStore } from 'dashboard/stores/pathorsLiveCalls';
 import { VOICE_CALL_PROVIDERS } from 'dashboard/helper/inbox';
-import { isAiHandlingCall } from 'dashboard/helper/pathorsLiveCall';
+import {
+  CALL_STATE,
+  primaryCallState,
+} from 'dashboard/helper/pathorsCallState';
+import { useClock } from 'dashboard/composables/useClock';
 import { formatDuration } from 'shared/helpers/timeHelper';
 import { useAlert } from 'dashboard/composables';
 import { useAccount } from 'dashboard/composables/useAccount';
@@ -30,7 +34,8 @@ import Icon from 'dashboard/components-next/icon/Icon.vue';
 import BaseBubble from 'next/message/bubbles/Base.vue';
 import AudioChip from 'next/message/chips/Audio.vue';
 import NextButton from 'dashboard/components-next/button/Button.vue';
-import PathorsLiveMonitor from './PathorsLiveMonitor.vue';
+import CallStateChip from 'dashboard/components-next/Calls/CallStateChip.vue';
+import { useCallStateText } from 'dashboard/components-next/Calls/useCallStateText';
 
 const LABEL_MAP = {
   [VOICE_CALL_STATUS.IN_PROGRESS]: 'CONVERSATION.VOICE_CALL.CALL_IN_PROGRESS',
@@ -53,13 +58,8 @@ const PATHORS_LIVE_STATUSES = [
   VOICE_CALL_STATUS.IN_PROGRESS,
 ];
 
-const PATHORS_ERROR_LABELS = {
-  [PATHORS_JOIN_ERROR.ALREADY_CLAIMED]:
-    'CONVERSATION.VOICE_CALL.JOIN_ALREADY_CLAIMED',
-  [PATHORS_JOIN_ERROR.CALL_ENDED]: 'CONVERSATION.VOICE_CALL.JOIN_CALL_ENDED',
-  [PATHORS_JOIN_ERROR.MEDIA_DENIED]: 'CONVERSATION.VOICE_CALL.JOIN_MIC_DENIED',
-  [PATHORS_JOIN_ERROR.UNAVAILABLE]: 'CONVERSATION.VOICE_CALL.JOIN_FAILED',
-};
+// The amber warnings only need minute precision.
+const PATHORS_CLOCK_TICK_MS = 15_000;
 
 const { t } = useI18n();
 const store = useStore();
@@ -318,35 +318,69 @@ const isInThisPathorsCall = computed(
     isJoinedPathorsCall.value &&
     isActivePathorsCall(pathorsCallId.value)
 );
-// Once an agent joins, the join endpoint writes accepted_by_agent_id and the
-// message update broadcast carries it to every other tab, so the button
-// disappears for everyone but the agent who took the call. That field is never
-// cleared — it is the persisted "who handled this call" attribution the bubble
-// and the calls list read — so matching it against the viewer is also what
-// lets an agent back in after a dropped connection or a reload.
+// The message carries the call; what the AI is doing (live) and whether a human
+// is needed (needsAction) never ride on it, because message events also reach
+// the contact. Both come from the agent-only live store.
+const pathorsNow = useClock(PATHORS_CLOCK_TICK_MS);
+const { stateDetail: pathorsStateDetail } = useCallStateText();
+const pathorsRecord = computed(() =>
+  pathorsLiveCallsStore.records.find(
+    record => record.id === pathorsCallId.value
+  )
+);
+const pathorsCall = computed(() => ({
+  ...call.value,
+  needsAction: pathorsRecord.value?.needsAction,
+  acceptedAt: pathorsRecord.value?.acceptedAt,
+  live: pathorsLiveCallsStore.liveById[pathorsCallId.value] || null,
+}));
+// One reading of the call for the chip and the take-over gate: a transfer
+// being dialed or already connected leaves nothing to take over, and once an
+// agent joins, the join endpoint writes accepted_by_agent_id, so the button
+// disappears for everyone but that agent — who can get back in after a
+// dropped connection or a reload.
+const pathorsState = computed(() =>
+  primaryCallState(pathorsCall.value, {
+    now: pathorsNow.value,
+    currentUserId: currentUserId.value,
+  })
+);
+const pathorsDetail = computed(() =>
+  pathorsStateDetail(pathorsCall.value, pathorsState.value)
+);
 const canJoinPathorsCall = computed(
   () =>
     isPathorsCallLive.value &&
     !!pathorsCallId.value &&
     !isJoinedPathorsCall.value &&
-    (!acceptedByAgentId.value ||
-      acceptedByAgentId.value === currentUserId.value)
+    pathorsState.value.canJoin
 );
-// Until someone takes the call over, the bubble shows what the AI is doing.
-// The live state never rides on the message (message events also reach the
-// contact); it comes from the agent-only store.
-const isPathorsAiHandling = computed(
-  () => isPathors.value && isAiHandlingCall(call.value)
+const isPathorsJoinBlocked = computed(
+  () =>
+    isPathorsCallLive.value &&
+    !isJoinedPathorsCall.value &&
+    pathorsState.value.key === CALL_STATE.DIALING
 );
-const pathorsLive = computed(
-  () => pathorsLiveCallsStore.liveById[pathorsCallId.value] || null
-);
+// The full transcript, AI extraction and controls live on the calls page.
+const pathorsCallPageRoute = computed(() => {
+  const number = isOutbound.value
+    ? call.value?.toNumber
+    : call.value?.fromNumber;
+  const digits = (number || '').replace(/\D/g, '');
+  return {
+    name: 'calls_all',
+    params: { accountId: accountId.value },
+    // The list has no lookup by id; narrowing it to this caller keeps the call
+    // on the first page so the sheet can open it.
+    query: { call: pathorsCallId.value, ...(digits && { q: digits }) },
+  };
+});
 // A conversation opened straight onto a live call (deep link, reload) may
 // render before anything loaded the active calls.
 watch(
-  isPathorsAiHandling,
-  isHandling => {
-    if (isHandling) pathorsLiveCallsStore.ensureLoaded();
+  isPathorsCallLive,
+  isLive => {
+    if (isLive) pathorsLiveCallsStore.ensureLoaded();
   },
   { immediate: true }
 );
@@ -363,7 +397,7 @@ const handlePathorsJoin = async () => {
   });
   if (joined) return;
 
-  const labelKeyForError = PATHORS_ERROR_LABELS[pathorsCallError.value];
+  const labelKeyForError = PATHORS_JOIN_ERROR_LABELS[pathorsCallError.value];
   useAlert(t(labelKeyForError || 'CONVERSATION.VOICE_CALL.JOIN_FAILED'));
 };
 
@@ -459,11 +493,28 @@ const handleCallBack = async () => {
         </div>
       </div>
 
-      <PathorsLiveMonitor
-        v-if="isPathorsAiHandling"
-        :call="call"
-        :live="pathorsLive"
-      />
+      <!-- Pathors: the call's state in one line; the rest is on the calls page -->
+      <div
+        v-if="isPathors"
+        class="flex flex-wrap items-center gap-x-2 gap-y-1 min-w-0"
+        data-test-id="pathors-call-state"
+      >
+        <CallStateChip v-if="isPathorsCallLive" :state="pathorsState" />
+        <span
+          v-if="isPathorsCallLive && pathorsDetail"
+          class="flex-1 min-w-0 text-sm truncate opacity-75"
+        >
+          {{ pathorsDetail }}
+        </span>
+        <RouterLink
+          :to="pathorsCallPageRoute"
+          class="inline-flex items-center gap-1 text-sm font-medium text-n-blue-11 hover:underline"
+          data-test-id="pathors-view-call"
+        >
+          {{ $t('CONVERSATION.VOICE_CALL.VIEW_CALL') }}
+          <Icon icon="i-lucide-arrow-up-right" class="size-3.5" />
+        </RouterLink>
+      </div>
 
       <!-- Audio player (when there's a recording) -->
       <AudioChip
@@ -508,6 +559,20 @@ const handleCallBack = async () => {
         :disabled="isJoiningPathorsCall"
         @click="handlePathorsJoin"
       />
+      <!-- The AI is dialing a transfer: no take-over until it fails -->
+      <div v-else-if="isPathorsJoinBlocked" class="flex flex-col gap-1">
+        <NextButton
+          type="button"
+          :label="$t('CONVERSATION.VOICE_CALL.TAKE_OVER_CALL')"
+          icon="i-ph-phone-bold"
+          teal
+          class="!rounded-full"
+          disabled
+        />
+        <span class="text-xs opacity-75">
+          {{ $t(pathorsState.joinDisabledReasonKey) }}
+        </span>
+      </div>
       <div v-else-if="isInThisPathorsCall" class="flex flex-col gap-2">
         <!-- Browser autoplay blocked the caller's audio; this click unlocks it -->
         <NextButton

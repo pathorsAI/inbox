@@ -6,7 +6,7 @@ import {
 } from '../pathorsLiveCalls';
 
 vi.mock('dashboard/api/pathorsCalls', () => ({
-  default: { active: vi.fn() },
+  default: { active: vi.fn(), dismiss: vi.fn() },
 }));
 
 const buildMessage = ({ call = {}, ...overrides } = {}) => ({
@@ -235,5 +235,159 @@ describe('pathorsLiveCalls store', () => {
     store.syncFromMessage(buildMessage({ content_type: 'text' }));
 
     expect(store.records).toEqual([]);
+  });
+
+  describe('handling state', () => {
+    const seed = async payload => {
+      PathorsCallsAPI.active.mockResolvedValue({ payload });
+      const store = usePathorsLiveCallsStore();
+      await store.fetchActive();
+      return store;
+    };
+
+    const activeCall = (id, overrides = {}) => ({
+      id,
+      conversation_id: 12,
+      started_at: '2026-10-11T10:00:00Z',
+      needs_action: false,
+      dismissed: false,
+      accepted_at: null,
+      ...overrides,
+    });
+
+    it('keeps needsAction, followUp, dismissed and acceptedAt from the active seed', async () => {
+      const store = await seed([
+        activeCall(77, {
+          needs_action: true,
+          follow_up: false,
+          takeover_requested: true,
+          accepted_at: 1_760_000_000_000,
+          live: { seq: 1 },
+        }),
+      ]);
+
+      expect(store.records[0]).toMatchObject({
+        needsAction: true,
+        followUp: false,
+        dismissed: false,
+        takeoverRequested: true,
+        acceptedAt: 1_760_000_000_000,
+      });
+    });
+
+    it('applies needs_action and the agent on the call from live_updated', async () => {
+      const store = await seed([activeCall(77, { live: { seq: 1 } })]);
+
+      store.handleLiveUpdated({
+        ...liveUpdate({ seq: 2 }),
+        needs_action: true,
+        accepted_by_agent_id: null,
+      });
+      expect(store.records[0].needsAction).toBe(true);
+
+      store.handleLiveUpdated({
+        ...liveUpdate({ seq: 2 }),
+        needs_action: false,
+        accepted_by_agent_id: 9,
+      });
+      expect(store.records[0]).toMatchObject({
+        needsAction: false,
+        acceptedByAgentId: 9,
+      });
+    });
+
+    it('ignores the handling state of an older turn', async () => {
+      const store = await seed([
+        activeCall(77, { needs_action: true, live: { seq: 5 } }),
+      ]);
+
+      store.handleLiveUpdated({
+        ...liveUpdate({ seq: 4 }),
+        needs_action: false,
+      });
+
+      expect(store.records[0].needsAction).toBe(true);
+      expect(store.liveById[77].seq).toBe(5);
+    });
+
+    it('lists calls needing a human, unmuted, most recent request first', async () => {
+      const store = await seed([
+        activeCall(1, {
+          needs_action: true,
+          live: {
+            seq: 1,
+            attention: { takeover_request: { reason: 'looping', at: 1000 } },
+          },
+        }),
+        activeCall(2, {
+          needs_action: true,
+          live: {
+            seq: 1,
+            attention: { transfer: { phase: 'failed', at: 5000 } },
+          },
+        }),
+        activeCall(3, { needs_action: true, dismissed: true }),
+        activeCall(4, { needs_action: false }),
+      ]);
+
+      expect(store.attentionCalls.map(call => call.id)).toEqual([2, 1]);
+      expect(store.attentionCalls[0].live.attention.transfer.phase).toBe(
+        'failed'
+      );
+    });
+
+    it('dismisses optimistically and keeps it once the server agrees', async () => {
+      const store = await seed([activeCall(77, { needs_action: true })]);
+      let resolveRequest;
+      PathorsCallsAPI.dismiss.mockReturnValue(
+        new Promise(resolve => {
+          resolveRequest = resolve;
+        })
+      );
+
+      const pending = store.dismiss(77);
+      expect(store.attentionCalls).toEqual([]);
+      resolveRequest({ dismissed: true });
+      await pending;
+
+      expect(PathorsCallsAPI.dismiss).toHaveBeenCalledWith(77);
+      expect(store.records[0].dismissed).toBe(true);
+    });
+
+    it('brings the alert back and rethrows when dismissing fails', async () => {
+      const store = await seed([activeCall(77, { needs_action: true })]);
+      PathorsCallsAPI.dismiss.mockRejectedValue(new Error('nope'));
+
+      await expect(store.dismiss(77)).rejects.toThrow('nope');
+
+      expect(store.records[0].dismissed).toBe(false);
+      expect(store.attentionCalls.map(call => call.id)).toEqual([77]);
+    });
+
+    it('changes its handling signature only when a call moves, not per turn', async () => {
+      const store = await seed([activeCall(77, { live: { seq: 1 } })]);
+      const before = store.handlingSignature;
+
+      store.handleLiveUpdated({
+        ...liveUpdate({ seq: 2 }),
+        needs_action: false,
+      });
+      expect(store.handlingSignature).toBe(before);
+
+      store.handleLiveUpdated({
+        ...liveUpdate({ seq: 3 }),
+        needs_action: true,
+      });
+      expect(store.handlingSignature).not.toBe(before);
+    });
+
+    it('remembers which call the sheet has open', () => {
+      const store = usePathorsLiveCallsStore();
+
+      store.setOpenCallId(77);
+      expect(store.openCallId).toBe(77);
+      store.setOpenCallId(null);
+      expect(store.openCallId).toBeNull();
+    });
   });
 });

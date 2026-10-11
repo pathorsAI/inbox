@@ -18,6 +18,11 @@ vi.mock('dashboard/composables/useAccount', async () => {
   return { useAccount: () => ({ accountId: createRef(1) }) };
 });
 
+// Mounted on every page; it reads the account and the live calls store.
+vi.mock('dashboard/components-next/Calls/PathorsAttentionStack.vue', () => ({
+  default: { name: 'PathorsAttentionStack', render: () => null },
+}));
+
 vi.mock('dashboard/stores/calls', () => ({
   useCallsStore: () => ({ hasActiveCall: false, hasIncomingCall: false }),
 }));
@@ -101,6 +106,7 @@ describe('Dashboard', () => {
           CopilotLauncher: true,
           CopilotContainer: true,
           FloatingCallWidget: true,
+          PathorsAttentionStack: true,
           AddAccountModal: true,
           WootKeyShortcutModal: true,
         },
