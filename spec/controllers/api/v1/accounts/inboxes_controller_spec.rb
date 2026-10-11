@@ -645,6 +645,24 @@ RSpec.describe 'Inboxes API', type: :request do
         expect(binding_request).to have_been_requested
       end
 
+      it 'defines the conversation attributes its calls write' do
+        create(:integrations_hook, :pathors, account: account, access_token: 'pathors_access_token')
+        pathors_bot = create(:agent_bot, account: account,
+                                         outgoing_url: 'https://api.pathors.com/project/proj_123/integration/chatwoot/callback')
+        stub_request(:put, 'https://api.pathors.com/org/org_ac9/integration/chatwoot/phone_numbers/pn_x9k2/binding')
+          .to_return(status: 200, body: { binding: {} }.to_json, headers: { 'Content-Type' => 'application/json' })
+
+        post "/api/v1/accounts/#{account.id}/inboxes",
+             headers: admin.create_new_auth_token,
+             params: { name: 'Support Line', agent_bot: pathors_bot.id,
+                       channel: { type: 'voice', phone_number: '+886222222222', pathors_phone_number_id: 'pn_x9k2' } },
+             as: :json
+
+        expect(response).to have_http_status(:success)
+        expect(account.custom_attribute_definitions.conversation_attribute.pluck(:attribute_key))
+          .to include('pathors_call_from', 'pathors_call_outcome', 'pathors_takeover_requested')
+      end
+
       it 'rolls the voice inbox and the bot assignment back when Pathors reports the number is already bound' do
         create(:integrations_hook, :pathors, account: account, access_token: 'pathors_access_token')
         pathors_bot = create(:agent_bot, account: account,

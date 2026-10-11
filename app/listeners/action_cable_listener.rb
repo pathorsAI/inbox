@@ -46,16 +46,18 @@ class ActionCableListener < BaseListener
     broadcast(account, tokens, MESSAGE_CREATED, message.push_event_data)
   end
 
-  # The AI's running transcript of a live Pathors call. Inbox agents and
-  # administrators only: unlike message events it never goes to the contact,
+  # The AI's running transcript of a live Pathors call, and whether it needs a
+  # human (needs_action) or already has one (accepted_by_agent_id). Inbox agents
+  # and administrators only: unlike message events it never goes to the contact,
   # and it is dispatched on the sync dispatcher alone, so no webhook or agent
-  # bot sees it either (see Pathors::CallsController#live).
+  # bot sees it either (see Pathors::CallsController#live and #join).
   def pathors_call_live_updated(event)
     call = event.data[:call]
     tokens = user_tokens(call.account, call.inbox.members)
 
     broadcast(call.account, tokens, PATHORS_CALL_LIVE_UPDATED,
-              { id: call.id, conversation_id: call.conversation.display_id, inbox_id: call.inbox_id, live: call.live })
+              { id: call.id, conversation_id: call.conversation.display_id, inbox_id: call.inbox_id, live: call.live,
+                needs_action: call.needs_action == true, accepted_by_agent_id: call.accepted_by_agent_id })
   end
 
   def message_updated(event)

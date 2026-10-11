@@ -68,13 +68,28 @@ class Call < ApplicationRecord
   # `live` is the AI's running state while it handles the call (turn and
   # interruption counts, a transcript window); see Pathors::CallLiveStateService.
   # Agent-only: it is never part of push_event_data.
-  store_accessor :meta, :room_name, :ended_at, :from_number, :to_number, :recording_url, :handoff_message_id, :live
+  # The rest is the handling state Pathors::CallLifecycleService derives from
+  # `live` and from joins and the end of the call — whether a human is needed
+  # now (`needs_action`) or a call-back is owed (`follow_up`), how the call
+  # went (`outcome`), whether the AI ever asked for help (`takeover_requested`)
+  # or a human ever joined (`human_joined`), when the last human joined
+  # (`accepted_at`, epoch ms like the backend's own timestamps), who muted the
+  # alert for themselves (`dismissed_by`) and the post-call `summary`. Like
+  # `live`, it is agent-only and never part of push_event_data.
+  store_accessor :meta, :room_name, :ended_at, :from_number, :to_number, :recording_url, :handoff_message_id, :live,
+                 :needs_action, :follow_up, :outcome, :takeover_requested, :human_joined, :accepted_at, :dismissed_by, :summary
 
   validates :provider_call_id, presence: true, uniqueness: { scope: :provider }
   validates :status, inclusion: { in: STATUSES }
 
   scope :active, -> { where(status: ACTIVE_STATUSES) }
+  scope :ended, -> { where(status: TERMINAL_STATUSES) }
   scope :stale, -> { active.where(started_at: ...MAX_LIVE_DURATION.ago) }
+  # Calls a human has to act on: a live call the AI asked help for, or an ended
+  # one that still owes the caller a call back.
+  scope :needing_action, lambda {
+    active.where("calls.meta->>'needs_action' = 'true'").or(ended.where("calls.meta->>'follow_up' = 'true'"))
+  }
 
   def self.normalize_timestamp(value)
     return nil if value.blank?
@@ -112,6 +127,11 @@ class Call < ApplicationRecord
     # rubocop:disable Rails/SkipsModelValidations
     message&.touch
     # rubocop:enable Rails/SkipsModelValidations
+    Pathors::CallLifecycleService.new(call: self).ended if pathors?
+  end
+
+  def dismissed_for?(user)
+    user.present? && Array(dismissed_by).include?(user.id)
   end
 
   def display_status

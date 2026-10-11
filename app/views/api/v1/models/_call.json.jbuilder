@@ -10,10 +10,29 @@ json.created_at call.created_at.to_i
 json.message_id call.message_id
 json.recording_url call.recording_url
 json.transcript call.transcript
+json.from_number call.from_number
+json.ended_at call.ended_at
+json.accepted_at call.accepted_at
+json.accepted_by_agent_name call.accepted_by_agent_name
+# The handling state Pathors::CallLifecycleService keeps; agent-only, like the
+# rest of this list.
+json.needs_action call.needs_action == true
+json.follow_up call.follow_up == true
+json.outcome call.outcome
+json.takeover_requested call.takeover_requested == true
+json.dismissed call.dismissed_for?(Current.user)
+json.summary call.summary
+# Kept after the call ends: the last snapshot holds the only transcript the
+# Inbox has for a finished Pathors call, whose platform sends none afterwards.
+json.live call.live
+# What the AI extracted, from the call's handoff card; nil when no human took
+# the call over. Preloaded for the page by CallFinder.
+json.variables local_assigns.fetch(:handoff_variables, {})[call.handoff_message_id]
 
 json.conversation do
   json.id call.conversation_id
   json.display_id call.conversation.display_id
+  json.status call.conversation.status
 end
 
 json.inbox do

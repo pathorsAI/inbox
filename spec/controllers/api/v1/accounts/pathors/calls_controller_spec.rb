@@ -970,6 +970,7 @@ RSpec.describe 'Pathors Calls API', type: :request do
               { 'kind' => 'system', 'code' => 'transfer_failed', 'text' => 'Transfer failed: line busy',
                 'at' => 1_759_581_202_000 }
             ],
+            'attention' => nil,
             'updated_at' => Time.current.iso8601
           )
         end
@@ -1205,6 +1206,226 @@ RSpec.describe 'Pathors Calls API', type: :request do
         expect(response).to have_http_status(:ok)
         expect(response.parsed_body['payload']).to eq([])
       end
+    end
+  end
+
+  describe 'PUT /api/v1/accounts/{account.id}/pathors/calls/{id}/live with attention' do
+    let(:bot_inbox) { create(:agent_bot_inbox, inbox: create(:inbox, account: account)) }
+    let(:voice_conversation) { create(:conversation, account: account, inbox: bot_inbox.inbox) }
+    let(:call) do
+      create(:call, :pathors, account: account, conversation: voice_conversation, inbox: voice_conversation.inbox,
+                              contact: voice_conversation.contact)
+    end
+    let(:attention) do
+      {
+        takeover_request: { reason: 'customer_confused', detail: 'd' * 600, source: 'agent', at: 1_760_000_000_000 },
+        transfer: { phase: 'failed', target_masked: '+8869****678', failure_reason: 'busy', at: 1_760_000_000_500, extra: 'x' },
+        human_left_at: nil
+      }
+    end
+
+    def put_live(attention_payload)
+      put "/api/v1/accounts/#{account.id}/pathors/calls/#{call.id}/live",
+          params: { live: { seq: 1, turns: 1, interruptions: 0, transfer_failed: false, transcript: [], attention: attention_payload } },
+          headers: admin.create_new_auth_token, as: :json
+    end
+
+    it 'stores the normalised attention' do
+      put_live(attention)
+
+      expect(response).to have_http_status(:ok)
+      stored = call.reload.live['attention']
+      expect(stored['takeover_request']).to include('reason' => 'customer_confused', 'source' => 'agent', 'at' => 1_760_000_000_000)
+      expect(stored['takeover_request']['detail'].length).to eq(Pathors::CallLiveStateService::MAX_DETAIL_LENGTH)
+      expect(stored['transfer']).to eq('phase' => 'failed', 'target_masked' => '+8869****678', 'failure_reason' => 'busy',
+                                       'at' => 1_760_000_000_500)
+      expect(stored['human_left_at']).to be_nil
+    end
+
+    it 'hands the conversation to the inbox agents and broadcasts needs_action' do
+      allow(ActionCableBroadcastJob).to receive(:perform_later)
+
+      put_live(attention)
+
+      expect(call.reload.needs_action).to be(true)
+      expect(voice_conversation.reload).to have_attributes(status: 'open', assignee_agent_bot_id: nil)
+      expect(ActionCableBroadcastJob).to have_received(:perform_later)
+        .with(anything, 'pathors_call.live_updated', hash_including(needs_action: true, accepted_by_agent_id: nil))
+    end
+
+    it 'rejects an unknown transfer phase' do
+      put_live(attention.merge(transfer: { phase: 'ringing', at: 1 }))
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response.parsed_body['error']).to start_with('attention.transfer')
+      expect(call.reload.live).to be_nil
+    end
+
+    it 'rejects an oversized reason' do
+      put_live(attention.merge(takeover_request: attention[:takeover_request].merge(reason: 'r' * 65)))
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response.parsed_body['error']).to start_with('attention.takeover_request')
+    end
+
+    it 'rejects a non-object attention and a negative human_left_at' do
+      put_live('soon')
+      expect(response).to have_http_status(:unprocessable_entity)
+
+      put_live({ human_left_at: -1 })
+      expect(response).to have_http_status(:unprocessable_entity)
+    end
+  end
+
+  describe 'POST /api/v1/accounts/{account.id}/pathors/calls/{id}/join on a bot-held conversation' do
+    let(:join_url) { 'https://api.pathors.example/project/proj_42/integration/chatwoot/voice/join' }
+    let(:bot) do
+      create(:agent_bot, account: account, outgoing_url: 'https://api.pathors.example/project/proj_42/integration/chatwoot/callback')
+    end
+    let(:bot_inbox) { create(:agent_bot_inbox, inbox: create(:inbox, account: account), agent_bot: bot) }
+    let(:voice_conversation) { create(:conversation, account: account, inbox: bot_inbox.inbox) }
+    let(:call) do
+      create(:call, :pathors, account: account, conversation: voice_conversation, inbox: voice_conversation.inbox,
+                              contact: voice_conversation.contact, needs_action: true)
+    end
+
+    before do
+      create(:inbox_member, user: agent, inbox: voice_conversation.inbox)
+      stub_request(:post, join_url).to_return(status: 200, body: { token: 't' }.to_json, headers: { 'Content-Type' => 'application/json' })
+    end
+
+    it 'assigns the joiner, opens the conversation and clears needs_action' do
+      expect(voice_conversation.status).to eq('pending')
+
+      post "/api/v1/accounts/#{account.id}/pathors/calls/#{call.id}/join", headers: agent.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(voice_conversation.reload).to have_attributes(status: 'open', assignee_id: agent.id, assignee_agent_bot_id: nil)
+      expect(call.reload).to have_attributes(needs_action: false, human_joined: true, accepted_by_agent_id: agent.id)
+      expect(call.accepted_at).to be_a(Integer)
+    end
+  end
+
+  describe 'POST /api/v1/accounts/{account.id}/pathors/calls/{id}/dismiss and resolve_follow_up' do
+    let(:call) do
+      create(:call, :pathors, account: account, conversation: conversation, inbox: conversation.inbox,
+                              contact: conversation.contact, status: 'completed', follow_up: true)
+    end
+    let(:base_url) { "/api/v1/accounts/#{account.id}/pathors/calls/#{call.id}" }
+
+    before { create(:inbox_member, user: agent, inbox: conversation.inbox) }
+
+    it 'requires authentication' do
+      post "#{base_url}/dismiss", as: :json
+      expect(response).to have_http_status(:unauthorized)
+
+      post "#{base_url}/resolve_follow_up", as: :json
+      expect(response).to have_http_status(:unauthorized)
+    end
+
+    it 'refuses an agent without access to the conversation' do
+      outsider = create(:user, account: account, role: :agent)
+
+      post "#{base_url}/dismiss", headers: outsider.create_new_auth_token, as: :json
+      expect(response).to have_http_status(:unauthorized)
+
+      post "#{base_url}/resolve_follow_up", headers: outsider.create_new_auth_token, as: :json
+      expect(response).to have_http_status(:unauthorized)
+      expect(call.reload.follow_up).to be(true)
+    end
+
+    it 'refuses the bot token' do
+      post "#{base_url}/dismiss", headers: { api_access_token: agent_bot.access_token.token }, as: :json
+
+      expect(response).to have_http_status(:unauthorized)
+    end
+
+    it 'dismisses for the current agent only, idempotently' do
+      2.times do
+        post "#{base_url}/dismiss", headers: agent.create_new_auth_token, as: :json
+
+        expect(response).to have_http_status(:ok)
+        expect(response.parsed_body).to eq('dismissed' => true)
+      end
+      expect(call.reload.dismissed_by).to eq([agent.id])
+    end
+
+    it 'clears the follow-up flag, idempotently, and leaves the conversation alone' do
+      2.times do
+        post "#{base_url}/resolve_follow_up", headers: agent.create_new_auth_token, as: :json
+
+        expect(response).to have_http_status(:ok)
+        expect(response.parsed_body).to include('id' => call.id, 'follow_up' => false)
+      end
+      expect(call.reload.follow_up).to be(false)
+      expect(conversation.reload.status).to eq('open')
+    end
+  end
+
+  describe 'PATCH /api/v1/accounts/{account.id}/pathors/calls/{id} lifecycle and summary' do
+    let(:bot_inbox) { create(:agent_bot_inbox, inbox: create(:inbox, account: account)) }
+    let(:voice_conversation) { create(:conversation, account: account, inbox: bot_inbox.inbox) }
+    let(:call) do
+      create(:call, :pathors, account: account, conversation: voice_conversation, inbox: voice_conversation.inbox,
+                              contact: voice_conversation.contact)
+    end
+    let(:call_url) { "/api/v1/accounts/#{account.id}/pathors/calls/#{call.id}" }
+
+    it 'records the outcome and resolves a conversation only the AI handled' do
+      patch call_url, params: { status: 'completed', duration_seconds: 90, end_reason: 'agent_hangup' },
+                      headers: { api_access_token: agent_bot.access_token.token }, as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(call.reload.outcome).to eq('ai_done')
+      expect(voice_conversation.reload.status).to eq('resolved')
+      expect(voice_conversation.custom_attributes['pathors_call_outcome']).to eq('ai_done')
+    end
+
+    it 'flags a follow-up when the call ends while it needs a human' do
+      call.update!(needs_action: true)
+
+      patch call_url, params: { status: 'completed', duration_seconds: 90, end_reason: 'user_hangup' },
+                      headers: admin.create_new_auth_token, as: :json
+
+      expect(call.reload).to have_attributes(follow_up: true, needs_action: false)
+      expect(voice_conversation.reload).to have_attributes(status: 'open', assignee_agent_bot_id: nil)
+    end
+
+    it 'stores a capped summary' do
+      summary = { intent: 'booking', result: 'r' * 600, todos: Array.new(12) { |index| "todo #{index}" }, warnings: [], text: 'ok' }
+
+      patch call_url, params: { status: 'completed', summary: summary }, headers: admin.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:success)
+      stored = call.reload.summary
+      expect(stored).to include('intent' => 'booking', 'warnings' => [], 'text' => 'ok')
+      expect(stored['result'].length).to eq(Pathors::CallSummary::MAX_TEXT_LENGTH)
+      expect(stored['todos'].size).to eq(Pathors::CallSummary::MAX_ITEMS)
+    end
+
+    it 'accepts a summary written back after the call ended' do
+      call.update!(status: 'completed')
+
+      patch call_url, params: { status: 'in_progress', summary: { text: 'later' } }, headers: admin.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(call.reload).to have_attributes(status: 'completed', summary: { 'text' => 'later' })
+    end
+
+    it 'rejects a malformed summary' do
+      patch call_url, params: { status: 'completed', summary: { todos: 'call back' } }, headers: admin.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(call.reload.status).to eq('in_progress')
+    end
+  end
+
+  describe 'POST /api/v1/accounts/{account.id}/pathors/calls attribute provisioning' do
+    it 'defines the call attributes for the account' do
+      post "/api/v1/accounts/#{account.id}/pathors/calls", params: create_payload, headers: admin.create_new_auth_token, as: :json
+
+      expect(account.custom_attribute_definitions.conversation_attribute.pluck(:attribute_key))
+        .to include('pathors_call_from', 'pathors_call_outcome', 'pathors_takeover_requested')
     end
   end
 end
