@@ -120,7 +120,7 @@ export default {
       );
     },
     isMfaEnabled() {
-      return parseBoolean(window.chatwootConfig?.isMfaEnabled);
+      return parseBoolean(globalThis.chatwootConfig?.isMfaEnabled);
     },
   },
   mounted() {

@@ -117,7 +117,7 @@ export default {
   computed: {
     ...mapGetters({ globalConfig: 'globalConfig/get' }),
     allowedLoginMethods() {
-      return window.chatwootConfig.allowedLoginMethods || ['email'];
+      return globalThis.chatwootConfig.allowedLoginMethods || ['email'];
     },
     showPathorsLogin() {
       return this.allowedLoginMethods.includes('pathors');
@@ -125,7 +125,7 @@ export default {
     showGoogleOAuth() {
       return (
         this.allowedLoginMethods.includes('google_oauth') &&
-        Boolean(window.chatwootConfig.googleOAuthClientId)
+        Boolean(globalThis.chatwootConfig.googleOAuthClientId)
       );
     },
     showEmailLogin() {
@@ -139,7 +139,7 @@ export default {
     },
     showSignupLink() {
       return (
-        window.chatwootConfig.signupEnabled === 'true' ||
+        globalThis.chatwootConfig.signupEnabled === 'true' ||
         Boolean(this.signupRoute.query?.shopify_pending_install)
       );
     },

@@ -72,14 +72,14 @@ const termsLink = computed(() =>
 const sanitizedTermsLink = computed(() => DOMPurify.sanitize(termsLink.value));
 
 const allowedLoginMethods = computed(
-  () => window.chatwootConfig.allowedLoginMethods || ['email']
+  () => globalThis.chatwootConfig.allowedLoginMethods || ['email']
 );
 
 const showGoogleOAuth = computed(
   () =>
     !props.shopifyPendingInstall &&
     allowedLoginMethods.value.includes('google_oauth') &&
-    Boolean(window.chatwootConfig.googleOAuthClientId)
+    Boolean(globalThis.chatwootConfig.googleOAuthClientId)
 );
 
 const isFormValid = computed(() => !v$.value.$invalid);
