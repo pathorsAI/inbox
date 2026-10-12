@@ -114,6 +114,11 @@ class Call < ApplicationRecord
     DISPLAY_DIRECTIONS.key(value.to_s) || value.to_s
   end
 
+  # Whether the last save changed what an ended call's outcome is computed from.
+  def end_details_changed?
+    saved_change_to_status? || saved_change_to_end_reason? || saved_change_to_duration_seconds?
+  end
+
   def terminal?
     TERMINAL_STATUSES.include?(status)
   end

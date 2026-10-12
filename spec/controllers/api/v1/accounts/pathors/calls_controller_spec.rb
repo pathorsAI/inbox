@@ -1381,6 +1381,15 @@ RSpec.describe 'Pathors Calls API', type: :request do
       expect(voice_conversation.custom_attributes['pathors_call_outcome']).to eq('ai_done')
     end
 
+    it 'recomputes the outcome when the real end arrives after a stale expiry' do
+      call.update!(status: 'completed', end_reason: 'stale', outcome: 'ai_done')
+
+      patch call_url, params: { status: 'completed', end_reason: 'transferred', duration_seconds: 300 },
+                      headers: { api_access_token: agent_bot.access_token.token }, as: :json
+
+      expect(call.reload.outcome).to eq('transferred')
+    end
+
     it 'flags a follow-up when the call ends while it needs a human' do
       call.update!(needs_action: true)
 
