@@ -366,7 +366,7 @@ const pathorsCallPageRoute = computed(() => {
   const number = isOutbound.value
     ? call.value?.toNumber
     : call.value?.fromNumber;
-  const digits = (number || '').replace(/\D/g, '');
+  const digits = (number || '').replaceAll(/\D/g, '');
   return {
     name: 'calls_all',
     params: { accountId: accountId.value },

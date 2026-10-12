@@ -58,7 +58,10 @@ export const CALL_TONE_STRIPE_CLASS = Object.freeze({
   [CALL_TONE.TEAL]: 'bg-n-teal-9',
 });
 
-const NEEDS_HUMAN_STATES = [CALL_STATE.REQUESTED, CALL_STATE.TRANSFER_FAILED];
+const NEEDS_HUMAN_STATES = new Set([
+  CALL_STATE.REQUESTED,
+  CALL_STATE.TRANSFER_FAILED,
+]);
 
 const toEpochSeconds = date => Math.floor(date.getTime() / 1000);
 
@@ -89,7 +92,7 @@ export const dateRangeParams = (range, now = new Date()) => {
  * @param {{ key: string }} state primaryCallState of the call
  */
 export const callSection = (call, state) => {
-  if (call.followUp || NEEDS_HUMAN_STATES.includes(state.key)) return 'need';
+  if (call.followUp || NEEDS_HUMAN_STATES.has(state.key)) return 'need';
   if (isLiveCallStatus(call.status)) return 'live';
   const startedAt = new Date(toEpochMs(call.startedAt ?? call.createdAt));
   if (isToday(startedAt)) return 'today';

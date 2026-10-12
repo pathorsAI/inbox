@@ -15,17 +15,17 @@ const props = defineProps({
 const { t } = useI18n();
 
 // Someone (the AI or a person) is talking to the caller right now.
-const ON_THE_LINE = [
+const ON_THE_LINE = new Set([
   CALL_STATE.AI,
   CALL_STATE.WARN,
   CALL_STATE.HUMAN,
   CALL_STATE.LIVE,
   CALL_STATE.REQUESTED,
   CALL_STATE.TRANSFER_FAILED,
-];
+]);
 
 const label = computed(() => t(props.state.labelKey, props.state.labelParams));
-const isOnTheLine = computed(() => ON_THE_LINE.includes(props.state.key));
+const isOnTheLine = computed(() => ON_THE_LINE.has(props.state.key));
 </script>
 
 <template>
