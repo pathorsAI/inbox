@@ -21,24 +21,33 @@ describe '/app/login', type: :request do
   context 'with Pathors login configured' do
     after { GlobalConfig.clear_cache }
 
-    it 'offers only the Pathors login method' do
+    it 'offers Pathors next to password and Google login' do
       GlobalConfig.clear_cache
       with_modified_env PATHORS_LOGIN_CLIENT_ID: 'inbox-login', PATHORS_LOGIN_CLIENT_SECRET: 'secret' do
         get '/app/login'
       end
 
-      expect(response.body).to include('allowedLoginMethods: ["pathors"]')
+      expect(response.body).to include('allowedLoginMethods: ["email","google_oauth","pathors"]')
       expect(response.body).to include("pathorsLoginEnabled: 'true'")
     end
 
-    it 'keeps password login without the client secret' do
+    it 'does not offer Pathors without the client secret' do
       GlobalConfig.clear_cache
       with_modified_env PATHORS_LOGIN_CLIENT_ID: 'inbox-login' do
         get '/app/login'
       end
 
-      expect(response.body).to include('allowedLoginMethods: ["email"]')
+      expect(response.body).to include('allowedLoginMethods: ["email","google_oauth"]')
       expect(response.body).to include("pathorsLoginEnabled: 'false'")
+    end
+
+    it 'drops Google when ENABLE_GOOGLE_OAUTH_LOGIN is false' do
+      GlobalConfig.clear_cache
+      with_modified_env PATHORS_LOGIN_CLIENT_ID: 'inbox-login', PATHORS_LOGIN_CLIENT_SECRET: 'secret', ENABLE_GOOGLE_OAUTH_LOGIN: 'false' do
+        get '/app/login'
+      end
+
+      expect(response.body).to include('allowedLoginMethods: ["email","pathors"]')
     end
   end
 

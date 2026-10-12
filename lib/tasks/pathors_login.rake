@@ -1,7 +1,7 @@
 require 'csv'
 
 namespace :pathors_login do
-  desc 'Print human users as CSV, to compare with Pathors accounts before turning on Pathors login'
+  desc 'Print human users as CSV, to see which are linked to a Pathors account (Pathors login links by email)'
   task audit: :environment do
     puts CSV.generate_line(%w[id email type confirmed pathors_uid accounts])
     User.includes(:accounts).find_each do |user|

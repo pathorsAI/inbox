@@ -1,8 +1,7 @@
-# The switch for "only Pathors login" (pathorsAI/pathors#3316). With both
-# PATHORS_LOGIN_CLIENT_ID and PATHORS_LOGIN_CLIENT_SECRET configured, the inbox
-# signs people in through Pathors only and refuses every password flow; without
-# them it behaves like stock Chatwoot. This is a separate OAuth client from the
-# integration's PATHORS_OAUTH_CLIENT_ID.
+# Sign in with Pathors (pathorsAI/pathors#3316) is offered when both
+# PATHORS_LOGIN_CLIENT_ID and PATHORS_LOGIN_CLIENT_SECRET are configured. It is
+# one more login provider next to password and Google; nothing else changes.
+# This is a separate OAuth client from the integration's PATHORS_OAUTH_CLIENT_ID.
 module Pathors::Login
   # Pathors' per-account admin users, which call the API with an access token
   # and cannot enrol a TOTP. Must match the address Pathors generates in

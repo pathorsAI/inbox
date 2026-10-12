@@ -16,6 +16,7 @@ import { getLoginRedirectURL, getSignupRoute } from 'v3/helpers/AuthHelper';
 import SimpleDivider from '../../components/Divider/SimpleDivider.vue';
 import FormInput from '../../components/Form/Input.vue';
 import PathorsLoginButton from '../../components/PathorsLogin/Button.vue';
+import GoogleOAuthButton from '../../components/GoogleOauth/Button.vue';
 import LoginShowcase from '../../components/LoginShowcase/Index.vue';
 import Spinner from 'shared/components/Spinner.vue';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
@@ -47,6 +48,7 @@ export default {
   components: {
     FormInput,
     PathorsLoginButton,
+    GoogleOAuthButton,
     LoginShowcase,
     Spinner,
     NextButton,
@@ -120,13 +122,22 @@ export default {
     showPathorsLogin() {
       return this.allowedLoginMethods.includes('pathors');
     },
-    // Google goes through the same Pathors client (one identity per email),
-    // so it is offered exactly when Pathors login is.
-    showGoogleLogin() {
-      return this.showPathorsLogin;
+    showGoogleOAuth() {
+      return (
+        this.allowedLoginMethods.includes('google_oauth') &&
+        Boolean(window.chatwootConfig.googleOAuthClientId)
+      );
+    },
+    showEmailLogin() {
+      return this.allowedLoginMethods.includes('email');
+    },
+    showLoginDivider() {
+      return (
+        this.showEmailLogin &&
+        (this.showPathorsLogin || this.showGoogleOAuth || this.showSamlLogin)
+      );
     },
     showSignupLink() {
-      if (this.showPathorsLogin) return false;
       return (
         window.chatwootConfig.signupEnabled === 'true' ||
         Boolean(this.signupRoute.query?.shopify_pending_install)
@@ -150,7 +161,6 @@ export default {
         : route;
     },
     showSamlLogin() {
-      if (this.showPathorsLogin) return false;
       return this.allowedLoginMethods.includes('saml');
     },
     samlLoginRoute() {
@@ -493,18 +503,10 @@ export default {
                 :sso-conversation-id="ssoConversationId"
                 :sso-route-path="ssoRoutePath"
               />
-              <SimpleDivider
-                v-if="showGoogleLogin"
-                :label="$t('COMMON.OR')"
-                bg="bg-n-background"
-              />
-              <PathorsLoginButton
-                v-if="showGoogleLogin"
-                provider="google"
+              <GoogleOAuthButton
+                v-if="showGoogleOAuth"
                 :redirect-url="redirectUrl"
                 :sso-account-id="ssoAccountId"
-                :sso-conversation-id="ssoConversationId"
-                :sso-route-path="ssoRoutePath"
               />
               <div v-if="showSamlLogin" class="text-center">
                 <router-link
@@ -521,14 +523,13 @@ export default {
                 </router-link>
               </div>
               <SimpleDivider
-                v-if="showSamlLogin"
+                v-if="showLoginDivider"
                 :label="$t('COMMON.OR')"
                 bg="bg-n-background"
-                class="uppercase"
               />
             </div>
             <form
-              v-if="!showPathorsLogin"
+              v-if="showEmailLogin"
               class="space-y-5"
               @submit.prevent="submitFormLogin"
             >

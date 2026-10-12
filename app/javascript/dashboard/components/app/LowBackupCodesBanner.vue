@@ -2,7 +2,7 @@
 import { computed, onUnmounted, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
-import { isProfileMfaAvailable } from 'shared/helpers/pathorsLogin';
+import { parseBoolean } from '@chatwoot/utils';
 import { useMapGetter } from 'dashboard/composables/store';
 import { emitter } from 'shared/helpers/mitt';
 import { BUS_EVENTS } from 'shared/constants/busEvents';
@@ -55,7 +55,7 @@ const bannerMessage = computed(() => {
 });
 
 const fetchMfaStatus = async () => {
-  if (!isProfileMfaAvailable()) return;
+  if (!parseBoolean(window.chatwootConfig?.isMfaEnabled)) return;
 
   try {
     const { data } = await mfaAPI.get();

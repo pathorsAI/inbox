@@ -82,9 +82,8 @@ class DeviseOverrides::OmniauthCallbacksController < DeviseTokenAuth::OmniauthCa
     redirect_to "#{mobile_deep_link_base}://auth/saml?#{params}", allow_other_host: true
   end
 
-  # Google and Shopify sign-up helpers (sign_up_user, oauth_context, parse_google_oauth_context and the
-  # google_oauth2 branch of get_redirect_route) are unreachable here, since only `pathors` is mounted.
-  # Kept on purpose so upstream syncs merge cleanly; do not delete them as dead code.
+  # Google sign-up (google_oauth2). Pathors sign-in never reaches here: Pathors::LoginUserResolver
+  # creates the user without an account instead.
   def sign_up_user
     return redirect_to login_page_url(error: 'no-account-found') unless account_signup_allowed?
 

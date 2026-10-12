@@ -5,6 +5,10 @@ OmniAuth.config.full_host = ENV.fetch('FRONTEND_URL', 'http://localhost:3000')
 require Rails.root.join('lib/omniauth/strategies/pathors').to_s
 
 Rails.application.config.middleware.use OmniAuth::Builder do
+  provider :google_oauth2, ENV.fetch('GOOGLE_OAUTH_CLIENT_ID', nil), ENV.fetch('GOOGLE_OAUTH_CLIENT_SECRET', nil), {
+    provider_ignores_state: true
+  }
+
   # Read on every request so a super admin edit applies without a restart. With
   # the switch off both phases 404: `omniauth.error.app` makes OmniAuth re-raise
   # instead of turning the error into a login failure redirect.

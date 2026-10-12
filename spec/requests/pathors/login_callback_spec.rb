@@ -178,16 +178,6 @@ RSpec.describe 'Sign in with Pathors', type: :request do
       expect(login_redirect_params['sso_route_path']).to eq('contacts')
     end
 
-    it 'forwards only the google idp_hint to Pathors authorize' do
-      with_modified_env(pathors_env) do
-        post '/omniauth/pathors?idp_hint=google'
-        expect(Rack::Utils.parse_query(URI.parse(response.location).query)['idp_hint']).to eq('google')
-
-        post '/omniauth/pathors?idp_hint=github'
-        expect(Rack::Utils.parse_query(URI.parse(response.location).query)).not_to have_key('idp_hint')
-      end
-    end
-
     it 'refuses a callback whose state does not match' do
       with_modified_env(pathors_env) do
         post '/omniauth/pathors'

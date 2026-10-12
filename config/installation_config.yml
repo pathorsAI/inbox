@@ -628,6 +628,12 @@
   value:
   locked: false
   description: 'The redirect URI configured in your Google OAuth app'
+- name: ENABLE_GOOGLE_OAUTH_LOGIN
+  display_title: 'Enable Google OAuth login'
+  value: true
+  locked: false
+  description: 'Show Google OAuth as a login option when credentials are configured'
+  type: boolean
 ## ------ End of Configs added for Google OAuth ------ ##
 
 ## ------ Configs added for SAML SSO ------ ##
@@ -689,7 +695,7 @@
 ## ---- Pathors login (pathorsAI/pathors#3316) ---- ##
 - name: PATHORS_LOGIN_CLIENT_ID
   display_title: 'Pathors Login Client ID'
-  description: 'First-party Pathors OAuth client for signing in to the inbox. With the secret set, password login is turned off and only Pathors login remains'
+  description: 'First-party Pathors OAuth client for signing in to the inbox. With the secret set, Sign in with Pathors is offered next to the other login options'
   value:
   locked: false
 - name: PATHORS_LOGIN_CLIENT_SECRET
