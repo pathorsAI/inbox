@@ -6,4 +6,4 @@
 // app/views/super_admin/application/_navigation.html.erb,
 // app/views/super_admin/devise/sessions/new.html.erb,
 // app/views/installation/onboarding/index.html.erb and public/browserconfig.xml.
-export const BRAND_ASSET_VERSION = '2';
+export const BRAND_ASSET_VERSION = '3';
