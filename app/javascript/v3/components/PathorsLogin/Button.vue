@@ -16,6 +16,8 @@ const props = defineProps({
 });
 
 const PATHORS_LOGIN_PATH = '/omniauth/pathors';
+// Served from public/ by Rails; bound at runtime so Vite does not try to bundle it.
+const PATHORS_MARK_URL = '/brand-assets/logo_thumbnail.svg';
 
 const csrfToken =
   document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ||
@@ -83,7 +85,7 @@ const action = computed(() => {
         aria-hidden="true"
       />
       <img
-        src="/brand-assets/logo_thumbnail.svg"
+        :src="PATHORS_MARK_URL"
         alt=""
         class="relative rounded-md size-5 ring-1 ring-white/30"
       />
