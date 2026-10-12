@@ -38,6 +38,13 @@ const IMPERSONATION_URL_SEARCH_KEY = 'impersonation';
 const USER_NOT_CONFIRMED_ERROR_CODE = 'user_not_confirmed';
 const AUTH_ERROR_TOAST_DURATION = 6000;
 
+// The three lines on the brand panel beside the form (lg and up).
+const PANEL_FEATURES = [
+  { key: 'LOGIN.PANEL.FEATURES.CHANNELS', icon: 'i-lucide-messages-square' },
+  { key: 'LOGIN.PANEL.FEATURES.AI', icon: 'i-lucide-bot' },
+  { key: 'LOGIN.PANEL.FEATURES.ACCOUNT', icon: 'i-lucide-key-round' },
+];
+
 export default {
   components: {
     FormInput,
@@ -63,6 +70,7 @@ export default {
     const { replaceInstallationName } = useBranding();
     return {
       replaceInstallationName,
+      panelFeatures: PANEL_FEATURES,
       v$: useVuelidate(),
     };
   },
@@ -413,215 +421,225 @@ export default {
 </script>
 
 <template>
-  <!-- The sign-in screen is always dark: `dark` switches the n-* tokens so the
-       password, SAML and MFA fallbacks render on the same canvas. -->
-  <main
-    class="dark relative flex items-center justify-center w-full min-h-screen px-4 py-16 overflow-hidden bg-login-canvas isolate"
-  >
-    <div
-      class="absolute inset-0 -z-10 bg-login-grid [mask-image:radial-gradient(ellipse_70%_60%_at_50%_35%,#000_30%,transparent_75%)] motion-safe:animate-login-grid"
-      aria-hidden="true"
-    />
-    <div
-      class="absolute -top-56 left-1/2 -z-10 h-[560px] w-[880px] -translate-x-1/2 rounded-full bg-login-brand/25 blur-[120px]"
-      aria-hidden="true"
-    />
-    <div
-      class="absolute -bottom-64 -right-40 -z-10 size-[480px] rounded-full bg-login-cyan/10 blur-[120px]"
-      aria-hidden="true"
-    />
-    <div
-      class="absolute inset-x-0 top-0 h-40 -z-10 bg-login-scan motion-safe:animate-login-scan motion-reduce:hidden"
-      aria-hidden="true"
-    />
-
-    <div class="relative w-full max-w-[420px]">
-      <header class="flex flex-col items-center text-center">
-        <img
-          :src="globalConfig.logoDark || globalConfig.logo"
-          :alt="globalConfig.installationName"
-          class="block w-auto h-7"
-        />
-        <p
-          class="inline-flex items-center gap-2 px-3 py-1 mt-9 font-mono text-[11px] uppercase tracking-[0.24em] text-login-label border rounded-full border-login-brand/25 bg-login-brand/[0.08]"
-        >
-          <span class="relative flex size-1.5" aria-hidden="true">
-            <span
-              class="absolute inline-flex w-full h-full rounded-full opacity-75 bg-login-accent motion-safe:animate-ping"
-            />
-            <span
-              class="relative inline-flex rounded-full size-1.5 bg-login-accent"
-            />
-          </span>
-          {{ $t('LOGIN.EYEBROW') }}
+  <main class="flex w-full min-h-screen bg-n-background">
+    <!-- Brand panel: always dark, hidden below lg where the form takes the screen. -->
+    <aside
+      class="relative hidden lg:flex flex-col justify-between w-[44%] max-w-[40rem] p-12 overflow-hidden text-white bg-gradient-to-br from-login-navy via-login-navy to-login-deep isolate"
+    >
+      <div
+        class="absolute -right-32 -top-32 -z-10 size-[28rem] rounded-full bg-n-brand/30 blur-3xl"
+        aria-hidden="true"
+      />
+      <img
+        :src="globalConfig.logoDark || globalConfig.logo"
+        :alt="globalConfig.installationName"
+        class="block w-auto h-7 self-start"
+      />
+      <div class="max-w-md">
+        <h2 class="text-3xl font-semibold leading-tight tracking-tight">
+          {{ $t('LOGIN.PANEL.HEADLINE') }}
+        </h2>
+        <p class="mt-4 text-base leading-relaxed text-white/70">
+          {{ $t('LOGIN.PANEL.DESCRIPTION') }}
         </p>
-        <h1 class="mt-4 text-[28px] font-semibold tracking-tight text-white">
+        <ul class="mt-10 space-y-4">
+          <li
+            v-for="feature in panelFeatures"
+            :key="feature.key"
+            class="flex items-center gap-3 text-sm text-white/85"
+          >
+            <span
+              class="flex items-center justify-center rounded-lg size-9 bg-white/10 ring-1 ring-inset ring-white/15"
+            >
+              <Icon :icon="feature.icon" class="size-[1.125rem]" />
+            </span>
+            {{ $t(feature.key) }}
+          </li>
+        </ul>
+      </div>
+      <p class="text-xs text-white/50">
+        {{
+          $t('LOGIN.PANEL.COPYRIGHT', { name: globalConfig.installationName })
+        }}
+      </p>
+    </aside>
+
+    <section
+      class="flex items-center justify-center flex-1 px-6 py-12 sm:px-10"
+    >
+      <div class="w-full max-w-sm">
+        <img
+          :src="globalConfig.logo"
+          :alt="globalConfig.installationName"
+          class="block w-auto h-7 mb-10 lg:hidden dark:hidden"
+        />
+        <img
+          v-if="globalConfig.logoDark"
+          :src="globalConfig.logoDark"
+          :alt="globalConfig.installationName"
+          class="hidden w-auto h-7 mb-10 dark:block dark:lg:hidden"
+        />
+
+        <h1 class="text-2xl font-semibold tracking-tight text-n-slate-12">
           {{ replaceInstallationName($t('LOGIN.TITLE')) }}
         </h1>
-        <p v-if="showPathorsLogin" class="mt-2 text-sm text-white/55">
+        <p v-if="showPathorsLogin" class="mt-2 text-sm text-n-slate-11">
           {{ $t('LOGIN.PATHORS.SUBTITLE') }}
         </p>
-        <p v-if="showSignupLink" class="mt-2 text-sm text-white/55">
+        <p v-if="showSignupLink" class="mt-2 text-sm text-n-slate-11">
           {{ $t('COMMON.OR') }}
           <router-link
             :to="signupRoute"
-            class="lowercase text-link text-login-label"
+            class="lowercase text-link text-n-brand"
           >
             {{ $t('LOGIN.CREATE_NEW_ACCOUNT') }}
           </router-link>
         </p>
-      </header>
 
-      <!-- Session Limit Section -->
-      <section v-if="sessionsLimitReached" class="mt-10">
-        <SessionLimitOverlay
-          :sessions="limitedSessions"
-          @revoke="handleSessionRevoke"
-          @revoke-all="handleSessionRevokeAll"
-          @cancel="handleSessionLimitCancel"
-        />
-      </section>
+        <!-- Session Limit Section -->
+        <div v-if="sessionsLimitReached" class="mt-8">
+          <SessionLimitOverlay
+            :sessions="limitedSessions"
+            @revoke="handleSessionRevoke"
+            @revoke-all="handleSessionRevokeAll"
+            @cancel="handleSessionLimitCancel"
+          />
+        </div>
 
-      <!-- MFA Verification Section -->
-      <section v-else-if="mfaRequired" class="mt-10">
-        <MfaVerification
-          :mfa-token="mfaToken"
-          :verification-channel="verificationChannel"
-          @verified="handleMfaVerified"
-          @setup-required="handleMfaSetupRequired"
-          @cancel="handleMfaCancel"
-        />
-      </section>
+        <!-- MFA Verification Section -->
+        <div v-else-if="mfaRequired" class="mt-8">
+          <MfaVerification
+            :mfa-token="mfaToken"
+            :verification-channel="verificationChannel"
+            @verified="handleMfaVerified"
+            @setup-required="handleMfaSetupRequired"
+            @cancel="handleMfaCancel"
+          />
+        </div>
 
-      <!-- Enforced MFA Setup Section -->
-      <section v-else-if="mfaSetupRequired" class="mt-10">
-        <MfaEnforcedSetup
-          :mfa-setup-token="mfaSetupToken"
-          :provisioning-url="mfaProvisioningUrl"
-          :secret="mfaSecret"
-          @verified="handleMfaSetupVerified"
-          @cancel="handleMfaSetupCancel"
-        />
-      </section>
+        <!-- Enforced MFA Setup Section -->
+        <div v-else-if="mfaSetupRequired" class="mt-8">
+          <MfaEnforcedSetup
+            :mfa-setup-token="mfaSetupToken"
+            :provisioning-url="mfaProvisioningUrl"
+            :secret="mfaSecret"
+            @verified="handleMfaSetupVerified"
+            @cancel="handleMfaSetupCancel"
+          />
+        </div>
 
-      <!-- Regular Login Section -->
-      <section
-        v-else
-        class="relative mt-10 rounded-2xl border border-white/10 bg-login-card/70 before:pointer-events-none before:absolute before:-left-px before:-top-px before:size-3.5 before:rounded-tl-2xl before:border-l before:border-t before:border-login-accent/55 before:content-[''] after:pointer-events-none after:absolute after:-bottom-px after:-right-px after:size-3.5 after:rounded-br-2xl after:border-b after:border-r after:border-login-accent/55 after:content-[''] p-8 shadow-[0_24px_80px_-24px_rgba(0,0,0,0.9)] backdrop-blur-xl"
-        :class="{ 'animate-wiggle': loginApi.hasErrored }"
-      >
-        <span
-          class="absolute inset-x-10 -top-px h-px bg-gradient-to-r from-transparent via-login-accent to-transparent"
-          aria-hidden="true"
-        />
-        <div v-if="!email">
-          <div class="flex flex-col gap-3">
-            <PathorsLoginButton
-              v-if="showPathorsLogin"
-              :redirect-url="redirectUrl"
-              :sso-account-id="ssoAccountId"
-              :sso-conversation-id="ssoConversationId"
-              :sso-route-path="ssoRoutePath"
-            />
-            <div
-              v-if="showGoogleLogin"
-              class="flex items-center gap-3 my-1 font-mono text-[11px] uppercase tracking-[0.2em] text-white/50"
-            >
-              <span class="flex-1 h-px bg-white/10" />
-              {{ $t('COMMON.OR') }}
-              <span class="flex-1 h-px bg-white/10" />
-            </div>
-            <PathorsLoginButton
-              v-if="showGoogleLogin"
-              provider="google"
-              :redirect-url="redirectUrl"
-              :sso-account-id="ssoAccountId"
-              :sso-conversation-id="ssoConversationId"
-              :sso-route-path="ssoRoutePath"
-            />
-            <div v-if="showSamlLogin" class="text-center">
-              <router-link
-                :to="samlLoginRoute"
-                class="inline-flex items-center justify-center w-full h-12 px-4 border rounded-xl border-white/10 bg-white/[0.03] hover:bg-white/[0.07]"
-              >
-                <Icon
-                  icon="i-lucide-lock-keyhole"
-                  class="size-5 text-n-slate-11"
-                />
-                <span class="ml-2 text-sm font-medium text-n-slate-12">
-                  {{ $t('LOGIN.SAML.LABEL') }}
-                </span>
-              </router-link>
-            </div>
-            <SimpleDivider
-              v-if="showSamlLogin"
-              :label="$t('COMMON.OR')"
-              bg="bg-login-card"
-              class="uppercase"
-            />
-          </div>
-          <form
-            v-if="!showPathorsLogin"
-            class="space-y-5"
-            @submit.prevent="submitFormLogin"
-          >
-            <FormInput
-              v-model="credentials.email"
-              name="email_address"
-              type="text"
-              data-testid="email_input"
-              :tabindex="1"
-              required
-              :label="$t('LOGIN.EMAIL.LABEL')"
-              :placeholder="$t('LOGIN.EMAIL.PLACEHOLDER')"
-              :has-error="v$.credentials.email.$error"
-              @input="v$.credentials.email.$touch"
-            />
-            <FormInput
-              v-model="credentials.password"
-              type="password"
-              name="password"
-              data-testid="password_input"
-              required
-              :tabindex="2"
-              :label="$t('LOGIN.PASSWORD.LABEL')"
-              :placeholder="$t('LOGIN.PASSWORD.PLACEHOLDER')"
-              :has-error="v$.credentials.password.$error"
-              @input="v$.credentials.password.$touch"
-            >
-              <p v-if="!globalConfig.disableUserProfileUpdate">
+        <!-- Regular Login Section -->
+        <div
+          v-else
+          class="mt-8"
+          :class="{ 'animate-wiggle': loginApi.hasErrored }"
+        >
+          <div v-if="!email">
+            <div class="flex flex-col gap-3">
+              <PathorsLoginButton
+                v-if="showPathorsLogin"
+                :redirect-url="redirectUrl"
+                :sso-account-id="ssoAccountId"
+                :sso-conversation-id="ssoConversationId"
+                :sso-route-path="ssoRoutePath"
+              />
+              <SimpleDivider
+                v-if="showGoogleLogin"
+                :label="$t('COMMON.OR')"
+                bg="bg-n-background"
+              />
+              <PathorsLoginButton
+                v-if="showGoogleLogin"
+                provider="google"
+                :redirect-url="redirectUrl"
+                :sso-account-id="ssoAccountId"
+                :sso-conversation-id="ssoConversationId"
+                :sso-route-path="ssoRoutePath"
+              />
+              <div v-if="showSamlLogin" class="text-center">
                 <router-link
-                  :to="resetPasswordRoute"
-                  class="text-sm text-link"
-                  tabindex="4"
+                  :to="samlLoginRoute"
+                  class="inline-flex items-center justify-center w-full h-11 px-4 border rounded-lg border-n-weak bg-n-solid-1 hover:bg-n-alpha-2"
                 >
-                  {{ $t('LOGIN.FORGOT_PASSWORD') }}
+                  <Icon
+                    icon="i-lucide-lock-keyhole"
+                    class="size-5 text-n-slate-11"
+                  />
+                  <span class="ml-2 text-sm font-medium text-n-slate-12">
+                    {{ $t('LOGIN.SAML.LABEL') }}
+                  </span>
                 </router-link>
-              </p>
-            </FormInput>
-            <NextButton
-              lg
-              type="submit"
-              data-testid="submit_button"
-              class="w-full"
-              :tabindex="3"
-              :label="$t('LOGIN.SUBMIT')"
-              :disabled="loginApi.showLoading"
-              :is-loading="loginApi.showLoading"
-            />
-          </form>
-        </div>
-        <div v-else class="flex items-center justify-center py-6">
-          <Spinner color-scheme="primary" size="" />
-        </div>
-      </section>
+              </div>
+              <SimpleDivider
+                v-if="showSamlLogin"
+                :label="$t('COMMON.OR')"
+                bg="bg-n-background"
+                class="uppercase"
+              />
+            </div>
+            <form
+              v-if="!showPathorsLogin"
+              class="space-y-5"
+              @submit.prevent="submitFormLogin"
+            >
+              <FormInput
+                v-model="credentials.email"
+                name="email_address"
+                type="text"
+                data-testid="email_input"
+                :tabindex="1"
+                required
+                :label="$t('LOGIN.EMAIL.LABEL')"
+                :placeholder="$t('LOGIN.EMAIL.PLACEHOLDER')"
+                :has-error="v$.credentials.email.$error"
+                @input="v$.credentials.email.$touch"
+              />
+              <FormInput
+                v-model="credentials.password"
+                type="password"
+                name="password"
+                data-testid="password_input"
+                required
+                :tabindex="2"
+                :label="$t('LOGIN.PASSWORD.LABEL')"
+                :placeholder="$t('LOGIN.PASSWORD.PLACEHOLDER')"
+                :has-error="v$.credentials.password.$error"
+                @input="v$.credentials.password.$touch"
+              >
+                <p v-if="!globalConfig.disableUserProfileUpdate">
+                  <router-link
+                    :to="resetPasswordRoute"
+                    class="text-sm text-link"
+                    tabindex="4"
+                  >
+                    {{ $t('LOGIN.FORGOT_PASSWORD') }}
+                  </router-link>
+                </p>
+              </FormInput>
+              <NextButton
+                lg
+                type="submit"
+                data-testid="submit_button"
+                class="w-full"
+                :tabindex="3"
+                :label="$t('LOGIN.SUBMIT')"
+                :disabled="loginApi.showLoading"
+                :is-loading="loginApi.showLoading"
+              />
+            </form>
+          </div>
+          <div v-else class="flex items-center justify-center py-6">
+            <Spinner color-scheme="primary" size="" />
+          </div>
 
-      <p
-        v-if="showPathorsLogin"
-        class="mt-6 text-xs leading-relaxed text-center text-white/60 text-balance"
-      >
-        {{ $t('LOGIN.PATHORS.SAME_ACCOUNT_HINT') }}
-      </p>
-    </div>
+          <p
+            v-if="showPathorsLogin"
+            class="mt-8 text-xs leading-relaxed text-pretty text-n-slate-10"
+          >
+            {{ $t('LOGIN.PATHORS.SAME_ACCOUNT_HINT') }}
+          </p>
+        </div>
+      </div>
+    </section>
   </main>
 </template>

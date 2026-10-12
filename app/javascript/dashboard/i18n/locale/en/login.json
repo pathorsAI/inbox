@@ -1,7 +1,6 @@
 {
   "LOGIN": {
     "TITLE": "Login to Chatwoot",
-    "EYEBROW": "Secure sign-in",
     "EMAIL": {
       "LABEL": "Email",
       "PLACEHOLDER": "example{'@'}companyname.com",
@@ -29,6 +28,16 @@
       "EMAIL_UNVERIFIED": "Your Pathors account email is not verified yet. Verify it in Pathors, then sign in again.",
       "ACCOUNT_MISMATCH": "This account can't be used to sign in. Please contact your administrator.",
       "LOGIN_FAILED": "We couldn't sign you in with Pathors. Please try again."
+    },
+    "PANEL": {
+      "COPYRIGHT": "© {name}",
+      "HEADLINE": "Every customer conversation, one inbox",
+      "DESCRIPTION": "Calls, chats and email in one place. AI answers first, and your team can step in at any time.",
+      "FEATURES": {
+        "CHANNELS": "Voice and text conversations side by side",
+        "AI": "AI replies first and hands complex cases to people",
+        "ACCOUNT": "Sign in with your Pathors account, no extra password"
+      }
     },
     "FORGOT_PASSWORD": "Forgot your password?",
     "CREATE_NEW_ACCOUNT": "Create a new account",

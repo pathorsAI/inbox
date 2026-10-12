@@ -1,7 +1,6 @@
 {
   "LOGIN": {
     "TITLE": "登入到 Chatwoot",
-    "EYEBROW": "安全登入",
     "EMAIL": {
       "LABEL": "電子郵件",
       "PLACEHOLDER": "example{'@'}companyname.com",
@@ -28,6 +27,16 @@
       "EMAIL_UNVERIFIED": "您的 Pathors 帳號電子郵件尚未驗證。請先到 Pathors 完成驗證，再重新登入。",
       "ACCOUNT_MISMATCH": "這個帳號無法用來登入，請聯絡管理員。",
       "LOGIN_FAILED": "無法透過 Pathors 登入，請再試一次。"
+    },
+    "PANEL": {
+      "COPYRIGHT": "© {name}",
+      "HEADLINE": "所有客戶對話，一個收件匣接住",
+      "DESCRIPTION": "電話、訊息與 Email 集中在同一個地方，AI 先回應，團隊隨時可以接手。",
+      "FEATURES": {
+        "CHANNELS": "語音與文字對話在同一個畫面處理",
+        "AI": "AI 先回覆，複雜的案件交給真人",
+        "ACCOUNT": "用 Pathors 帳號登入，不用另外記密碼"
+      }
     },
     "FORGOT_PASSWORD": "忘記密碼了？",
     "CREATE_NEW_ACCOUNT": "建立新帳戶",
