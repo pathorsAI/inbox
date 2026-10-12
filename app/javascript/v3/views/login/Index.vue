@@ -41,7 +41,7 @@ const USER_NOT_CONFIRMED_ERROR_CODE = 'user_not_confirmed';
 const AUTH_ERROR_TOAST_DURATION = 6000;
 
 // Served from public/ by Rails; bound at runtime so Vite does not bundle them.
-const LOGO_MARK_URL = '/favicon-512x512.png';
+const LOGO_MARK_URL = '/favicon-512x512.png?v=2';
 const LOGIN_ART_URL = '/brand-assets/login-art.jpg';
 
 export default {
