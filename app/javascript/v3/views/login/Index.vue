@@ -11,6 +11,7 @@ import { useBranding } from 'shared/composables/useBranding';
 import AnalyticsHelper from 'dashboard/helper/AnalyticsHelper';
 import { SESSION_EVENTS } from 'dashboard/helper/AnalyticsHelper/events';
 import { getLoginRedirectURL, getSignupRoute } from 'v3/helpers/AuthHelper';
+import { BRAND_ASSET_VERSION } from 'shared/constants/brandAssets';
 
 // components
 import SimpleDivider from '../../components/Divider/SimpleDivider.vue';
@@ -41,7 +42,7 @@ const USER_NOT_CONFIRMED_ERROR_CODE = 'user_not_confirmed';
 const AUTH_ERROR_TOAST_DURATION = 6000;
 
 // Served from public/ by Rails; bound at runtime so Vite does not bundle them.
-const LOGO_MARK_URL = '/favicon-512x512.png?v=2';
+const LOGO_MARK_URL = `/favicon-512x512.png?v=${BRAND_ASSET_VERSION}`;
 const LOGIN_ART_URL = '/brand-assets/login-art.jpg';
 
 export default {
