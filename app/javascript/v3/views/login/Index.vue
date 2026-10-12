@@ -40,7 +40,13 @@ const AUTH_ERROR_TOAST_DURATION = 6000;
 
 // Served from public/ by Rails; bound at runtime so Vite does not bundle them.
 const LOGO_MARK_URL = '/favicon-512x512.png';
-const LOGIN_ART_URL = '/brand-assets/login-art.jpg';
+const LOGIN_ART_SLIDES = [
+  '/brand-assets/login-art-1.jpg',
+  '/brand-assets/login-art-2.jpg',
+  '/brand-assets/login-art-3.jpg',
+];
+// Each slide is on screen this long; the cycle is slides × this.
+const LOGIN_ART_SLIDE_SECONDS = 8;
 
 export default {
   components: {
@@ -68,7 +74,8 @@ export default {
     return {
       replaceInstallationName,
       LOGO_MARK_URL,
-      LOGIN_ART_URL,
+      LOGIN_ART_SLIDES,
+      LOGIN_ART_SLIDE_SECONDS,
       v$: useVuelidate(),
     };
   },
@@ -424,15 +431,16 @@ export default {
       class="flex items-center justify-center flex-1 px-6 py-12 sm:px-10"
     >
       <div class="w-full max-w-sm">
-        <img
-          :src="LOGO_MARK_URL"
-          :alt="globalConfig.installationName"
-          class="block mb-8 size-12"
-        />
-
-        <h1 class="text-2xl font-semibold tracking-tight text-n-slate-12">
-          {{ replaceInstallationName($t('LOGIN.TITLE')) }}
-        </h1>
+        <div class="flex items-center gap-3">
+          <img
+            :src="LOGO_MARK_URL"
+            :alt="globalConfig.installationName"
+            class="size-10 shrink-0"
+          />
+          <h1 class="text-2xl font-semibold tracking-tight text-n-slate-12">
+            {{ replaceInstallationName($t('LOGIN.TITLE')) }}
+          </h1>
+        </div>
         <p v-if="showSignupLink" class="mt-2 text-sm text-n-slate-11">
           {{ $t('COMMON.OR') }}
           <router-link
@@ -587,10 +595,23 @@ export default {
       class="sticky top-0 hidden h-screen p-3 lg:block lg:w-1/2 xl:w-[55%]"
     >
       <div class="relative h-full overflow-hidden rounded-2xl bg-black">
+        <!-- The first slide also sits still underneath: it is what shows
+             before the cycle fades in, and all that shows under reduced motion. -->
         <img
-          :src="LOGIN_ART_URL"
+          :src="LOGIN_ART_SLIDES[0]"
           alt=""
           class="absolute inset-0 object-cover size-full"
+        />
+        <img
+          v-for="(slide, index) in LOGIN_ART_SLIDES"
+          :key="slide"
+          :src="slide"
+          alt=""
+          class="absolute inset-0 object-cover opacity-0 size-full animate-login-slide motion-reduce:hidden"
+          :style="{
+            animationDelay: `${index * LOGIN_ART_SLIDE_SECONDS}s`,
+            animationDuration: `${LOGIN_ART_SLIDES.length * LOGIN_ART_SLIDE_SECONDS}s`,
+          }"
         />
         <div
           class="absolute inset-0 bg-[radial-gradient(rgb(255_255_255/0.16)_1px,transparent_1px)] bg-[length:1.5rem_1.5rem] [mask-image:linear-gradient(to_bottom,transparent,black_30%,black_70%,transparent)]"

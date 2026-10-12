@@ -291,6 +291,15 @@ const tailwindConfig = {
     },
     keyframes: {
       ...defaultTheme.keyframes,
+      // Sign-in artwork slideshow (v3/views/login): each slide fades in,
+      // zooms out slowly while it holds, then hands over to the next one.
+      'login-slide': {
+        '0%': { opacity: 0, transform: 'scale(1.1)' },
+        '5%': { opacity: 1 },
+        '33%': { opacity: 1 },
+        '40%': { opacity: 0, transform: 'scale(1)' },
+        '100%': { opacity: 0, transform: 'scale(1)' },
+      },
       wiggle: {
         '0%': { transform: 'translateX(0)' },
         '15%': { transform: 'translateX(0.375rem)' },
@@ -347,6 +356,7 @@ const tailwindConfig = {
     animation: {
       ...defaultTheme.animation,
       wiggle: 'wiggle 0.5s ease-in-out',
+      'login-slide': 'login-slide 24s linear infinite',
       'fade-in-up': 'fade-in-up 0.3s ease-out',
       'loader-pulse': 'loader-pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
       'card-select': 'card-select 0.25s ease-in-out',
