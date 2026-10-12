@@ -7,10 +7,7 @@ import { useBranding } from 'shared/composables/useBranding';
 import { clearCookiesOnLogout } from 'dashboard/store/utils/api.js';
 import { copyTextToClipboard } from 'shared/helpers/clipboard';
 import { parseAPIErrorResponse } from 'dashboard/store/utils/api';
-import {
-  isPathorsLoginEnabled,
-  isProfileMfaAvailable,
-} from 'shared/helpers/pathorsLogin';
+import { parseBoolean } from '@chatwoot/utils';
 import UserProfilePicture from './UserProfilePicture.vue';
 import UserBasicDetails from './UserBasicDetails.vue';
 import MessageSignature from './MessageSignature.vue';
@@ -123,12 +120,7 @@ export default {
       );
     },
     isMfaEnabled() {
-      return isProfileMfaAvailable();
-    },
-    canChangeCredentials() {
-      return (
-        !this.globalConfig.disableUserProfileUpdate && !isPathorsLoginEnabled()
-      );
+      return parseBoolean(globalThis.chatwootConfig?.isMfaEnabled);
     },
   },
   mounted() {
@@ -250,7 +242,7 @@ export default {
           :name="name"
           :display-name="displayName"
           :email="email"
-          :email-enabled="canChangeCredentials"
+          :email-enabled="!globalConfig.disableUserProfileUpdate"
           @update-user="updateProfile"
         />
       </div>
@@ -323,7 +315,7 @@ export default {
       </div>
     </SectionLayout>
     <SectionLayout
-      v-if="canChangeCredentials"
+      v-if="!globalConfig.disableUserProfileUpdate"
       with-border
       :title="$t('PROFILE_SETTINGS.FORM.PASSWORD_SECTION.TITLE')"
       description=""

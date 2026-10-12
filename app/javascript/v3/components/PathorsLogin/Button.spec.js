@@ -50,17 +50,4 @@ describe('PathorsLoginButton', () => {
     );
     expect(hiddenFields(wrapper)).toEqual({ authenticity_token: 'csrf-123' });
   });
-
-  it('signs in with Google through the same Pathors path with an idp hint', () => {
-    const wrapper = mountButton({ provider: 'google', ssoAccountId: '42' });
-    const form = wrapper.find('form[data-testid="google-login"]');
-
-    expect(form.attributes('action')).toBe(
-      '/omniauth/pathors?idp_hint=google&sso_account_id=42'
-    );
-    expect(wrapper.find('[data-testid="google-login-button"]').text()).toBe(
-      'LOGIN.OAUTH.GOOGLE_LOGIN'
-    );
-    expect(hiddenFields(wrapper)).toEqual({ authenticity_token: 'csrf-123' });
-  });
 });

@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter, useRoute } from 'vue-router';
-import { isProfileMfaAvailable } from 'shared/helpers/pathorsLogin';
+import { parseBoolean } from '@chatwoot/utils';
 import mfaAPI from 'dashboard/api/mfa';
 import { useAlert } from 'dashboard/composables';
 import { emitter } from 'shared/helpers/mitt';
@@ -32,7 +32,9 @@ const managementActionsRef = ref(null);
 
 // Load MFA status on mount
 onMounted(async () => {
-  if (!isProfileMfaAvailable()) {
+  // Check if MFA is enabled globally
+  if (!parseBoolean(globalThis.chatwootConfig?.isMfaEnabled)) {
+    // Redirect to profile settings if MFA is disabled
     router.push({
       name: 'profile_settings_index',
       params: {

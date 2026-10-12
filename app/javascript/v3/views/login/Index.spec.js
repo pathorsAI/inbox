@@ -158,31 +158,72 @@ describe('login methods', () => {
     window.chatwootConfig = {};
   });
 
-  it('offers the Pathors and Google buttons, and nothing else, when Pathors login is the allowed method', () => {
+  const findButton = (wrapper, testId) =>
+    wrapper.find(`[data-testid="${testId}"]`);
+
+  it('offers Pathors, then Google, then the password form', () => {
     window.chatwootConfig = {
-      allowedLoginMethods: ['pathors', 'saml'],
+      allowedLoginMethods: ['email', 'google_oauth', 'pathors'],
+      googleOAuthClientId: 'google-client',
+      googleOAuthCallbackUrl:
+        'http://localhost:3000/omniauth/google_oauth2/callback',
       signupEnabled: 'true',
     };
 
     const wrapper = mountLogin({ redirectUrl: 'settings/billing' });
+    const html = wrapper.html();
 
-    expect(wrapper.find('[data-testid="pathors-login-button"]').exists()).toBe(
-      true
-    );
-    expect(wrapper.find('[data-testid="email_input"]').exists()).toBe(false);
-    expect(wrapper.find('[data-testid="password_input"]').exists()).toBe(false);
-    expect(wrapper.text()).not.toContain('LOGIN.FORGOT_PASSWORD');
-    expect(wrapper.text()).not.toContain('LOGIN.CREATE_NEW_ACCOUNT');
-    expect(wrapper.text()).not.toContain('LOGIN.SAML.LABEL');
     expect(
       wrapper.find('form[data-testid="pathors-login"]').attributes('action')
     ).toBe('/omniauth/pathors?redirect_url=settings%2Fbilling');
-    expect(
-      wrapper.find('form[data-testid="google-login"]').attributes('action')
-    ).toBe('/omniauth/pathors?idp_hint=google&redirect_url=settings%2Fbilling');
+    const googleHref = new URL(
+      findButton(wrapper, 'google-login-button').attributes('href')
+    );
+    expect(googleHref.origin).toBe('https://accounts.google.com');
+    expect(googleHref.searchParams.get('client_id')).toBe('google-client');
+    expect(findButton(wrapper, 'email_input').exists()).toBe(true);
+    expect(findButton(wrapper, 'password_input').exists()).toBe(true);
+    expect(wrapper.find('.section-separator').text()).toBe('COMMON.OR');
+    expect(wrapper.text()).toContain('LOGIN.FORGOT_PASSWORD');
+    expect(wrapper.text()).toContain('LOGIN.CREATE_NEW_ACCOUNT');
+    expect(html.indexOf('pathors-login-button')).toBeLessThan(
+      html.indexOf('google-login-button')
+    );
+    expect(html.indexOf('google-login-button')).toBeLessThan(
+      html.indexOf('section-separator')
+    );
+    expect(html.indexOf('section-separator')).toBeLessThan(
+      html.indexOf('email_input')
+    );
   });
 
-  it('offers the password form when Pathors login is off', () => {
+  it('offers only the Pathors button when it is the only allowed method', () => {
+    window.chatwootConfig = {
+      allowedLoginMethods: ['pathors'],
+      googleOAuthClientId: 'google-client',
+    };
+
+    const wrapper = mountLogin();
+
+    expect(findButton(wrapper, 'pathors-login-button').exists()).toBe(true);
+    expect(findButton(wrapper, 'google-login-button').exists()).toBe(false);
+    expect(findButton(wrapper, 'email_input').exists()).toBe(false);
+    expect(wrapper.find('.section-separator').exists()).toBe(false);
+  });
+
+  it('hides the Google button without a Google client id', () => {
+    window.chatwootConfig = {
+      allowedLoginMethods: ['email', 'google_oauth', 'pathors'],
+    };
+
+    const wrapper = mountLogin();
+
+    expect(findButton(wrapper, 'pathors-login-button').exists()).toBe(true);
+    expect(findButton(wrapper, 'google-login-button').exists()).toBe(false);
+    expect(findButton(wrapper, 'email_input').exists()).toBe(true);
+  });
+
+  it('offers only the password form when no other method is allowed', () => {
     window.chatwootConfig = {
       allowedLoginMethods: ['email'],
       signupEnabled: 'true',
@@ -190,14 +231,11 @@ describe('login methods', () => {
 
     const wrapper = mountLogin();
 
-    expect(wrapper.find('[data-testid="pathors-login-button"]').exists()).toBe(
-      false
-    );
-    expect(wrapper.find('[data-testid="google-login-button"]').exists()).toBe(
-      false
-    );
-    expect(wrapper.find('[data-testid="email_input"]').exists()).toBe(true);
-    expect(wrapper.find('[data-testid="password_input"]').exists()).toBe(true);
+    expect(findButton(wrapper, 'pathors-login-button').exists()).toBe(false);
+    expect(findButton(wrapper, 'google-login-button').exists()).toBe(false);
+    expect(wrapper.find('.section-separator').exists()).toBe(false);
+    expect(findButton(wrapper, 'email_input').exists()).toBe(true);
+    expect(findButton(wrapper, 'password_input').exists()).toBe(true);
     expect(wrapper.text()).toContain('LOGIN.FORGOT_PASSWORD');
     expect(wrapper.text()).toContain('LOGIN.CREATE_NEW_ACCOUNT');
   });
