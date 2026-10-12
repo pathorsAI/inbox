@@ -433,9 +433,6 @@ export default {
         <h1 class="text-2xl font-semibold tracking-tight text-n-slate-12">
           {{ replaceInstallationName($t('LOGIN.TITLE')) }}
         </h1>
-        <p v-if="showPathorsLogin" class="mt-2 text-sm text-n-slate-11">
-          {{ $t('LOGIN.PATHORS.SUBTITLE') }}
-        </p>
         <p v-if="showSignupLink" class="mt-2 text-sm text-n-slate-11">
           {{ $t('COMMON.OR') }}
           <router-link
@@ -581,13 +578,6 @@ export default {
           <div v-else class="flex items-center justify-center py-6">
             <Spinner color-scheme="primary" size="" />
           </div>
-
-          <p
-            v-if="showPathorsLogin"
-            class="mt-8 text-xs leading-relaxed text-pretty text-n-slate-10"
-          >
-            {{ $t('LOGIN.PATHORS.SAME_ACCOUNT_HINT') }}
-          </p>
         </div>
       </div>
     </section>
@@ -596,11 +586,19 @@ export default {
     <aside
       class="sticky top-0 hidden h-screen p-3 lg:block lg:w-1/2 xl:w-[55%]"
     >
-      <div class="relative h-full overflow-hidden rounded-2xl bg-n-brand">
+      <div class="relative h-full overflow-hidden rounded-2xl bg-black">
         <img
           :src="LOGIN_ART_URL"
           alt=""
           class="absolute inset-0 object-cover size-full"
+        />
+        <div
+          class="absolute inset-0 bg-[radial-gradient(rgb(255_255_255/0.16)_1px,transparent_1px)] bg-[length:1.5rem_1.5rem] [mask-image:linear-gradient(to_bottom,transparent,black_30%,black_70%,transparent)]"
+          aria-hidden="true"
+        />
+        <div
+          class="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_45%,rgb(0_0_0/0.5))]"
+          aria-hidden="true"
         />
       </div>
     </aside>
