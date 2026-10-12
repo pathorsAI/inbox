@@ -416,19 +416,22 @@ export default {
   <!-- The sign-in screen is always dark: `dark` switches the n-* tokens so the
        password, SAML and MFA fallbacks render on the same canvas. -->
   <main
-    class="dark relative flex items-center justify-center w-full min-h-screen px-4 py-16 overflow-hidden bg-[#05070B] isolate"
+    class="dark relative flex items-center justify-center w-full min-h-screen px-4 py-16 overflow-hidden bg-login-canvas isolate"
   >
-    <div class="absolute inset-0 login-grid -z-10" aria-hidden="true" />
     <div
-      class="absolute -top-56 left-1/2 -z-10 h-[560px] w-[880px] -translate-x-1/2 rounded-full bg-[#2781F6]/25 blur-[120px]"
+      class="absolute inset-0 -z-10 bg-login-grid [mask-image:radial-gradient(ellipse_70%_60%_at_50%_35%,#000_30%,transparent_75%)] motion-safe:animate-login-grid"
       aria-hidden="true"
     />
     <div
-      class="absolute -bottom-64 -right-40 -z-10 size-[480px] rounded-full bg-[#22D3EE]/10 blur-[120px]"
+      class="absolute -top-56 left-1/2 -z-10 h-[560px] w-[880px] -translate-x-1/2 rounded-full bg-login-brand/25 blur-[120px]"
       aria-hidden="true"
     />
     <div
-      class="absolute inset-x-0 top-0 h-40 login-scan -z-10"
+      class="absolute -bottom-64 -right-40 -z-10 size-[480px] rounded-full bg-login-cyan/10 blur-[120px]"
+      aria-hidden="true"
+    />
+    <div
+      class="absolute inset-x-0 top-0 h-40 -z-10 bg-login-scan motion-safe:animate-login-scan motion-reduce:hidden"
       aria-hidden="true"
     />
 
@@ -440,14 +443,14 @@ export default {
           class="block w-auto h-7"
         />
         <p
-          class="inline-flex items-center gap-2 px-3 py-1 mt-9 font-mono text-[11px] uppercase tracking-[0.24em] text-[#8DBBFF] border rounded-full border-[#2781F6]/25 bg-[#2781F6]/[0.08]"
+          class="inline-flex items-center gap-2 px-3 py-1 mt-9 font-mono text-[11px] uppercase tracking-[0.24em] text-login-label border rounded-full border-login-brand/25 bg-login-brand/[0.08]"
         >
           <span class="relative flex size-1.5" aria-hidden="true">
             <span
-              class="absolute inline-flex w-full h-full rounded-full opacity-75 bg-[#4DA3FF] login-ping"
+              class="absolute inline-flex w-full h-full rounded-full opacity-75 bg-login-accent motion-safe:animate-ping"
             />
             <span
-              class="relative inline-flex rounded-full size-1.5 bg-[#4DA3FF]"
+              class="relative inline-flex rounded-full size-1.5 bg-login-accent"
             />
           </span>
           {{ $t('LOGIN.EYEBROW') }}
@@ -462,7 +465,7 @@ export default {
           {{ $t('COMMON.OR') }}
           <router-link
             :to="signupRoute"
-            class="lowercase text-link text-[#8DBBFF]"
+            class="lowercase text-link text-login-label"
           >
             {{ $t('LOGIN.CREATE_NEW_ACCOUNT') }}
           </router-link>
@@ -504,11 +507,11 @@ export default {
       <!-- Regular Login Section -->
       <section
         v-else
-        class="relative mt-10 login-card rounded-2xl border border-white/10 bg-[#0B0F17]/70 p-8 shadow-[0_24px_80px_-24px_rgba(0,0,0,0.9)] backdrop-blur-xl"
+        class="relative mt-10 rounded-2xl border border-white/10 bg-login-card/70 before:pointer-events-none before:absolute before:-left-px before:-top-px before:size-3.5 before:rounded-tl-2xl before:border-l before:border-t before:border-login-accent/55 before:content-[''] after:pointer-events-none after:absolute after:-bottom-px after:-right-px after:size-3.5 after:rounded-br-2xl after:border-b after:border-r after:border-login-accent/55 after:content-[''] p-8 shadow-[0_24px_80px_-24px_rgba(0,0,0,0.9)] backdrop-blur-xl"
         :class="{ 'animate-wiggle': loginApi.hasErrored }"
       >
         <span
-          class="absolute inset-x-10 -top-px h-px bg-gradient-to-r from-transparent via-[#4DA3FF] to-transparent"
+          class="absolute inset-x-10 -top-px h-px bg-gradient-to-r from-transparent via-login-accent to-transparent"
           aria-hidden="true"
         />
         <div v-if="!email">
@@ -522,7 +525,7 @@ export default {
             />
             <div
               v-if="showGoogleLogin"
-              class="flex items-center gap-3 my-1 font-mono text-[11px] uppercase tracking-[0.2em] text-white/30"
+              class="flex items-center gap-3 my-1 font-mono text-[11px] uppercase tracking-[0.2em] text-white/50"
             >
               <span class="flex-1 h-px bg-white/10" />
               {{ $t('COMMON.OR') }}
@@ -553,7 +556,7 @@ export default {
             <SimpleDivider
               v-if="showSamlLogin"
               :label="$t('COMMON.OR')"
-              bg="bg-[#0B0F17]"
+              bg="bg-login-card"
               class="uppercase"
             />
           </div>
@@ -615,103 +618,10 @@ export default {
 
       <p
         v-if="showPathorsLogin"
-        class="mt-6 text-xs leading-relaxed text-center text-white/35 text-balance"
+        class="mt-6 text-xs leading-relaxed text-center text-white/60 text-balance"
       >
         {{ $t('LOGIN.PATHORS.SAME_ACCOUNT_HINT') }}
       </p>
     </div>
   </main>
 </template>
-
-<style scoped>
-.login-grid {
-  background-image: linear-gradient(
-      rgba(77, 163, 255, 0.07) 1px,
-      transparent 1px
-    ),
-    linear-gradient(90deg, rgba(77, 163, 255, 0.07) 1px, transparent 1px);
-  background-size: 48px 48px;
-  mask-image: radial-gradient(
-    ellipse 70% 60% at 50% 35%,
-    #000 30%,
-    transparent 75%
-  );
-  animation: login-grid-drift 24s linear infinite;
-}
-
-.login-scan {
-  background: linear-gradient(
-    180deg,
-    transparent,
-    rgba(77, 163, 255, 0.025) 80%,
-    rgba(77, 163, 255, 0.22) 100%
-  );
-  animation: login-scan 9s cubic-bezier(0.45, 0, 0.55, 1) infinite;
-}
-
-/* Corner ticks on the card. */
-.login-card::before,
-.login-card::after {
-  content: '';
-  position: absolute;
-  width: 14px;
-  height: 14px;
-  border-color: rgba(77, 163, 255, 0.55);
-  pointer-events: none;
-}
-
-.login-card::before {
-  top: -1px;
-  left: -1px;
-  border-top: 1px solid;
-  border-left: 1px solid;
-  border-top-left-radius: 1rem;
-}
-
-.login-card::after {
-  right: -1px;
-  bottom: -1px;
-  border-right: 1px solid;
-  border-bottom: 1px solid;
-  border-bottom-right-radius: 1rem;
-}
-
-.login-ping {
-  animation: login-ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
-}
-
-@keyframes login-grid-drift {
-  to {
-    background-position: 48px 48px;
-  }
-}
-
-@keyframes login-scan {
-  0% {
-    transform: translateY(-160px);
-  }
-  100% {
-    transform: translateY(100vh);
-  }
-}
-
-@keyframes login-ping {
-  75%,
-  100% {
-    transform: scale(2.4);
-    opacity: 0;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .login-grid,
-  .login-scan,
-  .login-ping {
-    animation: none;
-  }
-
-  .login-scan {
-    display: none;
-  }
-}
-</style>

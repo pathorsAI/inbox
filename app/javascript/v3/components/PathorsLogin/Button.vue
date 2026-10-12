@@ -52,7 +52,7 @@ const action = computed(() => {
       v-if="isGoogle"
       type="submit"
       data-testid="google-login-button"
-      class="group relative flex items-center justify-center w-full h-12 gap-3 px-4 text-sm font-medium transition-all duration-200 border rounded-xl text-white/90 border-white/10 bg-white/[0.03] hover:bg-white/[0.07] hover:border-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2781F6]/60"
+      class="group relative flex items-center justify-center w-full h-12 gap-3 px-4 text-sm font-medium transition-all duration-200 border rounded-xl text-white/90 border-white/10 bg-white/[0.03] hover:bg-white/[0.07] hover:border-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-login-brand/60"
     >
       <svg class="size-[18px]" viewBox="0 0 48 48" aria-hidden="true">
         <path
@@ -78,7 +78,7 @@ const action = computed(() => {
       v-else
       type="submit"
       data-testid="pathors-login-button"
-      class="group relative flex items-center justify-center w-full h-12 gap-3 px-4 overflow-hidden text-sm font-semibold text-white transition-all duration-200 rounded-xl bg-gradient-to-r from-[#2781F6] to-[#4F6BFF] shadow-[0_0_0_1px_rgba(255,255,255,0.12)_inset,0_8px_32px_-8px_rgba(39,129,246,0.7)] hover:shadow-[0_0_0_1px_rgba(255,255,255,0.2)_inset,0_10px_40px_-6px_rgba(39,129,246,0.9)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+      class="group relative flex items-center justify-center w-full h-12 gap-3 px-4 overflow-hidden text-sm font-semibold text-white transition-all duration-200 rounded-xl bg-gradient-to-r from-login-brand to-login-indigo shadow-[0_0_0_1px_rgba(255,255,255,0.12)_inset,0_8px_32px_-8px_rgba(39,129,246,0.7)] hover:shadow-[0_0_0_1px_rgba(255,255,255,0.2)_inset,0_10px_40px_-6px_rgba(39,129,246,0.9)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
     >
       <span
         class="absolute inset-0 transition-transform duration-700 ease-out -translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent group-hover:translate-x-full"

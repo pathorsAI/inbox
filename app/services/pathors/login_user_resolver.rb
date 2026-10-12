@@ -2,6 +2,11 @@
 # the account key: the same address is always the same inbox user, whichever
 # Pathors identity (password or Google) it arrives with. The Pathors `sub` only
 # follows the email, and finds the user when the address changed in Pathors.
+#
+# This trusts Pathors' email_verified: Pathors sets it only after an email code,
+# or when Google reports the address verified (it never links an unverified
+# Google address, pathorsAI/pathors#3631). Anything that weakens that on the
+# Pathors side makes every inbox user, admins included, reachable through it.
 class Pathors::LoginUserResolver
   # Raised with the login page error code as its message.
   class Refused < StandardError; end
@@ -33,7 +38,8 @@ class Pathors::LoginUserResolver
     user = User.new(
       email: email,
       name: name.presence || email.split('@').first,
-      password: "#{SecureRandom.hex(16)}aA1!"
+      password: "#{SecureRandom.hex(16)}aA1!",
+      pathors_uid: uid
     )
     user.skip_confirmation!
     user.save!
