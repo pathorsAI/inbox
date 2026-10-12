@@ -16,6 +16,7 @@ import { getLoginRedirectURL, getSignupRoute } from 'v3/helpers/AuthHelper';
 import SimpleDivider from '../../components/Divider/SimpleDivider.vue';
 import FormInput from '../../components/Form/Input.vue';
 import PathorsLoginButton from '../../components/PathorsLogin/Button.vue';
+import LoginShowcase from '../../components/LoginShowcase/Index.vue';
 import Spinner from 'shared/components/Spinner.vue';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
 import NextButton from 'dashboard/components-next/button/Button.vue';
@@ -40,18 +41,13 @@ const AUTH_ERROR_TOAST_DURATION = 6000;
 
 // Served from public/ by Rails; bound at runtime so Vite does not bundle them.
 const LOGO_MARK_URL = '/favicon-512x512.png';
-const LOGIN_ART_SLIDES = [
-  '/brand-assets/login-art-1.jpg',
-  '/brand-assets/login-art-2.jpg',
-  '/brand-assets/login-art-3.jpg',
-];
-// Each slide is on screen this long; the cycle is slides × this.
-const LOGIN_ART_SLIDE_SECONDS = 8;
+const LOGIN_ART_URL = '/brand-assets/login-art.jpg';
 
 export default {
   components: {
     FormInput,
     PathorsLoginButton,
+    LoginShowcase,
     Spinner,
     NextButton,
     SimpleDivider,
@@ -74,8 +70,7 @@ export default {
     return {
       replaceInstallationName,
       LOGO_MARK_URL,
-      LOGIN_ART_SLIDES,
-      LOGIN_ART_SLIDE_SECONDS,
+      LOGIN_ART_URL,
       v$: useVuelidate(),
     };
   },
@@ -590,28 +585,17 @@ export default {
       </div>
     </section>
 
-    <!-- Artwork only, no copy; hidden below lg where the form takes the screen. -->
+    <!-- A looping product demo over the artwork; hidden below lg where the form takes the screen. -->
     <aside
       class="sticky top-0 hidden h-screen p-3 lg:block lg:w-1/2 xl:w-[55%]"
     >
-      <div class="relative h-full overflow-hidden rounded-2xl bg-black">
-        <!-- The first slide also sits still underneath: it is what shows
-             before the cycle fades in, and all that shows under reduced motion. -->
+      <div
+        class="relative flex items-center justify-center h-full px-10 overflow-hidden rounded-2xl bg-black"
+      >
         <img
-          :src="LOGIN_ART_SLIDES[0]"
+          :src="LOGIN_ART_URL"
           alt=""
           class="absolute inset-0 object-cover size-full"
-        />
-        <img
-          v-for="(slide, index) in LOGIN_ART_SLIDES"
-          :key="slide"
-          :src="slide"
-          alt=""
-          class="absolute inset-0 object-cover opacity-0 size-full animate-login-slide motion-reduce:hidden"
-          :style="{
-            animationDelay: `${index * LOGIN_ART_SLIDE_SECONDS}s`,
-            animationDuration: `${LOGIN_ART_SLIDES.length * LOGIN_ART_SLIDE_SECONDS}s`,
-          }"
         />
         <div
           class="absolute inset-0 bg-[radial-gradient(rgb(255_255_255/0.16)_1px,transparent_1px)] bg-[length:1.5rem_1.5rem] [mask-image:linear-gradient(to_bottom,transparent,black_30%,black_70%,transparent)]"
@@ -621,6 +605,7 @@ export default {
           class="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_45%,rgb(0_0_0/0.5))]"
           aria-hidden="true"
         />
+        <LoginShowcase class="relative" />
       </div>
     </aside>
   </main>

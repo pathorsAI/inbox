@@ -42,6 +42,48 @@
       "API": {
         "ERROR_MESSAGE": "SSO 驗證失敗。請檢查您的憑證並重試。"
       }
+    },
+    "SHOWCASE": {
+      "CHANNELS": {
+        "CAPTION": "電話、LINE、Email，都進同一個收件匣",
+        "TITLE": "收件匣",
+        "NOW": "剛剛",
+        "ROW_1": {
+          "NAME": "林先生",
+          "TEXT": "明天的預約可以改時間嗎？"
+        },
+        "ROW_2": {
+          "NAME": "陳小姐",
+          "TEXT": "請問可以開公司發票嗎？"
+        },
+        "ROW_3": {
+          "NAME": "王經理",
+          "TEXT": "報價單收到了，謝謝"
+        },
+        "ROW_4": {
+          "NAME": "網站訪客",
+          "TEXT": "週末有營業嗎？"
+        }
+      },
+      "VOICE": {
+        "CAPTION": "AI 接起電話，通話即時轉成文字",
+        "STATUS": "通話中 · AI 接聽",
+        "CUSTOMER": "我想把明天的預約改到下午三點。",
+        "AI": "沒問題，已經幫您改到明天下午三點。"
+      },
+      "REPLY": {
+        "CAPTION": "AI 依照知識庫回覆，客人不用等",
+        "QUESTION": "請問週末營業到幾點？",
+        "ANSWER": "週六、週日都營業到晚上六點，歡迎光臨！",
+        "BADGE": "AI"
+      },
+      "HANDOFF": {
+        "CAPTION": "需要真人時，團隊立刻接手",
+        "CUSTOMER": "我上週的訂單想要退款。",
+        "SYSTEM": "AI 已將對話轉給 Amy",
+        "AGENT_REPLY": "您好，我是 Amy，退款的部分我來協助您。",
+        "AGENT_INITIAL": "A"
+      }
     }
   }
 }

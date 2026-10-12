@@ -291,14 +291,23 @@ const tailwindConfig = {
     },
     keyframes: {
       ...defaultTheme.keyframes,
-      // Sign-in artwork slideshow (v3/views/login): each slide fades in,
-      // zooms out slowly while it holds, then hands over to the next one.
-      'login-slide': {
-        '0%': { opacity: 0, transform: 'scale(1.1)' },
-        '5%': { opacity: 1 },
-        '33%': { opacity: 1 },
-        '40%': { opacity: 0, transform: 'scale(1)' },
-        '100%': { opacity: 0, transform: 'scale(1)' },
+      // Sign-in product showcase (v3/components/LoginShowcase).
+      'showcase-rise': {
+        '0%': { opacity: 0, transform: 'translateY(0.5rem)' },
+        '100%': { opacity: 1, transform: 'translateY(0)' },
+      },
+      'showcase-wave': {
+        '0%, 100%': { transform: 'scaleY(0.35)' },
+        '50%': { transform: 'scaleY(1)' },
+      },
+      'showcase-blip': {
+        '0%': { opacity: 0 },
+        '15%, 80%': { opacity: 1 },
+        '100%': { opacity: 0 },
+      },
+      'showcase-progress': {
+        '0%': { transform: 'scaleX(0)' },
+        '100%': { transform: 'scaleX(1)' },
       },
       wiggle: {
         '0%': { transform: 'translateX(0)' },
@@ -356,7 +365,10 @@ const tailwindConfig = {
     animation: {
       ...defaultTheme.animation,
       wiggle: 'wiggle 0.5s ease-in-out',
-      'login-slide': 'login-slide 24s linear infinite',
+      'showcase-rise': 'showcase-rise 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both',
+      'showcase-wave': 'showcase-wave 0.9s ease-in-out infinite',
+      'showcase-blip': 'showcase-blip 1.1s ease-in-out both',
+      'showcase-progress': 'showcase-progress 4.5s linear both',
       'fade-in-up': 'fade-in-up 0.3s ease-out',
       'loader-pulse': 'loader-pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
       'card-select': 'card-select 0.25s ease-in-out',
