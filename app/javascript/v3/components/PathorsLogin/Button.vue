@@ -10,7 +10,9 @@ const props = defineProps({
 
 const PATHORS_LOGIN_PATH = '/omniauth/pathors';
 // Served from public/ by Rails; bound at runtime so Vite does not try to bundle it.
-const PATHORS_MARK_URL = '/brand-assets/logo_thumbnail.svg';
+// This is the Pathors P (the identity provider), not the Inbox logo, so it has its
+// own file instead of following LOGO_THUMBNAIL.
+const PATHORS_MARK_URL = '/brand-assets/pathors-mark.svg';
 
 const csrfToken =
   document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ||

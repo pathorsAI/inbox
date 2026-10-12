@@ -2,6 +2,7 @@
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { toPng } from 'html-to-image';
+import { BRAND_ASSET_VERSION } from 'shared/constants/brandAssets';
 
 const props = defineProps({
   show: {
@@ -95,7 +96,7 @@ const generateImage = async () => {
     );
 
     const logo = new Image();
-    logo.src = '/brand-assets/logo.svg';
+    logo.src = `/brand-assets/logo.svg?v=${BRAND_ASSET_VERSION}`;
     await new Promise(resolve => {
       logo.onload = resolve;
     });

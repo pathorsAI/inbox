@@ -1,6 +1,6 @@
 {
-  "name": "Pathors",
-  "short_name": "Pathors",
+  "name": "Pathors Inbox",
+  "short_name": "Pathors Inbox",
   "icons": [
     {
       "src": "/android-icon-36x36.png",
@@ -41,6 +41,6 @@
   ],
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#2781F6",
-  "theme_color": "#2781F6"
+  "background_color": "#1469D4",
+  "theme_color": "#1469D4"
 }
