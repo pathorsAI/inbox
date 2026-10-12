@@ -95,7 +95,7 @@
     },
     "EMPTY": {
       "NEED": "No calls need attention right now",
-      "NEED_HINT": "Calls show up here when the AI asks for help or a transfer fails",
+      "NEED_HINT": "Calls show up here when the AI asks for help, a transfer fails, or a call the AI is on runs long, gets interrupted a lot or goes in circles",
       "LIVE": "No calls on the line right now",
       "FILTERED": "No calls match these filters"
     },
@@ -111,17 +111,14 @@
       "ROLE_AI": "AI",
       "ROLE_CALLER": "Caller",
       "INTERRUPTED": "Interrupted",
+      "JUMP_TO_LATEST": "Jump to latest",
       "SUMMARY": "AI summary",
-      "VARIABLES": "Captured by AI",
+      "VARIABLES": "Captured by AI · at takeover",
       "NOT_CAPTURED": "Not captured",
       "METRICS": "Metrics",
       "METRIC_DURATION": "Duration",
       "METRIC_TURNS": "Turns",
       "METRIC_INTERRUPTIONS": "Interruptions",
-      "CALL": "Call",
-      "FACT_NUMBER": "Number",
-      "FACT_LINE": "Line",
-      "FACT_HANDLER": "Handled by",
       "RECORDING": "Recording"
     },
     "ATTENTION": {

@@ -25,7 +25,6 @@ import CallsFilterBar from 'dashboard/components-next/Calls/CallsFilterBar.vue';
 import CallsTable from 'dashboard/components-next/Calls/CallsTable.vue';
 import {
   CALL_DATE_RANGES,
-  CALL_SECTIONS,
   CALL_SEGMENTS,
   CALL_VIEWS,
   CALLS_PER_PAGE,
@@ -34,6 +33,7 @@ import {
   VIEW_SEGMENT,
   callSection,
   dateRangeParams,
+  groupCallSections,
   mergeLiveCall,
 } from 'dashboard/components-next/Calls/constants';
 import PaginationFooter from 'dashboard/components-next/pagination/PaginationFooter.vue';
@@ -182,11 +182,12 @@ watch(
   }
 );
 
-// Calls move between sections as the AI asks for help, someone answers or the
-// call ends; the live store hears about it first.
+// Calls move between sections as the AI asks for help or turns amber, someone
+// answers or the call ends; the live store hears about it first, and the clock
+// tells when a call has run too long.
 const scheduleRefresh = debounce(fetchCalls, CALLS_REFRESH_DELAY_MS);
 watch(
-  () => liveCallsStore.handlingSignature,
+  () => liveCallsStore.handlingSignatureAt(now.value),
   () => {
     if (!isInitializing.value && hasCallLines.value) scheduleRefresh();
   }
@@ -211,12 +212,7 @@ const rows = computed(() =>
   })
 );
 
-const sections = computed(() =>
-  CALL_SECTIONS.map(key => ({
-    key,
-    rows: rows.value.filter(row => row.section === key),
-  })).filter(section => section.rows.length)
-);
+const sections = computed(() => groupCallSections(rows.value));
 
 // --- Header --------------------------------------------------------------------
 

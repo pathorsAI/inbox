@@ -46,6 +46,11 @@ class Call < ApplicationRecord
   # live past it lost that webhook; see #expire!.
   MAX_LIVE_DURATION = 2.hours
   STALE_END_REASON = 'stale'.freeze
+  # When a live call the AI is handling turns amber (CALL_STATE.WARN): past any
+  # of these, not at them. Must match PATHORS_ALERT_THRESHOLDS in
+  # app/javascript/dashboard/helper/pathorsLiveCall.js, which decides the same
+  # thing on the client between list fetches; spec/models/call_spec.rb pins both.
+  ALERT_THRESHOLDS = { interruptions: 3, duration_seconds: 300, turns: 20 }.freeze
   # Calls handled end-to-end by the Pathors voice agent have no human answerer,
   # so the bubble gets a synthetic handler name instead of a blank subtext.
   PATHORS_AGENT_NAME = 'Pathors AI'.freeze
@@ -90,6 +95,21 @@ class Call < ApplicationRecord
   scope :needing_action, lambda {
     active.where("calls.meta->>'needs_action' = 'true'").or(ended.where("calls.meta->>'follow_up' = 'true'"))
   }
+  # Amber: a live Pathors call the AI still holds alone — no human on it and no
+  # transfer dialing or connected, the precedence primaryCallState keeps — that
+  # has gone on too long, been interrupted too often or taken too many turns.
+  scope :warning, lambda {
+    pathors.active.where(accepted_by_agent_id: nil)
+           .where("calls.meta#>>'{live,attention,transfer,phase}' IS NULL OR calls.meta#>>'{live,attention,transfer,phase}' NOT IN (?)",
+                  Pathors::CallLifecycleService::TRANSFER_BLOCKING_PHASES)
+           .where("(calls.meta#>>'{live,interruptions}')::int > :interruptions OR (calls.meta#>>'{live,turns}')::int > :turns " \
+                  'OR calls.started_at < :started_before',
+                  interruptions: ALERT_THRESHOLDS[:interruptions], turns: ALERT_THRESHOLDS[:turns],
+                  started_before: ALERT_THRESHOLDS[:duration_seconds].seconds.ago)
+  }
+  # The calls page's 需要處理: red (needing_action) and amber (warning) calls.
+  # needing_action alone is what hands a call to humans; amber only asks for a look.
+  scope :needing_attention, -> { needing_action.or(warning) }
 
   def self.normalize_timestamp(value)
     return nil if value.blank?
@@ -103,6 +123,17 @@ class Call < ApplicationRecord
   # Keep the meta-backed timestamp in a single, comparable representation.
   def ended_at=(value)
     super(self.class.normalize_timestamp(value))
+  end
+
+  # What the AI extracted lives on each call's handoff card, keyed here by the
+  # card's message id (`handoff_message_id`); the cards of a list are read in
+  # one query rather than one per row. Keys are the AI's own, kept verbatim.
+  def self.handoff_variables(calls, account_id)
+    ids = calls.filter_map(&:handoff_message_id)
+    return {} if ids.empty?
+
+    Message.where(account_id: account_id, id: ids).select(:id, :content_attributes)
+           .to_h { |message| [message.id, message.content_attributes.dig('data', 'variables')] }
   end
 
   # Inverses of the display forms, for filters that arrive from the dashboard.

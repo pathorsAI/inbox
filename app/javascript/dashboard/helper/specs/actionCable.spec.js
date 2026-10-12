@@ -1,6 +1,7 @@
 import { describe, it, beforeEach, afterEach, expect, vi } from 'vitest';
 import { createPinia, setActivePinia } from 'pinia';
 import ActionCableConnector from '../actionCable';
+import DashboardAudioNotificationHelper from '../AudioAlerts/DashboardAudioNotificationHelper';
 import { usePathorsLiveCallsStore } from 'dashboard/stores/pathorsLiveCalls';
 import { FEATURE_FLAGS } from 'dashboard/featureFlags';
 import { BUS_EVENTS } from 'shared/constants/busEvents';
@@ -451,6 +452,10 @@ describe('ActionCableConnector - Pathors live calls', () => {
     );
   });
 
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it('stores the live state of a pathors_call.live_updated broadcast', () => {
     actionCable.onReceived({
       event: 'pathors_call.live_updated',
@@ -468,6 +473,29 @@ describe('ActionCableConnector - Pathors live calls', () => {
       transferFailed: true,
       transcript: [],
     });
+  });
+
+  it('hands the AI handoff card of a message.created to the live calls', () => {
+    vi.spyOn(
+      DashboardAudioNotificationHelper,
+      'onNewMessage'
+    ).mockImplementation(() => {});
+    const store = usePathorsLiveCallsStore();
+    store.records = [{ id: 7, conversationId: 12 }];
+
+    actionCable.onReceived({
+      event: 'message.created',
+      data: {
+        id: 900,
+        account_id: 1,
+        conversation_id: 12,
+        content_type: 'pathors_handoff',
+        content_attributes: { data: { variables: { email: null } } },
+        conversation: { last_activity_at: 1 },
+      },
+    });
+
+    expect(store.records[0].variables).toEqual({ email: null });
   });
 
   it('ignores a broadcast for another account', () => {

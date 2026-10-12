@@ -45,9 +45,9 @@ const props = defineProps({
 const emit = defineEmits(['close', 'dismissed', 'followUpResolved']);
 
 const STATUS_BAR_CLASS = {
-  [CALL_TONE.RUBY]: 'bg-n-ruby-2 outline-n-ruby-5 text-n-ruby-12',
-  [CALL_TONE.BLUE]: 'bg-n-blue-2 outline-n-blue-5 text-n-blue-12',
-  [CALL_TONE.SLATE]: 'bg-n-alpha-1 outline-n-weak text-n-slate-12',
+  [CALL_TONE.RUBY]: 'bg-n-ruby-2 text-n-ruby-12',
+  [CALL_TONE.BLUE]: 'bg-n-blue-2 text-n-blue-12',
+  [CALL_TONE.SLATE]: 'bg-n-alpha-1 text-n-slate-12',
 };
 const ENDED_FORMAT = 'MM/dd HH:mm';
 
@@ -226,6 +226,9 @@ const formatValue = value => {
   if (typeof value === 'object') return JSON.stringify(value);
   return String(value);
 };
+// What the AI had extracted when a human took over, from the call's handoff
+// card: a snapshot, which is why the rail titles it "at takeover". The live
+// store fills it in as the card arrives (see syncHandoffCard).
 const variables = computed(() =>
   Object.entries(props.call.variables || {}).map(([key, value]) => ({
     key,
@@ -255,33 +258,6 @@ const metrics = computed(() => [
     value: live.value.interruptions ?? '',
   },
 ]);
-
-const handlerName = computed(() => {
-  if (state.value.key === CALL_STATE.HUMAN) {
-    return t(state.value.labelKey, state.value.labelParams);
-  }
-  return props.call.agent?.name || props.call.acceptedByAgentName || '';
-});
-
-const callFacts = computed(() =>
-  [
-    {
-      key: 'number',
-      label: t('CALLS_PAGE.SHEET.FACT_NUMBER'),
-      value: callerNumber(props.call),
-    },
-    {
-      key: 'line',
-      label: t('CALLS_PAGE.SHEET.FACT_LINE'),
-      value: lineName(props.call),
-    },
-    {
-      key: 'handler',
-      label: t('CALLS_PAGE.SHEET.FACT_HANDLER'),
-      value: handlerName.value,
-    },
-  ].filter(fact => fact.value)
-);
 
 // --- Lifecycle -------------------------------------------------------------------
 
@@ -354,107 +330,104 @@ onBeforeUnmount(() => {
       />
     </header>
 
-    <div class="flex-1 min-h-0 overflow-y-auto">
-      <section
-        class="flex flex-col gap-2 p-3 mx-5 mt-4 rounded-lg outline outline-1 -outline-offset-1"
-        :class="STATUS_BAR_CLASS[statusTone]"
-        data-test-id="call-status-bar"
-        :data-state="state.key"
-      >
+    <section
+      class="flex flex-wrap items-center gap-x-4 gap-y-2 px-5 py-3 border-b shrink-0 border-n-weak"
+      :class="STATUS_BAR_CLASS[statusTone]"
+      data-test-id="call-status-bar"
+      :data-state="state.key"
+    >
+      <div class="flex flex-col grow min-w-0 gap-0.5 basis-48">
         <span class="text-sm font-medium truncate">{{ statusTitle }}</span>
         <p v-if="statusDetail" class="text-sm text-n-slate-11">
           {{ statusDetail }}
         </p>
-        <div
-          v-if="showTakeOver || showDismiss || isInThisCall || isFollowUp"
-          class="flex flex-wrap items-center gap-2"
-        >
+      </div>
+      <div
+        v-if="showTakeOver || showDismiss || isInThisCall || isFollowUp"
+        class="flex flex-wrap items-center gap-2"
+      >
+        <Button
+          v-if="showTakeOver"
+          :label="t('CONVERSATION.VOICE_CALL.TAKE_OVER_CALL')"
+          icon="i-lucide-phone"
+          size="md"
+          variant="solid"
+          :color="isNeedsHuman ? 'ruby' : 'blue'"
+          :disabled="isTakeOverDisabled"
+          :is-loading="session.isJoining.value"
+          data-test-id="call-take-over"
+          @click="takeOver"
+        />
+        <Button
+          v-if="showDismiss"
+          :label="t('CALLS_PAGE.ATTENTION.DISMISS')"
+          size="md"
+          variant="ghost"
+          color="slate"
+          data-test-id="call-dismiss"
+          @click="dismiss"
+        />
+        <template v-if="isInThisCall">
           <Button
-            v-if="showTakeOver"
-            :label="t('CONVERSATION.VOICE_CALL.TAKE_OVER_CALL')"
-            icon="i-lucide-phone"
-            size="sm"
-            :color="isNeedsHuman ? 'ruby' : 'slate'"
-            :variant="isNeedsHuman ? 'solid' : 'outline'"
-            :disabled="isTakeOverDisabled"
-            :is-loading="session.isJoining.value"
-            data-test-id="call-take-over"
-            @click="takeOver"
+            v-if="session.isAudioBlocked.value"
+            :label="t('CONVERSATION.VOICE_CALL.ENABLE_AUDIO')"
+            icon="i-lucide-volume-2"
+            size="md"
+            color="teal"
+            @click="session.enableAudio"
           />
           <Button
-            v-if="showDismiss"
-            :label="t('CALLS_PAGE.ATTENTION.DISMISS')"
-            size="sm"
-            variant="ghost"
-            color="slate"
-            data-test-id="call-dismiss"
-            @click="dismiss"
-          />
-          <template v-if="isInThisCall">
-            <Button
-              v-if="session.isAudioBlocked.value"
-              :label="t('CONVERSATION.VOICE_CALL.ENABLE_AUDIO')"
-              icon="i-lucide-volume-2"
-              size="sm"
-              color="teal"
-              @click="session.enableAudio"
-            />
-            <Button
-              :label="t('CONVERSATION.VOICE_CALL.HANGUP_CALL')"
-              icon="i-lucide-phone-off"
-              size="sm"
-              color="ruby"
-              :is-loading="session.isHangingUp.value"
-              :disabled="session.isHangingUp.value"
-              data-test-id="call-hang-up"
-              @click="hangUp"
-            />
-            <span class="text-sm tabular-nums text-n-slate-11">
-              {{ formatDuration(session.durationSeconds.value) }}
-            </span>
-          </template>
-          <Button
-            v-if="isFollowUp"
-            :label="t('CALLS_PAGE.SHEET.RESOLVE_FOLLOW_UP')"
-            icon="i-lucide-check"
-            size="sm"
+            :label="t('CONVERSATION.VOICE_CALL.HANGUP_CALL')"
+            icon="i-lucide-phone-off"
+            size="md"
+            variant="solid"
             color="ruby"
-            :is-loading="isResolvingFollowUp"
-            :disabled="isResolvingFollowUp"
-            data-test-id="call-resolve-follow-up"
-            @click="resolveFollowUp"
+            :is-loading="session.isHangingUp.value"
+            :disabled="session.isHangingUp.value"
+            data-test-id="call-hang-up"
+            @click="hangUp"
           />
-        </div>
-      </section>
+          <span class="text-sm tabular-nums text-n-slate-11">
+            {{ formatDuration(session.durationSeconds.value) }}
+          </span>
+        </template>
+        <Button
+          v-if="isFollowUp"
+          :label="t('CALLS_PAGE.SHEET.RESOLVE_FOLLOW_UP')"
+          icon="i-lucide-check"
+          size="md"
+          color="ruby"
+          :is-loading="isResolvingFollowUp"
+          :disabled="isResolvingFollowUp"
+          data-test-id="call-resolve-follow-up"
+          @click="resolveFollowUp"
+        />
+      </div>
+    </section>
 
-      <div class="flex flex-col gap-6 p-5 md:flex-row">
-        <section class="flex flex-col flex-1 min-w-0 gap-3">
-          <h3 class="text-xs font-medium text-n-slate-11">
-            {{ t('CALLS_PAGE.SHEET.TRANSCRIPT') }}
-          </h3>
-          <CallTranscript
-            :entries="live.transcript || []"
-            :seq="live.seq || 0"
-            :is-live="isLive"
-            class="max-h-[32rem]"
-          />
-        </section>
+    <!-- Laid out against the sheet's own width, not the viewport's: below
+         35rem the side column stacks under the transcript. -->
+    <div class="flex flex-1 min-h-0 [container-type:inline-size]">
+      <div
+        class="flex flex-col flex-1 min-w-0 [@container(min-width:35rem)]:flex-row"
+      >
+        <CallTranscript
+          :key="call.id"
+          :entries="live.transcript || []"
+          :seq="live.seq || 0"
+          :is-live="isLive"
+          class="flex-1 min-w-0"
+        />
 
-        <div class="flex flex-col gap-5 md:w-56 shrink-0">
-          <section v-if="summary" class="flex flex-col gap-1.5">
-            <h3 class="text-xs font-medium text-n-slate-11">
-              {{ t('CALLS_PAGE.SHEET.SUMMARY') }}
-            </h3>
-            <p class="text-sm text-n-slate-12">{{ summaryText(summary) }}</p>
-            <ul
-              v-if="summaryTodos.length"
-              class="flex flex-col gap-1 ps-4 text-sm list-disc text-n-slate-12"
-            >
-              <li v-for="todo in summaryTodos" :key="todo">{{ todo }}</li>
-            </ul>
-          </section>
-
-          <section v-if="variables.length" class="flex flex-col gap-1.5">
+        <div
+          class="flex flex-col gap-5 px-5 py-4 overflow-y-auto border-t shrink-0 max-h-44 border-n-weak [@container(min-width:35rem)]:w-56 [@container(min-width:35rem)]:max-h-none [@container(min-width:35rem)]:border-t-0 [@container(min-width:35rem)]:border-s"
+          data-test-id="call-detail-rail"
+        >
+          <section
+            v-if="variables.length"
+            class="flex flex-col gap-1.5"
+            data-test-id="call-variables"
+          >
             <h3 class="text-xs font-medium text-n-slate-11">
               {{ t('CALLS_PAGE.SHEET.VARIABLES') }}
             </h3>
@@ -464,9 +437,11 @@ onBeforeUnmount(() => {
                 :key="variable.key"
                 class="flex justify-between gap-3"
               >
-                <dt class="truncate text-n-slate-11">{{ variable.key }}</dt>
+                <dt class="max-w-[45%] truncate shrink-0 text-n-slate-11">
+                  {{ variable.key }}
+                </dt>
                 <dd
-                  class="text-end break-words"
+                  class="flex-1 min-w-0 text-end break-words"
                   :class="
                     variable.isMissing ? 'text-n-slate-9' : 'text-n-slate-12'
                   "
@@ -475,6 +450,21 @@ onBeforeUnmount(() => {
                 </dd>
               </div>
             </dl>
+          </section>
+
+          <section v-if="summary" class="flex flex-col gap-1.5">
+            <h3 class="text-xs font-medium text-n-slate-11">
+              {{ t('CALLS_PAGE.SHEET.SUMMARY') }}
+            </h3>
+            <p class="text-sm break-words text-n-slate-12">
+              {{ summaryText(summary) }}
+            </p>
+            <ul
+              v-if="summaryTodos.length"
+              class="flex flex-col gap-1 ps-4 text-sm list-disc text-n-slate-12"
+            >
+              <li v-for="todo in summaryTodos" :key="todo">{{ todo }}</li>
+            </ul>
           </section>
 
           <section class="flex flex-col gap-1.5">
@@ -490,24 +480,6 @@ onBeforeUnmount(() => {
                 <dt class="text-xs text-n-slate-10">{{ metric.label }}</dt>
                 <dd class="text-sm font-medium tabular-nums text-n-slate-12">
                   {{ metric.value }}
-                </dd>
-              </div>
-            </dl>
-          </section>
-
-          <section v-if="callFacts.length" class="flex flex-col gap-1.5">
-            <h3 class="text-xs font-medium text-n-slate-11">
-              {{ t('CALLS_PAGE.SHEET.CALL') }}
-            </h3>
-            <dl class="flex flex-col gap-1 text-sm">
-              <div
-                v-for="fact in callFacts"
-                :key="fact.key"
-                class="flex justify-between gap-3"
-              >
-                <dt class="text-n-slate-11 shrink-0">{{ fact.label }}</dt>
-                <dd class="truncate text-end text-n-slate-12">
-                  {{ fact.value }}
                 </dd>
               </div>
             </dl>

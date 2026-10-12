@@ -51,6 +51,56 @@ RSpec.describe Call do
     end
   end
 
+  describe 'attention scopes' do
+    let(:conversation) { create(:conversation) }
+    let(:agent) { create(:user, account: conversation.account) }
+    let(:ai_call) do
+      create(:call, :pathors, conversation: conversation, started_at: 1.minute.ago, live: { 'seq' => 1, 'turns' => 2, 'interruptions' => 0 })
+    end
+
+    it 'turns amber past each threshold, not at it' do
+      calm = ai_call
+      turns = create(:call, :pathors, conversation: conversation, started_at: 1.minute.ago, live: { 'turns' => 21, 'interruptions' => 0 })
+      at_turns = create(:call, :pathors, conversation: conversation, started_at: 1.minute.ago, live: { 'turns' => 20, 'interruptions' => 3 })
+      interrupted = create(:call, :pathors, conversation: conversation, started_at: 1.minute.ago, live: { 'turns' => 2, 'interruptions' => 4 })
+      long = create(:call, :pathors, conversation: conversation, started_at: 301.seconds.ago)
+      just_under = create(:call, :pathors, conversation: conversation, started_at: 299.seconds.ago)
+
+      expect(described_class.warning).to contain_exactly(turns, interrupted, long)
+      expect(described_class.warning).not_to include(calm, at_turns, just_under)
+    end
+
+    it 'leaves out calls a human holds, a transfer is dialing or connected, other providers and ended calls' do
+      long = { started_at: 10.minutes.ago }
+      create(:call, :pathors, conversation: conversation, accepted_by_agent: agent, **long)
+      create(:call, :pathors, conversation: conversation, live: { 'attention' => { 'transfer' => { 'phase' => 'dialing' } } }, **long)
+      create(:call, :pathors, conversation: conversation, live: { 'attention' => { 'transfer' => { 'phase' => 'connected' } } }, **long)
+      create(:call, conversation: conversation, status: 'in_progress', **long)
+      create(:call, :pathors, conversation: conversation, status: 'completed', **long)
+      failed = create(:call, :pathors, conversation: conversation, live: { 'attention' => { 'transfer' => { 'phase' => 'failed' } } }, **long)
+
+      expect(described_class.warning).to eq([failed])
+    end
+
+    it 'puts red and amber calls in needing_attention, leaving needing_action red only' do
+      red = create(:call, :pathors, conversation: conversation, started_at: 1.minute.ago, needs_action: true)
+      follow_up = create(:call, :pathors, conversation: conversation, status: 'completed', follow_up: true)
+      amber = create(:call, :pathors, conversation: conversation, started_at: 10.minutes.ago)
+      ai_call
+
+      expect(described_class.needing_attention).to contain_exactly(red, follow_up, amber)
+      expect(described_class.needing_action).to contain_exactly(red, follow_up)
+    end
+
+    it 'keeps the thresholds equal to the dashboard PATHORS_ALERT_THRESHOLDS' do
+      source = Rails.root.join('app/javascript/dashboard/helper/pathorsLiveCall.js').read
+      block = source[/PATHORS_ALERT_THRESHOLDS = Object\.freeze\(\{(.*?)\}\)/m, 1]
+      js = block.scan(/(\w+):\s*([\d_]+)/).to_h { |key, value| [key.downcase.to_sym, value.delete('_').to_i] }
+
+      expect(js).to eq(Call::ALERT_THRESHOLDS)
+    end
+  end
+
   describe '#display_status' do
     it 'maps underscored statuses to the dashed display form' do
       expect(build(:call, status: 'in_progress').display_status).to eq('in-progress')

@@ -228,6 +228,91 @@ describe('pathorsLiveCalls store', () => {
     expect(store.liveById).toEqual({});
   });
 
+  it('keeps the variables of a handoff card on the live call in its conversation', () => {
+    const store = usePathorsLiveCallsStore();
+    store.syncFromMessage(buildMessage());
+
+    store.syncHandoffCard({
+      id: 900,
+      content_type: 'pathors_handoff',
+      conversation_id: 12,
+      content_attributes: {
+        data: { variables: { customer_name: '林先生', email: null } },
+      },
+    });
+
+    expect(store.records[0].variables).toEqual({
+      customer_name: '林先生',
+      email: null,
+    });
+
+    // A later status broadcast does not carry them, and does not drop them.
+    store.syncFromMessage(buildMessage({ call: { accepted_by_agent_id: 9 } }));
+    expect(store.records[0].variables).toEqual({
+      customer_name: '林先生',
+      email: null,
+    });
+  });
+
+  it('keeps the AI variables verbatim from the active seed', async () => {
+    PathorsCallsAPI.active.mockResolvedValue({
+      payload: [
+        {
+          id: 77,
+          conversation_id: 12,
+          variables: { customer_name: '林先生' },
+        },
+      ],
+    });
+    const store = usePathorsLiveCallsStore();
+
+    await store.fetchActive();
+
+    expect(store.records[0].variables).toEqual({ customer_name: '林先生' });
+  });
+
+  it('keeps a handoff card that arrives while a fetch is in flight', async () => {
+    const store = usePathorsLiveCallsStore();
+    store.syncFromMessage(buildMessage());
+    await Promise.resolve();
+    let resolveFetch;
+    PathorsCallsAPI.active.mockReturnValue(
+      new Promise(resolve => {
+        resolveFetch = resolve;
+      })
+    );
+
+    const fetching = store.fetchActive();
+    store.syncHandoffCard({
+      content_type: 'pathors_handoff',
+      conversation_id: 12,
+      content_attributes: { data: { variables: { customer_name: '林先生' } } },
+    });
+    // The snapshot was read before the card existed.
+    resolveFetch({
+      payload: [
+        { id: 77, conversation_id: 12, status: 'in-progress', variables: null },
+      ],
+    });
+    await fetching;
+
+    expect(store.records[0].variables).toEqual({ customer_name: '林先生' });
+  });
+
+  it('ignores other messages, and handoff cards from conversations without a live call', () => {
+    const store = usePathorsLiveCallsStore();
+    store.syncFromMessage(buildMessage());
+
+    store.syncHandoffCard({ content_type: 'text', conversation_id: 12 });
+    store.syncHandoffCard({
+      content_type: 'pathors_handoff',
+      conversation_id: 13,
+      content_attributes: { data: { variables: { a: 1 } } },
+    });
+
+    expect(store.records[0].variables).toBeUndefined();
+  });
+
   it('ignores other providers and other message types', () => {
     const store = usePathorsLiveCallsStore();
 
@@ -247,6 +332,8 @@ describe('pathorsLiveCalls store', () => {
 
     const activeCall = (id, overrides = {}) => ({
       id,
+      provider: 'pathors',
+      status: 'in-progress',
       conversation_id: 12,
       started_at: '2026-10-11T10:00:00Z',
       needs_action: false,
@@ -364,21 +451,50 @@ describe('pathorsLiveCalls store', () => {
       expect(store.attentionCalls.map(call => call.id)).toEqual([77]);
     });
 
-    it('changes its handling signature only when a call moves, not per turn', async () => {
-      const store = await seed([activeCall(77, { live: { seq: 1 } })]);
-      const before = store.handlingSignature;
+    describe('handlingSignatureAt', () => {
+      const STARTED = Date.parse('2026-10-11T10:00:00Z');
+      const now = STARTED + 60_000;
 
-      store.handleLiveUpdated({
-        ...liveUpdate({ seq: 2 }),
-        needs_action: false,
-      });
-      expect(store.handlingSignature).toBe(before);
+      it('changes only when a call moves, not per turn', async () => {
+        const store = await seed([activeCall(77, { live: { seq: 1 } })]);
+        const before = store.handlingSignatureAt(now);
 
-      store.handleLiveUpdated({
-        ...liveUpdate({ seq: 3 }),
-        needs_action: true,
+        store.handleLiveUpdated({
+          ...liveUpdate({ seq: 2, turns: 3 }),
+          needs_action: false,
+        });
+        expect(store.handlingSignatureAt(now)).toBe(before);
+
+        store.handleLiveUpdated({
+          ...liveUpdate({ seq: 3, turns: 4 }),
+          needs_action: true,
+        });
+        expect(store.handlingSignatureAt(now)).not.toBe(before);
       });
-      expect(store.handlingSignature).not.toBe(before);
+
+      it('changes when a call turns amber, from its counters or the clock alone', async () => {
+        const store = await seed([activeCall(77, { live: { seq: 1 } })]);
+        const before = store.handlingSignatureAt(now);
+
+        expect(store.handlingSignatureAt(now + 60_000)).toBe(before);
+        expect(store.handlingSignatureAt(STARTED + 301_000)).not.toBe(before);
+
+        store.handleLiveUpdated(liveUpdate({ seq: 2, turns: 21 }));
+        expect(store.handlingSignatureAt(now)).not.toBe(before);
+      });
+
+      it('changes when a human takes an amber call', async () => {
+        const store = await seed([
+          activeCall(77, { live: { seq: 1, interruptions: 4 } }),
+        ]);
+        const before = store.handlingSignatureAt(now);
+
+        store.handleLiveUpdated({
+          ...liveUpdate({ seq: 2, interruptions: 4 }),
+          accepted_by_agent_id: 5,
+        });
+        expect(store.handlingSignatureAt(now)).not.toBe(before);
+      });
     });
 
     it('remembers which call the sheet has open', () => {

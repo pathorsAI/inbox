@@ -1,10 +1,12 @@
 <script setup>
 import { computed, nextTick, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+import Icon from 'dashboard/components-next/icon/Icon.vue';
 
 // The transcript window the Pathors backend pushes on every AI turn (kept on
 // the call after it ends), as a timeline: one row per line, and the call's
-// events (help requested, transfer, human left) as dividers.
+// events (help requested, transfer, human left) as dividers. It fills the
+// height its parent gives it and is the only thing in it that scrolls.
 
 const props = defineProps({
   // `live.transcript` entries: { kind: 'message', role, content, interrupted }
@@ -16,8 +18,9 @@ const props = defineProps({
 });
 
 // How close to the bottom still counts as "following along", so a new line
-// keeps the view pinned there instead of leaving the reader behind.
-const STICK_TO_BOTTOM_PX = 24;
+// keeps the view pinned there instead of leaving the reader behind. Further
+// up, the reader is reading back: stop following and offer a way back.
+const STICK_TO_BOTTOM_PX = 40;
 const ROLE_ASSISTANT = 'assistant';
 const KIND_SYSTEM = 'system';
 
@@ -52,66 +55,98 @@ const onScroll = () => {
     el.scrollHeight - el.scrollTop - el.clientHeight <= STICK_TO_BOTTOM_PX;
 };
 
+const scrollToBottom = () => {
+  const el = listRef.value;
+  if (el) el.scrollTop = el.scrollHeight;
+};
+
+const showJumpToLatest = computed(
+  () => props.isLive && !isFollowing.value && rows.value.length > 0
+);
+
+const jumpToLatest = () => {
+  isFollowing.value = true;
+  scrollToBottom();
+};
+
 watch(
   () => props.seq,
   async () => {
     if (!props.isLive || !isFollowing.value) return;
     await nextTick();
-    const el = listRef.value;
-    if (el) el.scrollTop = el.scrollHeight;
+    scrollToBottom();
   },
   { immediate: true, flush: 'post' }
 );
 </script>
 
 <template>
-  <ol
-    v-if="rows.length"
-    ref="listRef"
-    class="flex flex-col gap-3 overflow-y-auto min-h-0"
-    data-test-id="call-transcript"
-    @scroll="onScroll"
-  >
-    <template v-for="row in rows" :key="row.key">
-      <li
-        v-if="row.isSystem"
-        class="flex items-center gap-2 text-xs text-center before:flex-1 before:h-px after:flex-1 after:h-px"
-        :class="row.systemClass"
-        :data-code="row.code"
-        data-test-id="call-transcript-system"
+  <section class="flex flex-col min-h-0">
+    <div
+      class="flex items-center justify-between gap-2 px-5 pt-4 pb-2 shrink-0"
+    >
+      <h3 class="text-xs font-medium text-n-slate-11">
+        {{ t('CALLS_PAGE.SHEET.TRANSCRIPT') }}
+      </h3>
+      <button
+        v-if="showJumpToLatest"
+        type="button"
+        class="inline-flex items-center gap-1 h-6 px-2.5 text-xs rounded-full outline outline-1 -outline-offset-1 outline-n-weak bg-n-surface-1 text-n-slate-11 hover:bg-n-alpha-1"
+        data-test-id="call-transcript-jump"
+        @click="jumpToLatest"
       >
-        {{ row.text }}
-      </li>
-      <li
-        v-else
-        class="flex flex-col gap-0.5"
-        :data-test-id="
-          row.isAssistant ? 'call-transcript-ai' : 'call-transcript-caller'
-        "
-      >
-        <span class="flex gap-1.5 text-xs text-n-slate-10">
-          {{
-            row.isAssistant
-              ? t('CALLS_PAGE.SHEET.ROLE_AI')
-              : t('CALLS_PAGE.SHEET.ROLE_CALLER')
-          }}
-          <span v-if="row.interrupted" class="text-n-amber-11">
-            {{ t('CALLS_PAGE.SHEET.INTERRUPTED') }}
-          </span>
-        </span>
-        <p
-          class="text-sm leading-relaxed whitespace-pre-wrap break-words text-n-slate-12"
-          :class="{
-            'underline decoration-dashed decoration-n-amber-9 underline-offset-4':
-              row.interrupted,
-          }"
+        {{ t('CALLS_PAGE.SHEET.JUMP_TO_LATEST') }}
+        <Icon icon="i-lucide-arrow-down" class="size-3.5" />
+      </button>
+    </div>
+    <ol
+      v-if="rows.length"
+      ref="listRef"
+      class="flex flex-col flex-1 min-h-0 gap-3 px-5 pb-4 overflow-y-auto"
+      data-test-id="call-transcript"
+      @scroll="onScroll"
+    >
+      <template v-for="row in rows" :key="row.key">
+        <li
+          v-if="row.isSystem"
+          class="flex items-center gap-2 text-xs text-center before:flex-1 before:h-px after:flex-1 after:h-px"
+          :class="row.systemClass"
+          :data-code="row.code"
+          data-test-id="call-transcript-system"
         >
-          {{ row.content }}
-        </p>
-      </li>
-    </template>
-  </ol>
-  <p v-else class="text-sm text-n-slate-10">
-    {{ t('CALLS_PAGE.SHEET.NO_TRANSCRIPT') }}
-  </p>
+          {{ row.text }}
+        </li>
+        <li
+          v-else
+          class="flex flex-col gap-0.5"
+          :data-test-id="
+            row.isAssistant ? 'call-transcript-ai' : 'call-transcript-caller'
+          "
+        >
+          <span class="flex gap-1.5 text-xs text-n-slate-10">
+            {{
+              row.isAssistant
+                ? t('CALLS_PAGE.SHEET.ROLE_AI')
+                : t('CALLS_PAGE.SHEET.ROLE_CALLER')
+            }}
+            <span v-if="row.interrupted" class="text-n-amber-11">
+              {{ t('CALLS_PAGE.SHEET.INTERRUPTED') }}
+            </span>
+          </span>
+          <p
+            class="text-sm leading-relaxed whitespace-pre-wrap break-words text-n-slate-12"
+            :class="{
+              'underline decoration-dashed decoration-n-amber-9 underline-offset-4':
+                row.interrupted,
+            }"
+          >
+            {{ row.content }}
+          </p>
+        </li>
+      </template>
+    </ol>
+    <p v-else class="px-5 text-sm text-n-slate-10">
+      {{ t('CALLS_PAGE.SHEET.NO_TRANSCRIPT') }}
+    </p>
+  </section>
 </template>

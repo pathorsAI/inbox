@@ -1,8 +1,9 @@
-import { CALL_STATE } from 'dashboard/helper/pathorsCallState';
+import { CALL_STATE, CALL_TONE } from 'dashboard/helper/pathorsCallState';
 import {
   callerNumber,
   callSection,
   dateRangeParams,
+  groupCallSections,
   mergeLiveCall,
 } from '../constants';
 
@@ -46,12 +47,47 @@ describe('callSection', () => {
     );
   });
 
+  it('puts amber calls in the need section too, but not ones a human holds', () => {
+    expect(
+      callSection({ status: 'in-progress' }, { key: CALL_STATE.WARN })
+    ).toBe('need');
+    expect(
+      callSection({ status: 'in-progress' }, { key: CALL_STATE.HUMAN })
+    ).toBe('live');
+  });
+
   it('files ended calls by the day they started', () => {
     const at = seconds => ({ ...ended, startedAt: seconds });
     const state = { key: CALL_STATE.ENDED };
     expect(callSection(at(MIDNIGHT + 60), state)).toBe('today');
     expect(callSection(at(MIDNIGHT - 60), state)).toBe('yesterday');
     expect(callSection(at(MIDNIGHT - 3 * DAY), state)).toBe('earlier');
+  });
+});
+
+describe('groupCallSections', () => {
+  const row = (id, section, tone) => ({
+    call: { id },
+    state: { tone },
+    section,
+  });
+
+  it('orders the sections, drops empty ones and keeps red above amber in need', () => {
+    const sections = groupCallSections([
+      row(1, 'live', CALL_TONE.TEAL),
+      row(2, 'need', CALL_TONE.AMBER),
+      row(3, 'need', CALL_TONE.RUBY),
+      row(4, 'need', CALL_TONE.AMBER),
+      row(5, 'need', CALL_TONE.RUBY),
+      row(6, 'earlier', CALL_TONE.SLATE),
+    ]);
+
+    expect(sections.map(section => section.key)).toEqual([
+      'need',
+      'live',
+      'earlier',
+    ]);
+    expect(sections[0].rows.map(item => item.call.id)).toEqual([3, 5, 2, 4]);
   });
 });
 
@@ -73,6 +109,18 @@ describe('mergeLiveCall', () => {
       live: { seq: 4 },
     });
     expect(mergeLiveCall(row, undefined, undefined).live).toEqual({ seq: 1 });
+  });
+
+  it('takes the variables a handoff card brought in since the list was fetched', () => {
+    const row = { id: 1, status: 'in-progress', variables: null };
+
+    expect(
+      mergeLiveCall(row, { variables: { email: null } }, null).variables
+    ).toEqual({ email: null });
+    expect(
+      mergeLiveCall({ ...row, variables: { email: 'a@b.c' } }, {}, null)
+        .variables
+    ).toEqual({ email: 'a@b.c' });
   });
 });
 

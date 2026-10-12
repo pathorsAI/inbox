@@ -3,6 +3,7 @@ import { defineStore } from 'pinia';
 import PathorsCallsAPI from 'dashboard/api/pathorsCalls';
 import { CONTENT_TYPES } from 'dashboard/components-next/message/constants';
 import { VOICE_CALL_PROVIDERS } from 'dashboard/helper/inbox';
+import { primaryCallState } from 'dashboard/helper/pathorsCallState';
 import { isLiveCallStatus } from 'dashboard/helper/pathorsLiveCall';
 import { MESSAGE_TYPE } from 'shared/constants/messages';
 
@@ -13,11 +14,13 @@ import { MESSAGE_TYPE } from 'shared/constants/messages';
  *
  * - `records`: the calls themselves (camelized `call` shape plus the
  *   conversation, inbox and caller fields the message keeps, and the handling
- *   state: needsAction, followUp, dismissed, acceptedAt, takeoverRequested).
+ *   state: needsAction, followUp, dismissed, acceptedAt, takeoverRequested,
+ *   and the variables the AI extracted, verbatim).
  *   Seeded from GET pathors/calls/active, then kept current by the voice_call
  *   message broadcasts every status change already produces (see
- *   helper/voice.js) and by `pathors_call.live_updated`, which carries
- *   needsAction and the agent on the call.
+ *   helper/voice.js), by `pathors_call.live_updated`, which carries
+ *   needsAction and the agent on the call, and by the AI handoff card's
+ *   message.created, which carries the variables the AI extracted.
  * - `liveById`: the per-turn live state (counters, transcript, attention).
  *   Message payloads never carry it, because message events also reach the
  *   contact; it comes only from the active endpoint and the agent-only
@@ -31,9 +34,9 @@ import { MESSAGE_TYPE } from 'shared/constants/messages';
 const endedCallIds = new Set();
 let inflightFetch = null;
 
-// Calls a status broadcast touched while a fetch was in flight. The fetch's
-// snapshot predates those broadcasts, so it must neither drop such a call nor
-// overwrite its newer fields.
+// Calls a status broadcast or a handoff card touched while a fetch was in
+// flight. The fetch's snapshot predates them, so it must neither drop such a
+// call nor overwrite its newer fields.
 const syncedSinceFetch = new Set();
 
 // Broadcasts are delivered through a job queue and can arrive out of order;
@@ -56,15 +59,19 @@ export const usePathorsLiveCallsStore = defineStore('pathorsLiveCalls', {
   }),
 
   getters: {
-    // Changes whenever a call starts or ends, asks for a human or gets one —
-    // what moves a call between the calls page sections and the sidebar
-    // badges — and not on every AI turn.
-    handlingSignature: state =>
+    // Changes whenever a call starts or ends, or its state does — it asks for
+    // a human, turns amber (which the clock alone can do: a long call), gets
+    // a human or starts a transfer — what moves a call between the calls page
+    // sections and the sidebar badges; not on every AI turn. `now` is epoch ms.
+    handlingSignatureAt: state => now =>
       state.records
-        .map(
-          record =>
-            `${record.id}:${record.needsAction ? 1 : 0}:${record.acceptedByAgentId ?? ''}`
-        )
+        .map(record => {
+          const { key } = primaryCallState(
+            { ...record, live: state.liveById[record.id] || null },
+            { now }
+          );
+          return `${record.id}:${key}:${record.acceptedByAgentId ?? ''}`;
+        })
         .sort()
         .join(','),
 
@@ -90,9 +97,11 @@ export const usePathorsLiveCallsStore = defineStore('pathorsLiveCalls', {
     async fetchActive() {
       syncedSinceFetch.clear();
       const { payload } = await PathorsCallsAPI.active();
-      const calls = camelcaseKeys(payload, { deep: true }).filter(
-        call => !endedCallIds.has(call.id)
-      );
+      // `variables` are the AI's own extraction keys; keep them verbatim.
+      const calls = camelcaseKeys(payload, {
+        deep: true,
+        stopPaths: ['variables'],
+      }).filter(call => !endedCallIds.has(call.id));
       const fetchedIds = new Set(calls.map(call => call.id));
       const existingById = new Map(
         this.records.map(record => [record.id, record])
@@ -183,6 +192,27 @@ export const usePathorsLiveCallsStore = defineStore('pathorsLiveCalls', {
         if (record) record.dismissed = previous;
         throw error;
       }
+    },
+
+    /**
+     * The AI handoff card posted when a human takes a call over carries what
+     * the AI extracted. The calls list only reads it on its next fetch, which
+     * can run before the card exists; keeping it on the live call lets an open
+     * sheet show it as soon as it arrives. The card names the conversation,
+     * not the call, and a conversation has one call on the line at a time.
+     * @param {Object} message a raw (snake_case) message from the cable
+     */
+    syncHandoffCard(message) {
+      if (message?.content_type !== CONTENT_TYPES.PATHORS_HANDOFF) return;
+      const record = this.records.find(
+        item => item.conversationId === message.conversation_id
+      );
+      // The AI's own extraction keys; kept verbatim, like the calls list does.
+      const variables = message.content_attributes?.data?.variables;
+      if (!record || !variables) return;
+      record.variables = variables;
+      // A fetch already in flight read the call before this card existed.
+      syncedSinceFetch.add(record.id);
     },
 
     /** @param {number|null} callId */

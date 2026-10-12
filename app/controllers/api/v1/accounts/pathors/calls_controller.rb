@@ -27,6 +27,7 @@ class Api::V1::Accounts::Pathors::CallsController < Api::V1::Accounts::BaseContr
     account_calls.pathors.stale.find_each(&:expire!)
     @calls = account_calls.pathors.active.where(conversation_id: accessible_conversations)
                           .includes(:contact, :inbox, :conversation, :accepted_by_agent).order(:started_at)
+    @handoff_variables = Call.handoff_variables(@calls, Current.account.id)
   end
 
   def create
