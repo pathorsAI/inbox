@@ -161,7 +161,7 @@ describe('login methods', () => {
   const findButton = (wrapper, testId) =>
     wrapper.find(`[data-testid="${testId}"]`);
 
-  it('offers Pathors, then Google, then the password form', () => {
+  it('offers the password form, then Pathors, then Google', () => {
     window.chatwootConfig = {
       allowedLoginMethods: ['email', 'google_oauth', 'pathors'],
       googleOAuthClientId: 'google-client',
@@ -186,14 +186,14 @@ describe('login methods', () => {
     expect(wrapper.find('.section-separator').text()).toBe('COMMON.OR');
     expect(wrapper.text()).toContain('LOGIN.FORGOT_PASSWORD');
     expect(wrapper.text()).toContain('LOGIN.CREATE_NEW_ACCOUNT');
-    expect(html.indexOf('pathors-login-button')).toBeLessThan(
-      html.indexOf('google-login-button')
-    );
-    expect(html.indexOf('google-login-button')).toBeLessThan(
+    expect(html.indexOf('submit_button')).toBeLessThan(
       html.indexOf('section-separator')
     );
     expect(html.indexOf('section-separator')).toBeLessThan(
-      html.indexOf('email_input')
+      html.indexOf('pathors-login-button')
+    );
+    expect(html.indexOf('pathors-login-button')).toBeLessThan(
+      html.indexOf('google-login-button')
     );
   });
 

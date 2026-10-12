@@ -495,39 +495,6 @@ export default {
           :class="{ 'animate-wiggle': loginApi.hasErrored }"
         >
           <div v-if="!email">
-            <div class="flex flex-col gap-3">
-              <PathorsLoginButton
-                v-if="showPathorsLogin"
-                :redirect-url="redirectUrl"
-                :sso-account-id="ssoAccountId"
-                :sso-conversation-id="ssoConversationId"
-                :sso-route-path="ssoRoutePath"
-              />
-              <GoogleOAuthButton
-                v-if="showGoogleOAuth"
-                :redirect-url="redirectUrl"
-                :sso-account-id="ssoAccountId"
-              />
-              <div v-if="showSamlLogin" class="text-center">
-                <router-link
-                  :to="samlLoginRoute"
-                  class="inline-flex items-center justify-center w-full h-11 px-4 border rounded-lg border-n-weak bg-n-solid-1 hover:bg-n-alpha-2"
-                >
-                  <Icon
-                    icon="i-lucide-lock-keyhole"
-                    class="size-5 text-n-slate-11"
-                  />
-                  <span class="ml-2 text-sm font-medium text-n-slate-12">
-                    {{ $t('LOGIN.SAML.LABEL') }}
-                  </span>
-                </router-link>
-              </div>
-              <SimpleDivider
-                v-if="showLoginDivider"
-                :label="$t('COMMON.OR')"
-                bg="bg-n-background"
-              />
-            </div>
             <form
               v-if="showEmailLogin"
               class="space-y-5"
@@ -578,6 +545,42 @@ export default {
                 :is-loading="loginApi.showLoading"
               />
             </form>
+            <div
+              class="flex flex-col gap-3"
+              :class="{ 'mt-5': showEmailLogin }"
+            >
+              <SimpleDivider
+                v-if="showLoginDivider"
+                :label="$t('COMMON.OR')"
+                bg="bg-n-background"
+              />
+              <PathorsLoginButton
+                v-if="showPathorsLogin"
+                :redirect-url="redirectUrl"
+                :sso-account-id="ssoAccountId"
+                :sso-conversation-id="ssoConversationId"
+                :sso-route-path="ssoRoutePath"
+              />
+              <GoogleOAuthButton
+                v-if="showGoogleOAuth"
+                :redirect-url="redirectUrl"
+                :sso-account-id="ssoAccountId"
+              />
+              <div v-if="showSamlLogin" class="text-center">
+                <router-link
+                  :to="samlLoginRoute"
+                  class="inline-flex items-center justify-center w-full h-11 px-4 border rounded-lg border-n-weak bg-n-solid-1 hover:bg-n-alpha-2"
+                >
+                  <Icon
+                    icon="i-lucide-lock-keyhole"
+                    class="size-5 text-n-slate-11"
+                  />
+                  <span class="ml-2 text-sm font-medium text-n-slate-12">
+                    {{ $t('LOGIN.SAML.LABEL') }}
+                  </span>
+                </router-link>
+              </div>
+            </div>
           </div>
           <div v-else class="flex items-center justify-center py-6">
             <Spinner color-scheme="primary" size="" />
