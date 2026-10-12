@@ -186,8 +186,9 @@ class Api::V1::Accounts::Pathors::CallsController < Api::V1::Accounts::BaseContr
     attributes[:summary] = summary.to_h if summary
 
     persist(attributes)
-    # A terminal to terminal correction runs it again; see CallLifecycleService#ended.
-    ::Pathors::CallLifecycleService.new(call: @call).ended if @call.pathors? && @call.terminal? && @call.saved_change_to_status?
+    # A terminal to terminal correction runs it again, and so does a late real
+    # end (new end_reason / duration) on a call already expired as stale.
+    ::Pathors::CallLifecycleService.new(call: @call).ended if @call.pathors? && @call.terminal? && @call.end_details_changed?
   end
 
   def persist(attributes)

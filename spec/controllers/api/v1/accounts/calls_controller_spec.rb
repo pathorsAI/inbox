@@ -141,6 +141,8 @@ RSpec.describe 'Calls API', type: :request do
         expect(list(q: '5678')).to eq([needs_help.id])
         expect(list(q: '0955-000')).to eq([follow_up_call.id])
         expect(list(q: 'xiao')).to eq([needs_help.id])
+        done_call.update!(direction: :outgoing, to_number: '+886977123456')
+        expect(list(q: '0977-123')).to eq([done_call.id])
         expect(list(q: '%')).to be_empty
       end
 

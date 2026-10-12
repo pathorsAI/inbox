@@ -1,6 +1,7 @@
 class CallFinder
   RESULTS_PER_PAGE = 25
-  SEGMENTS = %w[need live ended].freeze
+  SEGMENT_SCOPES = { 'need' => :needing_action, 'live' => :active, 'ended' => :ended }.freeze
+  SEGMENTS = SEGMENT_SCOPES.keys.freeze
   # `takeover_requested` is not an outcome but filters alongside them: "calls
   # the AI asked help on", whatever came of it.
   OUTCOME_FILTERS = (Pathors::CallLifecycleService::OUTCOMES + %w[takeover_requested]).freeze
@@ -81,12 +82,10 @@ class CallFinder
     @calls = @calls.where(accepted_by_agent_id: @params[:agent_id]) if @params[:agent_id].present?
   end
 
+  # No segment means every call; the controller rejects unknown values.
   def filter_by_segment
-    case @params[:segment]
-    when 'need' then @calls = @calls.needing_action
-    when 'live' then @calls = @calls.active
-    when 'ended' then @calls = @calls.ended
-    end
+    scope = SEGMENT_SCOPES[@params[:segment]]
+    @calls = @calls.public_send(scope) if scope
   end
 
   # Digits search the caller's number; anything else the contact's name.
@@ -102,9 +101,12 @@ class CallFinder
   # Numbers are stored in E.164 (+886912345678) but typed nationally
   # (0912345678), so the trunk prefix is dropped; a partial number (5678)
   # matches anywhere in it.
+  # The other party is from_number on an inbound call and to_number on an
+  # outbound one; the contact's own number covers the usual case.
   def matching_number(digits)
     pattern = "%#{ActiveRecord::Base.sanitize_sql_like(digits.delete_prefix('0'))}%"
-    @calls.where("contacts.phone_number LIKE :pattern OR calls.meta->>'from_number' LIKE :pattern", pattern: pattern)
+    @calls.where("contacts.phone_number LIKE :pattern OR calls.meta->>'from_number' LIKE :pattern OR calls.meta->>'to_number' LIKE :pattern",
+                 pattern: pattern)
   end
 
   def matching_name(query)

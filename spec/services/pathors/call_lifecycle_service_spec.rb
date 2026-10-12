@@ -158,6 +158,15 @@ RSpec.describe Pathors::CallLifecycleService do
       expect(conversation.reload).to have_attributes(status: 'open', assignee_id: agent.id, assignee_agent_bot_id: nil)
     end
 
+    it 'never stamps the join earlier than backend events already received' do
+      ahead = (Time.current.to_f * 1000).to_i + 60_000
+      call.update!(live: { 'seq' => ahead })
+
+      service.joined(agent)
+
+      expect(call.reload.accepted_at).to eq(ahead)
+    end
+
     it 'keeps an existing human assignee' do
       other = create(:user, account: account, role: :agent)
       conversation.update!(assignee: other)

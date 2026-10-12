@@ -39,7 +39,7 @@ class Pathors::CallLifecycleService
 
   def joined(user)
     call.with_lock do
-      call.update!(accepted_by_agent_id: user.id, accepted_at: now_ms, needs_action: false, human_joined: true)
+      call.update!(accepted_by_agent_id: user.id, accepted_at: joined_at_ms, needs_action: false, human_joined: true)
     end
     # So every other dashboard sees who answered and drops the attention alert.
     # The bubble's MESSAGE_UPDATED also reaches the contact, so needs_action
@@ -207,7 +207,10 @@ class Pathors::CallLifecycleService
   end
 
   def hand_to_humans(conversation)
-    return conversation.save! if conversation.assignee_id.present?
+    if conversation.assignee_id.present?
+      conversation.save! if conversation.changed?
+      return
+    end
     # bot_handoff! also saves the attributes set above, in the same update.
     return conversation.bot_handoff! if conversation.pending?
 
@@ -266,5 +269,14 @@ class Pathors::CallLifecycleService
 
   def now_ms
     (Time.current.to_f * 1000).to_i
+  end
+
+  # `accepted_at` is compared with timestamps the Pathors backend stamped
+  # (`takeover_request.at`, `human_left_at`), on a different clock. Taking the
+  # later of our clock and the newest backend time already received (`seq`)
+  # keeps anything the human saw before joining from reading as newer than
+  # the join, however far the backend's clock runs ahead.
+  def joined_at_ms
+    [now_ms, call.live&.dig('seq')].compact.max
   end
 end
