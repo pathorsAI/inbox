@@ -1,6 +1,7 @@
 {
   "LOGIN": {
     "TITLE": "登入到 Chatwoot",
+    "EYEBROW": "安全登入",
     "EMAIL": {
       "LABEL": "電子郵件",
       "PLACEHOLDER": "example{'@'}companyname.com",
@@ -22,6 +23,8 @@
     },
     "PATHORS": {
       "LOGIN": "用 Pathors 登入",
+      "SUBTITLE": "使用你的 Pathors 帳號登入收件匣。",
+      "SAME_ACCOUNT_HINT": "同一個 Email 就是同一個帳號，用 Pathors 或 Google 登入都一樣。",
       "EMAIL_UNVERIFIED": "您的 Pathors 帳號電子郵件尚未驗證。請先到 Pathors 完成驗證，再重新登入。",
       "ACCOUNT_MISMATCH": "這個電子郵件已綁定到另一個 Pathors 帳號，請聯絡管理員。",
       "LOGIN_FAILED": "無法透過 Pathors 登入，請再試一次。"
