@@ -1,4 +1,5 @@
 import { createStore } from 'vuex';
+import { createPinia, setActivePinia } from 'pinia';
 import conversationModule from 'dashboard/store/modules/conversations';
 import Connector from '../actionCable';
 import alerts from '../AudioAlerts/DashboardAudioNotificationHelper';
@@ -32,6 +33,8 @@ describe('handoff event → conversation store → audible alert', () => {
 
   beforeEach(() => {
     vi.useFakeTimers();
+    // message.created also feeds the Pathors live calls store (handoff cards).
+    setActivePinia(createPinia());
     store = createStore({
       ...conversationModule,
       state: {
