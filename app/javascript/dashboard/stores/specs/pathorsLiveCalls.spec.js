@@ -228,6 +228,46 @@ describe('pathorsLiveCalls store', () => {
     expect(store.liveById).toEqual({});
   });
 
+  it('keeps the variables of a handoff card on the live call in its conversation', () => {
+    const store = usePathorsLiveCallsStore();
+    store.syncFromMessage(buildMessage());
+
+    store.syncHandoffCard({
+      id: 900,
+      content_type: 'pathors_handoff',
+      conversation_id: 12,
+      content_attributes: {
+        data: { variables: { customer_name: '林先生', email: null } },
+      },
+    });
+
+    expect(store.records[0].variables).toEqual({
+      customer_name: '林先生',
+      email: null,
+    });
+
+    // A later status broadcast does not carry them, and does not drop them.
+    store.syncFromMessage(buildMessage({ call: { accepted_by_agent_id: 9 } }));
+    expect(store.records[0].variables).toEqual({
+      customer_name: '林先生',
+      email: null,
+    });
+  });
+
+  it('ignores other messages, and handoff cards from conversations without a live call', () => {
+    const store = usePathorsLiveCallsStore();
+    store.syncFromMessage(buildMessage());
+
+    store.syncHandoffCard({ content_type: 'text', conversation_id: 12 });
+    store.syncHandoffCard({
+      content_type: 'pathors_handoff',
+      conversation_id: 13,
+      content_attributes: { data: { variables: { a: 1 } } },
+    });
+
+    expect(store.records[0].variables).toBeUndefined();
+  });
+
   it('ignores other providers and other message types', () => {
     const store = usePathorsLiveCallsStore();
 

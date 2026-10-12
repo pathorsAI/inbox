@@ -74,6 +74,18 @@ describe('mergeLiveCall', () => {
     });
     expect(mergeLiveCall(row, undefined, undefined).live).toEqual({ seq: 1 });
   });
+
+  it('takes the variables a handoff card brought in since the list was fetched', () => {
+    const row = { id: 1, status: 'in-progress', variables: null };
+
+    expect(
+      mergeLiveCall(row, { variables: { email: null } }, null).variables
+    ).toEqual({ email: null });
+    expect(
+      mergeLiveCall({ ...row, variables: { email: 'a@b.c' } }, {}, null)
+        .variables
+    ).toEqual({ email: 'a@b.c' });
+  });
 });
 
 describe('callerNumber', () => {

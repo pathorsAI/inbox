@@ -109,6 +109,7 @@ const LIVE_RECORD_FIELDS = [
   'acceptedByAgentName',
   'acceptedAt',
   'takeoverRequested',
+  'variables',
 ];
 
 /**

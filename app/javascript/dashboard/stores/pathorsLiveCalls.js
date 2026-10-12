@@ -16,8 +16,9 @@ import { MESSAGE_TYPE } from 'shared/constants/messages';
  *   state: needsAction, followUp, dismissed, acceptedAt, takeoverRequested).
  *   Seeded from GET pathors/calls/active, then kept current by the voice_call
  *   message broadcasts every status change already produces (see
- *   helper/voice.js) and by `pathors_call.live_updated`, which carries
- *   needsAction and the agent on the call.
+ *   helper/voice.js), by `pathors_call.live_updated`, which carries
+ *   needsAction and the agent on the call, and by the AI handoff card's
+ *   message.created, which carries the variables the AI extracted.
  * - `liveById`: the per-turn live state (counters, transcript, attention).
  *   Message payloads never carry it, because message events also reach the
  *   contact; it comes only from the active endpoint and the agent-only
@@ -183,6 +184,23 @@ export const usePathorsLiveCallsStore = defineStore('pathorsLiveCalls', {
         if (record) record.dismissed = previous;
         throw error;
       }
+    },
+
+    /**
+     * The AI handoff card posted when a human takes a call over carries what
+     * the AI extracted. The calls list only reads it on its next fetch, which
+     * can run before the card exists; keeping it on the live call lets an open
+     * sheet show it as soon as it arrives. The card names the conversation,
+     * not the call, and a conversation has one call on the line at a time.
+     * @param {Object} message a raw (snake_case) message from the cable
+     */
+    syncHandoffCard(message) {
+      if (message?.content_type !== CONTENT_TYPES.PATHORS_HANDOFF) return;
+      const record = this.records.find(
+        item => item.conversationId === message.conversation_id
+      );
+      // The AI's own extraction keys; kept verbatim, like the calls list does.
+      if (record) record.variables = message.content_attributes.data.variables;
     },
 
     /** @param {number|null} callId */
