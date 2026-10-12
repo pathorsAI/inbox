@@ -288,10 +288,9 @@ const tailwindConfig = {
       current: 'currentColor',
       ...colors,
       body: slateDark.slate7,
-      // Brand panel beside the sign-in form (v3/views/login).
+      // Backdrop behind the sign-in artwork while it loads (v3/views/login).
       login: {
         navy: '#061430',
-        deep: '#0B2D6B',
       },
     },
     keyframes: {

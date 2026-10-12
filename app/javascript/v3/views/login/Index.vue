@@ -38,12 +38,9 @@ const IMPERSONATION_URL_SEARCH_KEY = 'impersonation';
 const USER_NOT_CONFIRMED_ERROR_CODE = 'user_not_confirmed';
 const AUTH_ERROR_TOAST_DURATION = 6000;
 
-// The three lines on the brand panel beside the form (lg and up).
-const PANEL_FEATURES = [
-  { key: 'LOGIN.PANEL.FEATURES.CHANNELS', icon: 'i-lucide-messages-square' },
-  { key: 'LOGIN.PANEL.FEATURES.AI', icon: 'i-lucide-bot' },
-  { key: 'LOGIN.PANEL.FEATURES.ACCOUNT', icon: 'i-lucide-key-round' },
-];
+// Served from public/ by Rails; bound at runtime so Vite does not bundle them.
+const LOGO_MARK_URL = '/favicon-512x512.png';
+const LOGIN_ART_URL = '/brand-assets/login-art.jpg';
 
 export default {
   components: {
@@ -70,7 +67,8 @@ export default {
     const { replaceInstallationName } = useBranding();
     return {
       replaceInstallationName,
-      panelFeatures: PANEL_FEATURES,
+      LOGO_MARK_URL,
+      LOGIN_ART_URL,
       v$: useVuelidate(),
     };
   },
@@ -422,61 +420,14 @@ export default {
 
 <template>
   <main class="flex w-full min-h-screen bg-n-background">
-    <!-- Brand panel: always dark, hidden below lg where the form takes the screen. -->
-    <aside
-      class="relative hidden lg:flex flex-col justify-between w-[44%] max-w-[40rem] p-12 overflow-hidden text-white bg-gradient-to-br from-login-navy via-login-navy to-login-deep isolate"
-    >
-      <div
-        class="absolute -right-32 -top-32 -z-10 size-[28rem] rounded-full bg-n-brand/30 blur-3xl"
-        aria-hidden="true"
-      />
-      <img
-        :src="globalConfig.logoDark || globalConfig.logo"
-        :alt="globalConfig.installationName"
-        class="block w-auto h-7 self-start"
-      />
-      <div class="max-w-md">
-        <h2 class="text-3xl font-semibold leading-tight tracking-tight">
-          {{ $t('LOGIN.PANEL.HEADLINE') }}
-        </h2>
-        <p class="mt-4 text-base leading-relaxed text-white/70">
-          {{ $t('LOGIN.PANEL.DESCRIPTION') }}
-        </p>
-        <ul class="mt-10 space-y-4">
-          <li
-            v-for="feature in panelFeatures"
-            :key="feature.key"
-            class="flex items-center gap-3 text-sm text-white/85"
-          >
-            <span
-              class="flex items-center justify-center rounded-lg size-9 bg-white/10 ring-1 ring-inset ring-white/15"
-            >
-              <Icon :icon="feature.icon" class="size-[1.125rem]" />
-            </span>
-            {{ $t(feature.key) }}
-          </li>
-        </ul>
-      </div>
-      <p class="text-xs text-white/50">
-        {{
-          $t('LOGIN.PANEL.COPYRIGHT', { name: globalConfig.installationName })
-        }}
-      </p>
-    </aside>
-
     <section
       class="flex items-center justify-center flex-1 px-6 py-12 sm:px-10"
     >
       <div class="w-full max-w-sm">
         <img
-          :src="globalConfig.logo"
+          :src="LOGO_MARK_URL"
           :alt="globalConfig.installationName"
-          class="block w-auto h-7 mb-10 lg:hidden dark:hidden"
-        />
-        <img
-          :src="globalConfig.logoDark || globalConfig.logo"
-          :alt="globalConfig.installationName"
-          class="hidden w-auto h-7 mb-10 dark:block dark:lg:hidden"
+          class="block mb-8 size-12"
         />
 
         <h1 class="text-2xl font-semibold tracking-tight text-n-slate-12">
@@ -640,5 +591,18 @@ export default {
         </div>
       </div>
     </section>
+
+    <!-- Artwork only, no copy; hidden below lg where the form takes the screen. -->
+    <aside
+      class="sticky top-0 hidden h-screen p-3 lg:block lg:w-1/2 xl:w-[55%]"
+    >
+      <div class="relative h-full overflow-hidden rounded-2xl bg-login-navy">
+        <img
+          :src="LOGIN_ART_URL"
+          alt=""
+          class="absolute inset-0 object-cover size-full"
+        />
+      </div>
+    </aside>
   </main>
 </template>
