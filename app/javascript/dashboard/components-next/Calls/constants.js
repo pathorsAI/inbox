@@ -58,9 +58,12 @@ export const CALL_TONE_STRIPE_CLASS = Object.freeze({
   [CALL_TONE.TEAL]: 'bg-n-teal-9',
 });
 
-const NEEDS_HUMAN_STATES = new Set([
+// Red (a human is needed) and amber (the AI is struggling) both belong in 需要處理,
+// like the server's `need` segment (Call.needing_attention).
+const NEED_STATES = new Set([
   CALL_STATE.REQUESTED,
   CALL_STATE.TRANSFER_FAILED,
+  CALL_STATE.WARN,
 ]);
 
 const toEpochSeconds = date => Math.floor(date.getTime() / 1000);
@@ -92,13 +95,35 @@ export const dateRangeParams = (range, now = new Date()) => {
  * @param {{ key: string }} state primaryCallState of the call
  */
 export const callSection = (call, state) => {
-  if (call.followUp || NEEDS_HUMAN_STATES.has(state.key)) return 'need';
+  if (call.followUp || NEED_STATES.has(state.key)) return 'need';
   if (isLiveCallStatus(call.status)) return 'live';
   const startedAt = new Date(toEpochMs(call.startedAt ?? call.createdAt));
   if (isToday(startedAt)) return 'today';
   if (isYesterday(startedAt)) return 'yesterday';
   return 'earlier';
 };
+
+const isAmber = row => row.state.tone === CALL_TONE.AMBER;
+
+/**
+ * The table's sections in CALL_SECTIONS order, empty ones left out. 需要處理
+ * keeps red rows above amber ones (red is more urgent), each in list order.
+ * @param {Array<{ call: Object, state: Object, section: string }>} rows
+ */
+export const groupCallSections = rows =>
+  CALL_SECTIONS.map(key => {
+    const sectionRows = rows.filter(row => row.section === key);
+    return {
+      key,
+      rows:
+        key === 'need'
+          ? [
+              ...sectionRows.filter(row => !isAmber(row)),
+              ...sectionRows.filter(isAmber),
+            ]
+          : sectionRows,
+    };
+  }).filter(section => section.rows.length);
 
 // The fields a live store record knows better than a list row fetched earlier.
 const LIVE_RECORD_FIELDS = [

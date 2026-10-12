@@ -95,7 +95,7 @@
     },
     "EMPTY": {
       "NEED": "No calls need attention right now",
-      "NEED_HINT": "Calls show up here when the AI asks for help or a transfer fails",
+      "NEED_HINT": "Calls show up here when the AI asks for help, a transfer fails, or a call the AI is on runs long, gets interrupted a lot or goes in circles",
       "LIVE": "No calls on the line right now",
       "FILTERED": "No calls match these filters"
     },

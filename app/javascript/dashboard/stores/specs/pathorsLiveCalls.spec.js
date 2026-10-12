@@ -287,6 +287,8 @@ describe('pathorsLiveCalls store', () => {
 
     const activeCall = (id, overrides = {}) => ({
       id,
+      provider: 'pathors',
+      status: 'in-progress',
       conversation_id: 12,
       started_at: '2026-10-11T10:00:00Z',
       needs_action: false,
@@ -404,21 +406,50 @@ describe('pathorsLiveCalls store', () => {
       expect(store.attentionCalls.map(call => call.id)).toEqual([77]);
     });
 
-    it('changes its handling signature only when a call moves, not per turn', async () => {
-      const store = await seed([activeCall(77, { live: { seq: 1 } })]);
-      const before = store.handlingSignature;
+    describe('handlingSignatureAt', () => {
+      const STARTED = Date.parse('2026-10-11T10:00:00Z');
+      const now = STARTED + 60_000;
 
-      store.handleLiveUpdated({
-        ...liveUpdate({ seq: 2 }),
-        needs_action: false,
-      });
-      expect(store.handlingSignature).toBe(before);
+      it('changes only when a call moves, not per turn', async () => {
+        const store = await seed([activeCall(77, { live: { seq: 1 } })]);
+        const before = store.handlingSignatureAt(now);
 
-      store.handleLiveUpdated({
-        ...liveUpdate({ seq: 3 }),
-        needs_action: true,
+        store.handleLiveUpdated({
+          ...liveUpdate({ seq: 2, turns: 3 }),
+          needs_action: false,
+        });
+        expect(store.handlingSignatureAt(now)).toBe(before);
+
+        store.handleLiveUpdated({
+          ...liveUpdate({ seq: 3, turns: 4 }),
+          needs_action: true,
+        });
+        expect(store.handlingSignatureAt(now)).not.toBe(before);
       });
-      expect(store.handlingSignature).not.toBe(before);
+
+      it('changes when a call turns amber, from its counters or the clock alone', async () => {
+        const store = await seed([activeCall(77, { live: { seq: 1 } })]);
+        const before = store.handlingSignatureAt(now);
+
+        expect(store.handlingSignatureAt(now + 60_000)).toBe(before);
+        expect(store.handlingSignatureAt(STARTED + 301_000)).not.toBe(before);
+
+        store.handleLiveUpdated(liveUpdate({ seq: 2, turns: 21 }));
+        expect(store.handlingSignatureAt(now)).not.toBe(before);
+      });
+
+      it('changes when a human takes an amber call', async () => {
+        const store = await seed([
+          activeCall(77, { live: { seq: 1, interruptions: 4 } }),
+        ]);
+        const before = store.handlingSignatureAt(now);
+
+        store.handleLiveUpdated({
+          ...liveUpdate({ seq: 2, interruptions: 4 }),
+          accepted_by_agent_id: 5,
+        });
+        expect(store.handlingSignatureAt(now)).not.toBe(before);
+      });
     });
 
     it('remembers which call the sheet has open', () => {

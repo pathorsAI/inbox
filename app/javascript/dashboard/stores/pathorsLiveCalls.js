@@ -3,6 +3,7 @@ import { defineStore } from 'pinia';
 import PathorsCallsAPI from 'dashboard/api/pathorsCalls';
 import { CONTENT_TYPES } from 'dashboard/components-next/message/constants';
 import { VOICE_CALL_PROVIDERS } from 'dashboard/helper/inbox';
+import { primaryCallState } from 'dashboard/helper/pathorsCallState';
 import { isLiveCallStatus } from 'dashboard/helper/pathorsLiveCall';
 import { MESSAGE_TYPE } from 'shared/constants/messages';
 
@@ -57,15 +58,19 @@ export const usePathorsLiveCallsStore = defineStore('pathorsLiveCalls', {
   }),
 
   getters: {
-    // Changes whenever a call starts or ends, asks for a human or gets one —
-    // what moves a call between the calls page sections and the sidebar
-    // badges — and not on every AI turn.
-    handlingSignature: state =>
+    // Changes whenever a call starts or ends, or its state does — it asks for
+    // a human, turns amber (which the clock alone can do: a long call), gets
+    // a human or starts a transfer — what moves a call between the calls page
+    // sections and the sidebar badges; not on every AI turn. `now` is epoch ms.
+    handlingSignatureAt: state => now =>
       state.records
-        .map(
-          record =>
-            `${record.id}:${record.needsAction ? 1 : 0}:${record.acceptedByAgentId ?? ''}`
-        )
+        .map(record => {
+          const { key } = primaryCallState(
+            { ...record, live: state.liveById[record.id] || null },
+            { now }
+          );
+          return `${record.id}:${key}:${record.acceptedByAgentId ?? ''}`;
+        })
         .sort()
         .join(','),
 

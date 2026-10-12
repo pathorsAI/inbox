@@ -107,7 +107,7 @@ RSpec.describe 'Calls API', type: :request do
       end
       let!(:live_call) do
         create(:call, :pathors, account: account, conversation: conversation, inbox: inbox, contact: other_contact,
-                                started_at: 20.minutes.ago)
+                                started_at: 2.minutes.ago)
       end
       let!(:follow_up_call) do
         create(:call, :pathors, account: account, conversation: conversation, inbox: inbox, contact: other_contact,
@@ -126,8 +126,17 @@ RSpec.describe 'Calls API', type: :request do
 
       it 'segments by what needs a human, what is live and what ended' do
         expect(list(segment: 'need')).to contain_exactly(needs_help.id, follow_up_call.id)
-        expect(list(segment: 'live')).to eq([live_call.id, needs_help.id])
+        expect(list(segment: 'live')).to eq([needs_help.id, live_call.id])
         expect(list(segment: 'ended')).to contain_exactly(follow_up_call.id, done_call.id)
+      end
+
+      it 'adds the amber calls to the need segment and its count, after the red ones' do
+        live_call.update!(live: { 'seq' => 1, 'turns' => 21, 'interruptions' => 0 })
+
+        need = list(segment: 'need')
+        expect(need).to contain_exactly(needs_help.id, follow_up_call.id, live_call.id)
+        expect(need.last).to eq(live_call.id)
+        expect(response.parsed_body['meta']['counts']).to eq('need' => 3, 'live' => 2)
       end
 
       it 'counts the segments regardless of the other filters' do

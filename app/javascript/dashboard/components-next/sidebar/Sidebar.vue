@@ -12,6 +12,7 @@ import { useConfig } from 'dashboard/composables/useConfig';
 import { useKbd } from 'dashboard/composables/utils/useKbd';
 import { useMapGetter } from 'dashboard/composables/store';
 import { useEmitter } from 'dashboard/composables/emitter';
+import { useClock } from 'dashboard/composables/useClock';
 import { useStore } from 'vuex';
 import { useI18n } from 'vue-i18n';
 import { useSidebarKeyboardShortcuts } from './useSidebarKeyboardShortcuts';
@@ -303,10 +304,12 @@ const fetchCallCounts = () => {
   callCountsStore.fetch();
 };
 
-// A call that starts, ends, asks for help or gets answered moves both badges;
-// the live store sees all of that first.
+// A call that starts, ends, asks for help, turns amber or gets answered moves
+// both badges; the live store sees all of that first, and the clock says when
+// a call has run long enough to turn amber.
+const now = useClock();
 watch(
-  () => pathorsLiveCallsStore.handlingSignature,
+  () => pathorsLiveCallsStore.handlingSignatureAt(now.value),
   () => {
     if (isCallsAvailable.value) callCountsStore.scheduleFetch();
   }

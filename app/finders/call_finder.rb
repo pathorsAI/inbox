@@ -1,10 +1,17 @@
 class CallFinder
   RESULTS_PER_PAGE = 25
-  SEGMENT_SCOPES = { 'need' => :needing_action, 'live' => :active, 'ended' => :ended }.freeze
+  SEGMENT_SCOPES = { 'need' => :needing_attention, 'live' => :active, 'ended' => :ended }.freeze
   SEGMENTS = SEGMENT_SCOPES.keys.freeze
   # `takeover_requested` is not an outcome but filters alongside them: "calls
   # the AI asked help on", whatever came of it.
   OUTCOME_FILTERS = (Pathors::CallLifecycleService::OUTCOMES + %w[takeover_requested]).freeze
+  # In the need segment every ended call is a follow-up and a live one is red
+  # only when it needs_action, so this is false for red and true for amber:
+  # red sorts first, before pagination splits the list.
+  AMBER_LAST = Arel.sql(
+    "(calls.status IN (#{Call::ACTIVE_STATUSES.map { |status| "'#{status}'" }.join(', ')}) " \
+    "AND calls.meta->>'needs_action' IS DISTINCT FROM 'true')"
+  )
   # Fewer digits than this is a name, not a phone number fragment.
   MIN_PHONE_DIGITS = 3
 
@@ -63,7 +70,7 @@ class CallFinder
   end
 
   def segment_counts
-    { need: @calls.needing_action.count, live: @calls.active.count }
+    { need: @calls.needing_attention.count, live: @calls.active.count }
   end
 
   def filter_by_status
@@ -142,9 +149,17 @@ class CallFinder
 
   def paginated_calls
     @calls.includes(:contact, :conversation, :accepted_by_agent, inbox: :channel)
-          .order(@params[:segment] == 'live' ? { started_at: :asc } : { created_at: :desc })
+          .order(*list_order)
           .page(@params[:page] || 1)
           .per(RESULTS_PER_PAGE)
+  end
+
+  def list_order
+    case @params[:segment]
+    when 'live' then [{ started_at: :asc }]
+    when 'need' then [AMBER_LAST, { created_at: :desc }]
+    else [{ created_at: :desc }]
+    end
   end
 
   # What the AI extracted lives on the call's handoff card, one message per
