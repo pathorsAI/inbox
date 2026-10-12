@@ -1,5 +1,10 @@
 import { CALL_STATE } from 'dashboard/helper/pathorsCallState';
-import { callSection, dateRangeParams, mergeLiveCall } from '../constants';
+import {
+  callerNumber,
+  callSection,
+  dateRangeParams,
+  mergeLiveCall,
+} from '../constants';
 
 // TZ=UTC in the test script, so local day boundaries are UTC midnights.
 const NOW = new Date('2026-10-11T15:30:00Z');
@@ -68,5 +73,35 @@ describe('mergeLiveCall', () => {
       live: { seq: 4 },
     });
     expect(mergeLiveCall(row, undefined, undefined).live).toEqual({ seq: 1 });
+  });
+});
+
+describe('callerNumber', () => {
+  it('prefers the contact, then the other party by direction', () => {
+    const line = '+886800012345';
+    const customer = '+886912345678';
+
+    expect(
+      callerNumber({
+        direction: 'outbound',
+        fromNumber: line,
+        toNumber: customer,
+      })
+    ).toBe(customer);
+    expect(
+      callerNumber({
+        direction: 'inbound',
+        fromNumber: customer,
+        toNumber: line,
+      })
+    ).toBe(customer);
+    expect(
+      callerNumber({
+        direction: 'outbound',
+        contact: { phoneNumber: '+886955000111' },
+        fromNumber: line,
+        toNumber: customer,
+      })
+    ).toBe('+886955000111');
   });
 });

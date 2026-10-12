@@ -129,11 +129,15 @@ export const mergeLiveCall = (row, record, live) => {
 // Calls-list rows nest the contact and inbox; live store records flatten them.
 export const callerName = call => call.contact?.name || call.contactName || '';
 
-export const callerNumber = call =>
-  call.contact?.phoneNumber ||
-  call.contactPhoneNumber ||
-  call.fromNumber ||
-  call.toNumber ||
-  '';
+// The other party: from_number on an inbound call, to_number on an outbound
+// one (from_number is then our own line) — the same rule as the backend's
+// conversation attributes. The contact's own number comes first.
+export const callerNumber = call => {
+  const outbound = ['outbound', 'outgoing'].includes(call.direction);
+  const otherParty = outbound ? call.toNumber : call.fromNumber;
+  return (
+    call.contact?.phoneNumber || call.contactPhoneNumber || otherParty || ''
+  );
+};
 
 export const lineName = call => call.inbox?.name || call.inboxName || '';

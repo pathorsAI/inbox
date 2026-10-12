@@ -1,6 +1,5 @@
 <script setup>
 import { computed, ref, watch, onMounted } from 'vue';
-import { until } from '@vueuse/core';
 import { debounce } from '@chatwoot/utils';
 import camelcaseKeys from 'camelcase-keys';
 import { useI18n } from 'vue-i18n';
@@ -9,6 +8,7 @@ import { useMapGetter, useStore } from 'dashboard/composables/store';
 import { useAlert } from 'dashboard/composables';
 import { useClock } from 'dashboard/composables/useClock';
 import { isCallLineInbox } from 'dashboard/helper/inbox';
+import { waitUntil } from 'dashboard/helper/waitUntil';
 import CallsAPI from 'dashboard/api/calls';
 import {
   CALL_OUTCOMES,
@@ -309,7 +309,7 @@ onMounted(async () => {
   try {
     await Promise.all([
       store.dispatch('inboxes/get'),
-      until(() => accountUiFlags.value.isFetchingItem).toBe(false),
+      waitUntil(() => !accountUiFlags.value.isFetchingItem),
     ]);
     if (!hasCallLines.value) return;
     liveCallsStore.ensureLoaded();

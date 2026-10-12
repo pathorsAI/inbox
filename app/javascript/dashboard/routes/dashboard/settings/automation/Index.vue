@@ -9,7 +9,7 @@ import BaseSettingsHeader from '../components/BaseSettingsHeader.vue';
 import SettingsLayout from '../SettingsLayout.vue';
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { until } from '@vueuse/core';
+import { waitUntil } from 'dashboard/helper/waitUntil';
 import { useI18n } from 'vue-i18n';
 import {
   useMapGetter,
@@ -191,7 +191,7 @@ const hideAddPopup = () => {
 
 const openEditPopup = async response => {
   selectedAutomation.value = { ...response };
-  await until(() => accountUiFlags.value.isFetchingItem).toBe(false);
+  await waitUntil(() => !accountUiFlags.value.isFetchingItem);
   if (isSLAEnabled.value) {
     slaFetchPromise ||= store.dispatch('sla/get');
     await slaFetchPromise;

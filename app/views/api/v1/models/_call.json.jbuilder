@@ -11,6 +11,7 @@ json.message_id call.message_id
 json.recording_url call.recording_url
 json.transcript call.transcript
 json.from_number call.from_number
+json.to_number call.to_number
 json.ended_at call.ended_at
 json.accepted_at call.accepted_at
 json.accepted_by_agent_name call.accepted_by_agent_name
