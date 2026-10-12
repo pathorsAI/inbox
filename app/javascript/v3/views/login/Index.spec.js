@@ -158,7 +158,7 @@ describe('login methods', () => {
     window.chatwootConfig = {};
   });
 
-  it('offers only the Pathors button when Pathors login is the allowed method', () => {
+  it('offers the Pathors and Google buttons, and nothing else, when Pathors login is the allowed method', () => {
     window.chatwootConfig = {
       allowedLoginMethods: ['pathors', 'saml'],
       signupEnabled: 'true',
@@ -174,10 +174,12 @@ describe('login methods', () => {
     expect(wrapper.text()).not.toContain('LOGIN.FORGOT_PASSWORD');
     expect(wrapper.text()).not.toContain('LOGIN.CREATE_NEW_ACCOUNT');
     expect(wrapper.text()).not.toContain('LOGIN.SAML.LABEL');
-    expect(wrapper.text()).not.toContain('COMMON.OR');
     expect(
       wrapper.find('form[data-testid="pathors-login"]').attributes('action')
     ).toBe('/omniauth/pathors?redirect_url=settings%2Fbilling');
+    expect(
+      wrapper.find('form[data-testid="google-login"]').attributes('action')
+    ).toBe('/omniauth/pathors?idp_hint=google&redirect_url=settings%2Fbilling');
   });
 
   it('offers the password form when Pathors login is off', () => {
@@ -189,6 +191,9 @@ describe('login methods', () => {
     const wrapper = mountLogin();
 
     expect(wrapper.find('[data-testid="pathors-login-button"]').exists()).toBe(
+      false
+    );
+    expect(wrapper.find('[data-testid="google-login-button"]').exists()).toBe(
       false
     );
     expect(wrapper.find('[data-testid="email_input"]').exists()).toBe(true);

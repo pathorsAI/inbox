@@ -22,6 +22,14 @@ class OmniAuth::Strategies::Pathors < OmniAuth::Strategies::OAuth2
     }
   end
 
+  # The login page's Google button posts with idp_hint=google so Pathors opens
+  # Google's account chooser instead of its own form. Any other value is dropped.
+  def authorize_params
+    super.tap do |params|
+      params[:idp_hint] = 'google' if request.params['idp_hint'] == 'google'
+    end
+  end
+
   def raw_info
     @raw_info ||= access_token.get('/oauth/userinfo').parsed
   end

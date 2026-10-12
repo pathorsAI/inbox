@@ -86,12 +86,24 @@ RSpec.describe 'Sign in with Pathors', type: :request do
     expect(User.from_email('agent@example.com').pathors_uid).to be_nil
   end
 
-  it 'refuses an email already linked to another Pathors account' do
-    create(:user, email: 'agent@example.com', pathors_uid: 'pathors-sub-other')
+  it 'signs in the user with the same email even when another Pathors identity was linked before' do
+    user = create(:user, email: 'agent@example.com', pathors_uid: 'pathors-sub-other')
 
     with_modified_env(pathors_env) { complete_pathors_login }
 
-    expect(response).to redirect_to('http://localhost:3000/app/login?error=pathors-account-mismatch')
+    expect(user.reload.pathors_uid).to eq('pathors-sub-1')
+    expect(user.valid_sso_auth_token?(login_redirect_params['sso_auth_token'])).to be(true)
+  end
+
+  it 'prefers the user with the same email over the one holding the Pathors identity' do
+    previous = create(:user, email: 'old-address@example.com', pathors_uid: 'pathors-sub-1')
+    user = create(:user, email: 'agent@example.com')
+
+    with_modified_env(pathors_env) { complete_pathors_login }
+
+    expect(login_redirect_params['email']).to eq('agent%40example.com')
+    expect(user.reload.pathors_uid).to eq('pathors-sub-1')
+    expect(previous.reload.pathors_uid).to be_nil
   end
 
   it 'never links or creates a Pathors system user' do
@@ -164,6 +176,16 @@ RSpec.describe 'Sign in with Pathors', type: :request do
                                    'code_verifier' => /\A\h{128}\z/))).to have_been_made
       expect(User.from_email('new@example.com')).to have_attributes(pathors_uid: 'pathors-sub-9', name: 'New Agent')
       expect(login_redirect_params['sso_route_path']).to eq('contacts')
+    end
+
+    it 'forwards only the google idp_hint to Pathors authorize' do
+      with_modified_env(pathors_env) do
+        post '/omniauth/pathors?idp_hint=google'
+        expect(Rack::Utils.parse_query(URI.parse(response.location).query)['idp_hint']).to eq('google')
+
+        post '/omniauth/pathors?idp_hint=github'
+        expect(Rack::Utils.parse_query(URI.parse(response.location).query)).not_to have_key('idp_hint')
+      end
     end
 
     it 'refuses a callback whose state does not match' do

@@ -1,6 +1,7 @@
 {
   "LOGIN": {
     "TITLE": "Login to Chatwoot",
+    "EYEBROW": "Secure sign-in",
     "EMAIL": {
       "LABEL": "Email",
       "PLACEHOLDER": "example{'@'}companyname.com",
@@ -23,8 +24,10 @@
     },
     "PATHORS": {
       "LOGIN": "Sign in with Pathors",
+      "SUBTITLE": "Use your Pathors account to open the inbox.",
+      "SAME_ACCOUNT_HINT": "Same email, same account, whether you sign in with Pathors or Google.",
       "EMAIL_UNVERIFIED": "Your Pathors account email is not verified yet. Verify it in Pathors, then sign in again.",
-      "ACCOUNT_MISMATCH": "This email is linked to a different Pathors account. Please contact your administrator.",
+      "ACCOUNT_MISMATCH": "This account can't be used to sign in. Please contact your administrator.",
       "LOGIN_FAILED": "We couldn't sign you in with Pathors. Please try again."
     },
     "FORGOT_PASSWORD": "Forgot your password?",
