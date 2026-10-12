@@ -288,10 +288,6 @@ const tailwindConfig = {
       current: 'currentColor',
       ...colors,
       body: slateDark.slate7,
-      // Backdrop behind the sign-in artwork while it loads (v3/views/login).
-      login: {
-        navy: '#061430',
-      },
     },
     keyframes: {
       ...defaultTheme.keyframes,

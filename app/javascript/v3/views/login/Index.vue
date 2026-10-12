@@ -596,7 +596,7 @@ export default {
     <aside
       class="sticky top-0 hidden h-screen p-3 lg:block lg:w-1/2 xl:w-[55%]"
     >
-      <div class="relative h-full overflow-hidden rounded-2xl bg-login-navy">
+      <div class="relative h-full overflow-hidden rounded-2xl bg-n-brand">
         <img
           :src="LOGIN_ART_URL"
           alt=""
