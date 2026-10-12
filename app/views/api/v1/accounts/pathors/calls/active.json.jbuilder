@@ -18,4 +18,6 @@ json.payload @calls do |call|
   json.inbox_name call.inbox.name
   json.contact_name call.contact&.name
   json.contact_phone_number call.contact&.phone_number
+  # What the AI extracted, from the handoff card, as the calls list sends it.
+  json.variables @handoff_variables[call.handoff_message_id]
 end

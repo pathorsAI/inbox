@@ -254,6 +254,51 @@ describe('pathorsLiveCalls store', () => {
     });
   });
 
+  it('keeps the AI variables verbatim from the active seed', async () => {
+    PathorsCallsAPI.active.mockResolvedValue({
+      payload: [
+        {
+          id: 77,
+          conversation_id: 12,
+          variables: { customer_name: '林先生' },
+        },
+      ],
+    });
+    const store = usePathorsLiveCallsStore();
+
+    await store.fetchActive();
+
+    expect(store.records[0].variables).toEqual({ customer_name: '林先生' });
+  });
+
+  it('keeps a handoff card that arrives while a fetch is in flight', async () => {
+    const store = usePathorsLiveCallsStore();
+    store.syncFromMessage(buildMessage());
+    await Promise.resolve();
+    let resolveFetch;
+    PathorsCallsAPI.active.mockReturnValue(
+      new Promise(resolve => {
+        resolveFetch = resolve;
+      })
+    );
+
+    const fetching = store.fetchActive();
+    store.syncHandoffCard({
+      content_type: 'pathors_handoff',
+      conversation_id: 12,
+      content_attributes: { data: { variables: { customer_name: '林先生' } } },
+    });
+    // The snapshot was read before the card existed.
+    resolveFetch({
+      payload: [
+        { id: 77, conversation_id: 12, status: 'in-progress', variables: null },
+      ],
+    });
+    await fetching;
+
+    expect(store.records[0].variables).toEqual({ customer_name: '林先生' });
+  });
+
   it('ignores other messages, and handoff cards from conversations without a live call', () => {
     const store = usePathorsLiveCallsStore();
     store.syncFromMessage(buildMessage());

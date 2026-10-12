@@ -41,7 +41,7 @@ class CallFinder
     filter_by_mine
 
     calls = paginated_calls
-    { calls: calls, count: @calls.count, counts: counts, handoff_variables: handoff_variables(calls) }
+    { calls: calls, count: @calls.count, counts: counts, handoff_variables: Call.handoff_variables(calls, @current_account.id) }
   end
 
   # One call by id, behind the same visibility as the list — what the calls
@@ -51,7 +51,7 @@ class CallFinder
     @calls = Call.where(account_id: @current_account.id)
     filter_by_visibility
     call = @calls.includes(:contact, :conversation, :accepted_by_agent, inbox: :channel).find(id)
-    { call: call, handoff_variables: handoff_variables([call]) }
+    { call: call, handoff_variables: Call.handoff_variables([call], @current_account.id) }
   end
 
   private
@@ -160,15 +160,5 @@ class CallFinder
     when 'need' then [AMBER_LAST, { created_at: :desc }]
     else [{ created_at: :desc }]
     end
-  end
-
-  # What the AI extracted lives on the call's handoff card, one message per
-  # call; the page's cards are read in one query rather than one per row.
-  def handoff_variables(calls)
-    ids = calls.filter_map(&:handoff_message_id)
-    return {} if ids.empty?
-
-    Message.where(account_id: @current_account.id, id: ids).select(:id, :content_attributes)
-           .to_h { |message| [message.id, message.content_attributes.dig('data', 'variables')] }
   end
 end

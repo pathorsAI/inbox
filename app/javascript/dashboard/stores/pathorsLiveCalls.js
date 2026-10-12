@@ -14,7 +14,8 @@ import { MESSAGE_TYPE } from 'shared/constants/messages';
  *
  * - `records`: the calls themselves (camelized `call` shape plus the
  *   conversation, inbox and caller fields the message keeps, and the handling
- *   state: needsAction, followUp, dismissed, acceptedAt, takeoverRequested).
+ *   state: needsAction, followUp, dismissed, acceptedAt, takeoverRequested,
+ *   and the variables the AI extracted, verbatim).
  *   Seeded from GET pathors/calls/active, then kept current by the voice_call
  *   message broadcasts every status change already produces (see
  *   helper/voice.js), by `pathors_call.live_updated`, which carries
@@ -33,9 +34,9 @@ import { MESSAGE_TYPE } from 'shared/constants/messages';
 const endedCallIds = new Set();
 let inflightFetch = null;
 
-// Calls a status broadcast touched while a fetch was in flight. The fetch's
-// snapshot predates those broadcasts, so it must neither drop such a call nor
-// overwrite its newer fields.
+// Calls a status broadcast or a handoff card touched while a fetch was in
+// flight. The fetch's snapshot predates them, so it must neither drop such a
+// call nor overwrite its newer fields.
 const syncedSinceFetch = new Set();
 
 // Broadcasts are delivered through a job queue and can arrive out of order;
@@ -96,9 +97,11 @@ export const usePathorsLiveCallsStore = defineStore('pathorsLiveCalls', {
     async fetchActive() {
       syncedSinceFetch.clear();
       const { payload } = await PathorsCallsAPI.active();
-      const calls = camelcaseKeys(payload, { deep: true }).filter(
-        call => !endedCallIds.has(call.id)
-      );
+      // `variables` are the AI's own extraction keys; keep them verbatim.
+      const calls = camelcaseKeys(payload, {
+        deep: true,
+        stopPaths: ['variables'],
+      }).filter(call => !endedCallIds.has(call.id));
       const fetchedIds = new Set(calls.map(call => call.id));
       const existingById = new Map(
         this.records.map(record => [record.id, record])
@@ -206,7 +209,10 @@ export const usePathorsLiveCallsStore = defineStore('pathorsLiveCalls', {
       );
       // The AI's own extraction keys; kept verbatim, like the calls list does.
       const variables = message.content_attributes?.data?.variables;
-      if (record && variables) record.variables = variables;
+      if (!record || !variables) return;
+      record.variables = variables;
+      // A fetch already in flight read the call before this card existed.
+      syncedSinceFetch.add(record.id);
     },
 
     /** @param {number|null} callId */

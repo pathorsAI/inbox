@@ -125,6 +125,17 @@ class Call < ApplicationRecord
     super(self.class.normalize_timestamp(value))
   end
 
+  # What the AI extracted lives on each call's handoff card, keyed here by the
+  # card's message id (`handoff_message_id`); the cards of a list are read in
+  # one query rather than one per row. Keys are the AI's own, kept verbatim.
+  def self.handoff_variables(calls, account_id)
+    ids = calls.filter_map(&:handoff_message_id)
+    return {} if ids.empty?
+
+    Message.where(account_id: account_id, id: ids).select(:id, :content_attributes)
+           .to_h { |message| [message.id, message.content_attributes.dig('data', 'variables')] }
+  end
+
   # Inverses of the display forms, for filters that arrive from the dashboard.
   def self.status_from_display(value)
     value.to_s.tr('-', '_')

@@ -1188,6 +1188,19 @@ RSpec.describe 'Pathors Calls API', type: :request do
                       'transcript' => [{ 'kind' => 'message', 'role' => 'user', 'content' => 'hi' }] }
         )
       end
+
+      it 'carries the variables of each handoff card verbatim, nil without one' do
+        card = create(:message, account: account, conversation: conversation, inbox: conversation.inbox, message_type: :activity,
+                                content_type: 'pathors_handoff',
+                                content_attributes: { data: { 'variables' => { 'customer_name' => '林先生' } } })
+        live_call.update!(handoff_message_id: card.id)
+
+        get active_url, headers: admin.create_new_auth_token, as: :json
+
+        rows = response.parsed_body['payload'].index_by { |item| item['id'] }
+        expect(rows[live_call.id]['variables']).to eq('customer_name' => '林先生')
+        expect(rows[ringing_call.id]).to include('variables' => nil)
+      end
     end
 
     context 'when it is an agent' do
