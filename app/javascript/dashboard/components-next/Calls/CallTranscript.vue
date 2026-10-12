@@ -28,6 +28,8 @@ const SYSTEM_CODE_CLASS = {
   takeover_requested: 'text-n-ruby-11 before:bg-n-ruby-6 after:bg-n-ruby-6',
   transfer_failed: 'text-n-ruby-11 before:bg-n-ruby-6 after:bg-n-ruby-6',
   transfer_started: 'text-n-blue-11 before:bg-n-blue-6 after:bg-n-blue-6',
+  // A dial withdrawn because a human took the call while it rang — a hand-off, not a failure.
+  transfer_cancelled: 'text-n-blue-11 before:bg-n-blue-6 after:bg-n-blue-6',
   transfer_connected: 'text-n-blue-11 before:bg-n-blue-6 after:bg-n-blue-6',
   human_left: 'text-n-blue-11 before:bg-n-blue-6 after:bg-n-blue-6',
 };

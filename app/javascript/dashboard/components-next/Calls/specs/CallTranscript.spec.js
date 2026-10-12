@@ -38,6 +38,20 @@ const list = wrapper => wrapper.find('[data-test-id="call-transcript"]');
 const jump = wrapper => wrapper.find('[data-test-id="call-transcript-jump"]');
 
 describe('CallTranscript', () => {
+  it('draws a transfer a human cancelled as a hand-off, not a failure', async () => {
+    const system = (code, text) => ({ kind: 'system', code, text, at: 1 });
+    const wrapper = await mountTranscript({
+      entries: [
+        system('transfer_failed', '轉接失敗：無人接聽'),
+        system('transfer_cancelled', '轉接已取消：真人接手'),
+      ],
+    });
+    const row = code => wrapper.find(`[data-code="${code}"]`);
+
+    expect(row('transfer_failed').classes()).toContain('text-n-ruby-11');
+    expect(row('transfer_cancelled').classes()).toContain('text-n-blue-11');
+  });
+
   it('follows new lines to the bottom while the reader stays there', async () => {
     const wrapper = await mountTranscript();
     const el = list(wrapper).element;
