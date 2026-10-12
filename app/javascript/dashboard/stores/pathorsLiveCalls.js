@@ -200,7 +200,8 @@ export const usePathorsLiveCallsStore = defineStore('pathorsLiveCalls', {
         item => item.conversationId === message.conversation_id
       );
       // The AI's own extraction keys; kept verbatim, like the calls list does.
-      if (record) record.variables = message.content_attributes.data.variables;
+      const variables = message.content_attributes?.data?.variables;
+      if (record && variables) record.variables = variables;
     },
 
     /** @param {number|null} callId */
