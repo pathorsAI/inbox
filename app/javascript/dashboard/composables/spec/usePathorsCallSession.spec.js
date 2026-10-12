@@ -2,6 +2,7 @@ import {
   usePathorsCallSession,
   resetPathorsCallSession,
   PATHORS_JOIN_ERROR,
+  PATHORS_JOIN_ERROR_LABELS,
 } from '../usePathorsCallSession';
 import PathorsCallsAPI from 'dashboard/api/pathorsCalls';
 
@@ -77,9 +78,9 @@ const credentials = {
   yieldDelivered: true,
 };
 
-const rejectWith = status => {
+const rejectWith = (status, data = {}) => {
   const error = new Error(`Request failed with status ${status}`);
-  error.response = { status };
+  error.response = { status, data };
   return Promise.reject(error);
 };
 
@@ -151,6 +152,41 @@ describe('usePathorsCallSession', () => {
     expect(error.value).toBe(PATHORS_JOIN_ERROR.ALREADY_CLAIMED);
     expect(isJoined.value).toBe(false);
     expect(rooms).toHaveLength(0);
+  });
+
+  it('reports a 409 for a transfer in progress distinctly', async () => {
+    PathorsCallsAPI.join.mockImplementation(() =>
+      rejectWith(409, { error: 'transfer_in_progress' })
+    );
+    const { join, error, isJoined } = usePathorsCallSession();
+
+    const joined = await join({ accountId: 3, callId: 42 });
+
+    expect(joined).toBe(false);
+    expect(error.value).toBe(PATHORS_JOIN_ERROR.TRANSFER_IN_PROGRESS);
+    expect(isJoined.value).toBe(false);
+  });
+
+  it('keeps any other 409 body as already claimed', async () => {
+    PathorsCallsAPI.join.mockImplementation(() =>
+      rejectWith(409, { error: 'already_claimed' })
+    );
+    const { join, error } = usePathorsCallSession();
+
+    await join({ accountId: 3, callId: 42 });
+
+    expect(error.value).toBe(PATHORS_JOIN_ERROR.ALREADY_CLAIMED);
+  });
+
+  it('has a label for every join error the agent can hit', () => {
+    const joinErrors = Object.values(PATHORS_JOIN_ERROR).filter(
+      code => code !== PATHORS_JOIN_ERROR.HANGUP_FAILED
+    );
+    joinErrors.forEach(code => {
+      expect(PATHORS_JOIN_ERROR_LABELS[code]).toMatch(
+        /^CONVERSATION\.VOICE_CALL\./
+      );
+    });
   });
 
   it('reports a 404 and a 410 as an ended call', async () => {

@@ -30,8 +30,22 @@ class PathorsCallsAPI extends ApiClient {
       .then(r => r.data);
   }
 
-  // Live Pathors calls in the inboxes the viewer can open, for the pinned group
-  // at the top of the conversation list.
+  // "略過": mutes the call's attention alert for this agent only.
+  dismiss(callId, accountId) {
+    return axios
+      .post(this.memberUrl(callId, 'dismiss', accountId))
+      .then(r => r.data);
+  }
+
+  // "標記已處理": the call-back an unanswered request left behind is done.
+  resolveFollowUp(callId, accountId) {
+    return axios
+      .post(this.memberUrl(callId, 'resolve_follow_up', accountId))
+      .then(r => r.data);
+  }
+
+  // Live Pathors calls in the inboxes the viewer can open, with their live and
+  // handling state, for the calls page and the attention alerts.
   active() {
     return axios.get(`${this.url}/active`).then(r => r.data);
   }

@@ -16,6 +16,8 @@ module Api::V1::Accounts::Concerns::PathorsVoiceRouting
     Pathors::PhoneNumbersService.new(account: Current.account)
                                 .bind(phone_number_id: channel.pathors_phone_number_id, inbox: @inbox,
                                       project_id: agent_bot.pathors_project_id)
+    # The attributes its calls will write onto their conversations.
+    Pathors::CallAttributeDefinitions.ensure!(Current.account)
   end
 
   def pathors_answering_bot

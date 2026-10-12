@@ -332,6 +332,16 @@
     "ALL_COMPANIES": "所有公司",
     "CAPTAIN": "Captain",
     "CALLS": "通話",
+    "CALL_VIEWS": {
+      "NEED": "需要處理",
+      "NEED_TOOLTIP": "{count} 通需要處理",
+      "LIVE": "通話中",
+      "LIVE_TOOLTIP": "{count} 通通話中",
+      "ALL": "所有通話",
+      "MINE": "我接過的",
+      "LINES": "線路",
+      "MANAGE_LINES": "管理線路"
+    },
     "CAPTAIN_ASSISTANTS": "助理",
     "CAPTAIN_OVERVIEW": "總覽",
     "CAPTAIN_DOCUMENTS": "文件",

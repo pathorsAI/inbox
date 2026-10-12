@@ -337,6 +337,16 @@
     "ALL_COMPANIES": "All Companies",
     "CAPTAIN": "Captain",
     "CALLS": "Calls",
+    "CALL_VIEWS": {
+      "NEED": "Needs attention",
+      "NEED_TOOLTIP": "{count} calls need attention",
+      "LIVE": "On the line",
+      "LIVE_TOOLTIP": "{count} calls on the line",
+      "ALL": "All calls",
+      "MINE": "My calls",
+      "LINES": "Lines",
+      "MANAGE_LINES": "Manage lines"
+    },
     "TICKETS": "Tickets",
     "CAPTAIN_ASSISTANTS": "Assistants",
     "CAPTAIN_OVERVIEW": "Overview",

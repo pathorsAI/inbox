@@ -1,7 +1,10 @@
 # Stores what the Pathors voice agent is doing on a live call — turn and
-# interruption counts, whether a transfer failed, and a window of the
-# transcript — so agents can follow the call in the dashboard before anyone
-# takes it over.
+# interruption counts, whether a transfer failed, a window of the transcript,
+# and what needs a human's attention (the AI asking for help, a transfer in
+# flight, the human leaving) — so agents can follow the call in the dashboard
+# before anyone takes it over. What that attention means for the call and its
+# conversation is decided by Pathors::CallLifecycleService, run on every stored
+# update before the broadcast.
 #
 # The backend pushes the whole state on every turn, and deliveries can arrive
 # out of order. `seq` (monotonic per call) decides which one wins: an update no
@@ -23,6 +26,9 @@ class Pathors::CallLiveStateService
   MAX_ENTRIES = 80
   MAX_TEXT_LENGTH = 2000
   MAX_CODE_LENGTH = 64
+  TRANSFER_PHASES = %w[dialing connected failed].freeze
+  MAX_DETAIL_LENGTH = 500
+  MAX_SOURCE_LENGTH = 16
 
   pattr_initialize [:call!, :payload!]
 
@@ -30,7 +36,7 @@ class Pathors::CallLiveStateService
   def validation_error
     return 'live must be an object' unless payload.is_a?(Hash)
 
-    seq_error || counters_error || transfer_failed_error || transcript_error
+    seq_error || counters_error || transfer_failed_error || transcript_error || attention_error
   end
 
   # Returns true when the state was stored (and broadcast).
@@ -41,7 +47,10 @@ class Pathors::CallLiveStateService
       call.update!(live: live_state)
       true
     end
-    broadcast if applied
+    return false unless applied
+
+    Pathors::CallLifecycleService.new(call: call).live_updated
+    broadcast
     applied
   end
 
@@ -63,8 +72,25 @@ class Pathors::CallLiveStateService
       interruptions: payload[:interruptions],
       transfer_failed: payload[:transfer_failed],
       transcript: payload[:transcript].last(MAX_ENTRIES).map { |entry| stored_entry(entry) },
+      attention: stored_attention,
       updated_at: Time.current.iso8601
     }.as_json
+  end
+
+  # Backends that predate `attention` send none; it is stored as nil then.
+  def stored_attention
+    attention = payload[:attention]
+    return if attention.nil?
+
+    request = attention[:takeover_request]
+    transfer = attention[:transfer]
+    {
+      takeover_request: request && { reason: request[:reason], detail: request[:detail].truncate(MAX_DETAIL_LENGTH),
+                                     source: request[:source], at: request[:at] },
+      transfer: transfer && { phase: transfer[:phase], target_masked: transfer[:target_masked],
+                              failure_reason: transfer[:failure_reason], at: transfer[:at] },
+      human_left_at: attention[:human_left_at]
+    }
   end
 
   def stored_entry(entry)
@@ -97,6 +123,44 @@ class Pathors::CallLiveStateService
 
     'each transcript entry needs kind message (role user or assistant, string content, optional boolean interrupted) ' \
       "or kind system (string code of at most #{MAX_CODE_LENGTH} chars, string text), and an optional integer at"
+  end
+
+  def attention_error
+    attention = payload[:attention]
+    return if attention.nil?
+    return 'attention must be an object' unless attention.is_a?(Hash)
+    return takeover_request_message unless optional_hash?(attention[:takeover_request]) { |request| valid_takeover_request?(request) }
+    return transfer_message unless optional_hash?(attention[:transfer]) { |transfer| valid_transfer?(transfer) }
+
+    'attention.human_left_at must be a non-negative integer' unless attention[:human_left_at].nil? || non_negative_integer?(attention[:human_left_at])
+  end
+
+  def takeover_request_message
+    "attention.takeover_request needs string reason of at most #{MAX_CODE_LENGTH} chars, string detail, " \
+      "string source of at most #{MAX_SOURCE_LENGTH} chars and an integer at"
+  end
+
+  def transfer_message
+    "attention.transfer needs phase #{TRANSFER_PHASES.join(', ')}, optional strings target_masked and failure_reason " \
+      "of at most #{MAX_CODE_LENGTH} chars, and an integer at"
+  end
+
+  def optional_hash?(value)
+    value.nil? || (value.is_a?(Hash) && yield(value))
+  end
+
+  def valid_takeover_request?(request)
+    short_string?(request[:reason], MAX_CODE_LENGTH) && request[:detail].is_a?(String) &&
+      short_string?(request[:source], MAX_SOURCE_LENGTH) && non_negative_integer?(request[:at])
+  end
+
+  def valid_transfer?(transfer)
+    TRANSFER_PHASES.include?(transfer[:phase]) && non_negative_integer?(transfer[:at]) &&
+      [transfer[:target_masked], transfer[:failure_reason]].all? { |value| value.nil? || short_string?(value, MAX_CODE_LENGTH) }
+  end
+
+  def short_string?(value, max_length)
+    value.is_a?(String) && value.length <= max_length
   end
 
   def valid_entry?(entry)

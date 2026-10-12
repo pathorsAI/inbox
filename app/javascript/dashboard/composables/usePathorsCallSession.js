@@ -21,12 +21,27 @@ import PathorsCallsAPI from 'dashboard/api/pathorsCalls';
 
 export const PATHORS_JOIN_ERROR = {
   ALREADY_CLAIMED: 'already_claimed',
+  // The AI is dialing a transfer target; the backend refuses a join until the
+  // transfer connects (the call is gone) or fails (take-over opens again).
+  TRANSFER_IN_PROGRESS: 'transfer_in_progress',
   CALL_ENDED: 'call_ended',
   MEDIA_DENIED: 'media_denied',
   UNAVAILABLE: 'unavailable',
   // Ending the call failed for a reason other than "it is already over"; the
   // agent is still in the room and can keep talking or try again.
   HANGUP_FAILED: 'hangup_failed',
+};
+
+// What the agent reads for each code, shared by every surface with a take-over
+// button (the voice_call bubble, the calls page sheet).
+export const PATHORS_JOIN_ERROR_LABELS = {
+  [PATHORS_JOIN_ERROR.ALREADY_CLAIMED]:
+    'CONVERSATION.VOICE_CALL.JOIN_ALREADY_CLAIMED',
+  [PATHORS_JOIN_ERROR.TRANSFER_IN_PROGRESS]:
+    'CONVERSATION.VOICE_CALL.JOIN_TRANSFER_IN_PROGRESS',
+  [PATHORS_JOIN_ERROR.CALL_ENDED]: 'CONVERSATION.VOICE_CALL.JOIN_CALL_ENDED',
+  [PATHORS_JOIN_ERROR.MEDIA_DENIED]: 'CONVERSATION.VOICE_CALL.JOIN_MIC_DENIED',
+  [PATHORS_JOIN_ERROR.UNAVAILABLE]: 'CONVERSATION.VOICE_CALL.JOIN_FAILED',
 };
 
 // The relay's answers for a call that no longer exists (backend 404, or our own
@@ -120,12 +135,18 @@ const resetSession = () => {
   isAudioBlocked.value = false;
 };
 
-// Maps the relay's HTTP answer onto a code the bubble can phrase. 409 is the
-// race we expect most often (another dashboard answered first); 404/410 mean
-// the call is already over.
+// Maps the relay's HTTP answer onto a code the bubble can phrase. 409 is either
+// the race we expect most often (another dashboard answered first) or, when the
+// body says so, a transfer the AI is still dialing; 404/410 mean the call is
+// already over.
 const errorCodeFor = requestError => {
   const status = requestError?.response?.status;
-  if (status === 409) return PATHORS_JOIN_ERROR.ALREADY_CLAIMED;
+  if (status === 409) {
+    return requestError.response.data?.error ===
+      PATHORS_JOIN_ERROR.TRANSFER_IN_PROGRESS
+      ? PATHORS_JOIN_ERROR.TRANSFER_IN_PROGRESS
+      : PATHORS_JOIN_ERROR.ALREADY_CLAIMED;
+  }
   if (status === 404 || status === 410) return PATHORS_JOIN_ERROR.CALL_ENDED;
   return PATHORS_JOIN_ERROR.UNAVAILABLE;
 };

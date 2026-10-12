@@ -143,12 +143,6 @@
     "SHOW_QUOTED_TEXT": "顯示引用文字",
     "MESSAGE_READ": "已讀",
     "SENDING": "傳送中",
-    "UNREAD_COUNT_OVERFLOW": "9+",
-    "PATHORS_LIVE_CALLS": {
-      "TITLE": "AI 通話中的電話",
-      "HEADER": "AI 通話中 · {count}",
-      "AI_HANDLING": "AI 通話中 {duration} · {turns} 輪 · 打斷 {interruptions}",
-      "TAKEN_OVER": "{agentName} 已接手 {duration}"
-    }
+    "UNREAD_COUNT_OVERFLOW": "9+"
   }
 }
