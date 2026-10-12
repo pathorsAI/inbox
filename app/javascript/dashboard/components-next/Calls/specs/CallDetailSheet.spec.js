@@ -127,6 +127,80 @@ describe('CallDetailSheet', () => {
       find(wrapper, 'call-take-over').attributes('disabled')
     ).toBeDefined();
     expect(find(wrapper, 'call-status-bar').text()).toContain('撥號中不能接手');
+    expect(find(wrapper, 'call-take-over').text()).toBe('接手通話');
+  });
+
+  it('offers taking over a transfer that is still ringing, cancelling it', () => {
+    const wrapper = mountSheet(
+      buildCall({
+        live: {
+          seq: 3,
+          transcript: [],
+          attention: {
+            transfer: {
+              phase: 'dialing',
+              targetMasked: '****8783',
+              cancellable: true,
+            },
+          },
+        },
+      })
+    );
+    const button = find(wrapper, 'call-take-over');
+    const band = find(wrapper, 'call-status-bar');
+
+    expect(button.attributes('disabled')).toBeUndefined();
+    expect(button.text()).toBe('接手（取消轉接）');
+    expect(button.classes()).toEqual(
+      expect.arrayContaining(['bg-n-brand', 'h-10'])
+    );
+    expect(band.attributes('data-state')).toBe('dialing');
+    expect(band.text()).toContain('正在撥給 ****8783，你可以先接');
+    expect(band.text()).not.toContain('撥號中不能接手');
+  });
+
+  it('takes over a ringing transfer through the join endpoint', async () => {
+    session.join.mockResolvedValue(true);
+    const wrapper = mountSheet(
+      buildCall({
+        live: {
+          seq: 3,
+          transcript: [],
+          attention: { transfer: { phase: 'dialing', cancellable: true } },
+        },
+      })
+    );
+
+    await find(wrapper, 'call-take-over').trigger('click');
+
+    expect(session.join).toHaveBeenCalledWith({ accountId: 1, callId: 77 });
+  });
+
+  it('shows the person on the call, not a failed transfer, once a human took over a ringing one', () => {
+    const wrapper = mountSheet(
+      buildCall({
+        acceptedByAgentId: 3,
+        acceptedByAgentName: 'Amy',
+        acceptedAt: Date.now() - 5_000,
+        needsAction: false,
+        live: {
+          seq: 3,
+          transcript: [],
+          attention: {
+            transfer: {
+              phase: 'failed',
+              failureReason: 'human_takeover',
+              at: Date.now(),
+            },
+          },
+        },
+      })
+    );
+    const band = find(wrapper, 'call-status-bar');
+
+    expect(band.attributes('data-state')).toBe('human');
+    expect(band.classes()).toContain('bg-n-blue-2');
+    expect(band.text()).not.toContain('轉接失敗');
   });
 
   it('offers hanging up as a ruby button of the same size once in the call', () => {

@@ -21,8 +21,10 @@ import PathorsCallsAPI from 'dashboard/api/pathorsCalls';
 
 export const PATHORS_JOIN_ERROR = {
   ALREADY_CLAIMED: 'already_claimed',
-  // The AI is dialing a transfer target; the backend refuses a join until the
-  // transfer connects (the call is gone) or fails (take-over opens again).
+  // The AI is dialing a transfer target it cannot cancel (or the transfer
+  // already connected); the backend refuses a join until the transfer fails
+  // and take-over opens again. A cancellable dial is joinable: the backend
+  // hangs up the ringing leg instead.
   TRANSFER_IN_PROGRESS: 'transfer_in_progress',
   CALL_ENDED: 'call_ended',
   MEDIA_DENIED: 'media_denied',

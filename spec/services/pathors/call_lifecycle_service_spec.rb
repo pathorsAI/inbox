@@ -91,6 +91,15 @@ RSpec.describe Pathors::CallLifecycleService do
       expect(conversation.custom_attributes).not_to have_key('pathors_takeover_requested')
     end
 
+    it 'does not need a human for a ringing transfer a human took over' do
+      set_attention({ 'transfer' => { 'phase' => 'failed', 'failure_reason' => 'human_takeover', 'at' => request_at } })
+
+      service.live_updated
+
+      expect(call.reload.needs_action).to be(false)
+      expect(conversation.reload.status).to eq('pending')
+    end
+
     it 'needs a human when an older backend reports transfer_failed' do
       set_attention(nil, transfer_failed: true)
 
@@ -133,6 +142,15 @@ RSpec.describe Pathors::CallLifecycleService do
         service.live_updated
 
         expect(call.reload).to have_attributes(accepted_by_agent_id: nil, needs_action: true)
+      end
+
+      it 'does not need a human for the transfer they cancelled by joining' do
+        set_attention({ 'transfer' => { 'phase' => 'failed', 'failure_reason' => 'human_takeover', 'at' => request_at + 2_000 },
+                        'human_left_at' => request_at + 5_000 })
+
+        service.live_updated
+
+        expect(call.reload).to have_attributes(accepted_by_agent_id: nil, needs_action: false)
       end
 
       it 'ignores a leave that predates the latest join' do
@@ -194,6 +212,7 @@ RSpec.describe Pathors::CallLifecycleService do
       { end_reason: 'transfer_failed' } => 'transfer_failed',
       { end_reason: 'transferAbandoned' } => 'transfer_failed',
       { attention: { 'transfer' => { 'phase' => 'failed', 'at' => 1 } } } => 'transfer_failed',
+      { attention: { 'transfer' => { 'phase' => 'failed', 'failure_reason' => 'human_takeover', 'at' => 1 } } } => 'human',
       { end_reason: 'user_hangup', duration_seconds: 8 } => 'hangup',
       { end_reason: 'agent_hangup', duration_seconds: 120 } => 'ai_done',
       { end_reason: 'stale', duration_seconds: nil } => 'ai_done'
@@ -227,6 +246,17 @@ RSpec.describe Pathors::CallLifecycleService do
 
       expect(ended).to have_attributes(follow_up: true, needs_action: false)
       expect(conversation.reload).to have_attributes(status: 'open', assignee_agent_bot_id: nil)
+    end
+
+    it 'owes no follow-up for a ringing transfer a human took over' do
+      service.joined(agent)
+      set_attention({ 'transfer' => { 'phase' => 'failed', 'failure_reason' => 'human_takeover', 'at' => request_at } })
+      service.live_updated
+
+      ended = end_call(end_reason: 'user_hangup',
+                       attention: { 'transfer' => { 'phase' => 'failed', 'failure_reason' => 'human_takeover', 'at' => request_at } })
+
+      expect(ended).to have_attributes(outcome: 'human', follow_up: nil, needs_action: false)
     end
 
     it 'opens a still-pending conversation when the request is unmet at the end' do

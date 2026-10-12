@@ -7,6 +7,7 @@ import {
   primaryCallState,
   takeoverReasonKey,
   toEpochMs,
+  transferFailureReasonKey,
 } from '../pathorsCallState';
 
 const NOW = Date.parse('2026-10-11T10:00:00Z');
@@ -95,8 +96,56 @@ describe('primaryCallState', () => {
       key: CALL_STATE.DIALING,
       tone: CALL_TONE.BLUE,
       canJoin: false,
+      cancellable: false,
       joinDisabledReasonKey: 'CALLS_PAGE.STATE.DIALING_NO_JOIN',
     });
+  });
+
+  it('opens take-over while a cancellable transfer is still ringing', () => {
+    const state = stateOf(
+      liveCall({}, { attention: transfer('dialing', { cancellable: true }) })
+    );
+    expect(state).toMatchObject({
+      key: CALL_STATE.DIALING,
+      tone: CALL_TONE.BLUE,
+      target: '****5678',
+      cancellable: true,
+      canJoin: true,
+      joinLabelKey: 'CALLS_PAGE.STATE.DIALING_TAKE_OVER',
+    });
+    expect(state.joinDisabledReasonKey).toBeUndefined();
+  });
+
+  it('hands a cancellable dial to whoever joined it', () => {
+    expect(
+      stateOf(
+        liveCall(
+          { acceptedByAgentId: 3, acceptedByAgentName: 'Amy' },
+          { attention: transfer('dialing', { cancellable: true }) }
+        )
+      )
+    ).toMatchObject({ key: CALL_STATE.HUMAN, canJoin: false });
+  });
+
+  it('keeps a transfer a human took over while it rang out of the ruby states', () => {
+    const attention = transfer('failed', { failureReason: 'human_takeover' });
+    expect(
+      stateOf(
+        liveCall(
+          { acceptedByAgentId: ME, acceptedAt: NOW - 60_000 },
+          { attention }
+        )
+      )
+    ).toMatchObject({ key: CALL_STATE.HUMAN, tone: CALL_TONE.BLUE });
+    // The human left again: the AI has the call, nothing failed.
+    expect(
+      stateOf(
+        liveCall(
+          { needsAction: undefined, acceptedAt: NOW - 60_000 },
+          { attention }
+        )
+      ).key
+    ).toBe(CALL_STATE.AI);
   });
 
   it('names the agent on the call, and lets only that agent back in', () => {
@@ -236,6 +285,10 @@ describe('labels and helpers', () => {
     );
     expect(takeoverReasonKey('made_up')).toBe('CALLS_PAGE.REASON.OTHER');
     expect(outcomeLabelKey('no_answer')).toBe('CALLS_PAGE.OUTCOME.NO_ANSWER');
+    expect(transferFailureReasonKey('human_takeover')).toBe(
+      'CALLS_PAGE.TRANSFER_FAILURE.HUMAN_TAKEOVER'
+    );
+    expect(transferFailureReasonKey('made_up')).toBeNull();
   });
 
   it('normalises seconds, ms and ISO to epoch ms', () => {

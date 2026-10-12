@@ -3,7 +3,9 @@
 #
 #   AI handling the call             pending, assigned to the Pathors bot
 #   AI asked for help / transfer     open, bot removed (CONVERSATION_BOT_HANDOFF
-#   failed and nobody answered       notifies the inbox's agents)
+#   failed and nobody answered       notifies the inbox's agents); a dial
+#                                    cancelled by a human joining
+#                                    (`human_takeover`) is not a failure
 #   a human joined                   open, assigned to the joiner
 #   ended with that request unmet    stays open, call flagged follow_up (待回電)
 #   ended, AI-only or transferred    resolved
@@ -22,6 +24,10 @@ class Pathors::CallLifecycleService
   AUTO_RESOLVED_OUTCOMES = %w[ai_done transferred hangup no_answer].freeze
   TRANSFER_BLOCKING_PHASES = %w[dialing connected].freeze
   TRANSFER_FAILED_END_REASONS = %w[transfer_failed transfer_abandoned].freeze
+  # The end reason of a call a human took over, and the failure reason of a
+  # still-ringing transfer the agent cancelled because a human joined it: not a
+  # failed transfer, the human has the call.
+  HUMAN_TAKEOVER = 'human_takeover'.freeze
   # Shorter than this with nothing else to say about it, the caller just hung up.
   HANGUP_MAX_SECONDS = 15
 
@@ -116,9 +122,9 @@ class Pathors::CallLifecycleService
   # `transfer_failed` is what backends without `attention` send; it carries no
   # time, so any join answers it.
   def failed_transfer_open?
-    return transfer['phase'] == 'failed' && unanswered_since?(transfer['at']) if transfer.present?
+    return call.live&.dig('transfer_failed') == true && call.accepted_at.nil? if transfer.blank?
 
-    call.live&.dig('transfer_failed') == true && call.accepted_at.nil?
+    transfer['phase'] == 'failed' && transfer['failure_reason'] != HUMAN_TAKEOVER && unanswered_since?(transfer['at'])
   end
 
   def unanswered_since?(at)
@@ -151,9 +157,10 @@ class Pathors::CallLifecycleService
   end
 
   def human_handled?
-    call.human_joined == true || end_reason == 'human_takeover'
+    call.human_joined == true || end_reason == HUMAN_TAKEOVER || transfer&.dig('failure_reason') == HUMAN_TAKEOVER
   end
 
+  # A transfer cancelled by a human taking over never gets here: human_handled? comes first.
   def transfer_failed?
     TRANSFER_FAILED_END_REASONS.include?(end_reason) || last_transfer_phase == 'failed'
   end
