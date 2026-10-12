@@ -1,7 +1,6 @@
 {
   "LOGIN": {
-    "TITLE": "Login to Chatwoot",
-    "EYEBROW": "Secure sign-in",
+    "TITLE": "Sign in to Chatwoot Inbox",
     "EMAIL": {
       "LABEL": "Email",
       "PLACEHOLDER": "example{'@'}companyname.com",
@@ -24,8 +23,6 @@
     },
     "PATHORS": {
       "LOGIN": "Sign in with Pathors",
-      "SUBTITLE": "Use your Pathors account to open the inbox.",
-      "SAME_ACCOUNT_HINT": "Same email, same account, whether you sign in with Pathors or Google.",
       "EMAIL_UNVERIFIED": "Your Pathors account email is not verified yet. Verify it in Pathors, then sign in again.",
       "ACCOUNT_MISMATCH": "This account can't be used to sign in. Please contact your administrator.",
       "LOGIN_FAILED": "We couldn't sign you in with Pathors. Please try again."
@@ -45,6 +42,48 @@
       "SUBMIT": "Continue with SSO",
       "API": {
         "ERROR_MESSAGE": "SSO authentication failed. Please check your credentials and try again."
+      }
+    },
+    "SHOWCASE": {
+      "CHANNELS": {
+        "CAPTION": "Calls, LINE and email, all in one inbox",
+        "TITLE": "Inbox",
+        "NOW": "now",
+        "ROW_1": {
+          "NAME": "Mr. Lin",
+          "TEXT": "Can I move tomorrow's appointment?"
+        },
+        "ROW_2": {
+          "NAME": "Ms. Chen",
+          "TEXT": "Do you issue company invoices?"
+        },
+        "ROW_3": {
+          "NAME": "Manager Wang",
+          "TEXT": "Got the quote, thanks"
+        },
+        "ROW_4": {
+          "NAME": "Website visitor",
+          "TEXT": "Are you open on weekends?"
+        }
+      },
+      "VOICE": {
+        "CAPTION": "AI answers the call and transcribes it live",
+        "STATUS": "On call · AI answering",
+        "CUSTOMER": "I'd like to move tomorrow's appointment to 3 pm.",
+        "AI": "Done. You're booked for tomorrow at 3 pm."
+      },
+      "REPLY": {
+        "CAPTION": "AI replies from your knowledge base, no waiting",
+        "QUESTION": "How late are you open on weekends?",
+        "ANSWER": "We're open until 6 pm on Saturdays and Sundays.",
+        "BADGE": "AI"
+      },
+      "HANDOFF": {
+        "CAPTION": "When it needs a person, your team takes over",
+        "CUSTOMER": "I'd like a refund for last week's order.",
+        "SYSTEM": "AI handed this conversation to Amy",
+        "AGENT_REPLY": "Hi, I'm Amy. I'll take care of the refund for you.",
+        "AGENT_INITIAL": "A"
       }
     }
   }

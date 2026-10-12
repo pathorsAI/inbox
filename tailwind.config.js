@@ -111,15 +111,6 @@ const tailwindConfig = {
       transitionTimingFunction: {
         'out-soft': 'cubic-bezier(0.2, 0, 0, 1)',
       },
-      backgroundImage: {
-        'login-grid':
-          'linear-gradient(rgb(77 163 255 / 0.07) 1px, transparent 1px), linear-gradient(90deg, rgb(77 163 255 / 0.07) 1px, transparent 1px)',
-        'login-scan':
-          'linear-gradient(180deg, transparent, rgb(77 163 255 / 0.025) 80%, rgb(77 163 255 / 0.22) 100%)',
-      },
-      backgroundSize: {
-        'login-grid': '3rem 3rem',
-      },
       fontFamily: {
         sans: defaultSansFonts,
         inter: ['Inter', ...defaultSansFonts],
@@ -297,25 +288,26 @@ const tailwindConfig = {
       current: 'currentColor',
       ...colors,
       body: slateDark.slate7,
-      // Pathors sign-in screen (v3/views/login), always dark.
-      login: {
-        canvas: '#05070B',
-        card: '#0B0F17',
-        brand: '#2781F6',
-        accent: '#4DA3FF',
-        label: '#8DBBFF',
-        indigo: '#4F6BFF',
-        cyan: '#22D3EE',
-      },
     },
     keyframes: {
       ...defaultTheme.keyframes,
-      'login-grid-drift': {
-        to: { backgroundPosition: '3rem 3rem' },
+      // Sign-in product showcase (v3/components/LoginShowcase).
+      'showcase-rise': {
+        '0%': { opacity: 0, transform: 'translateY(0.5rem)' },
+        '100%': { opacity: 1, transform: 'translateY(0)' },
       },
-      'login-scan': {
-        '0%': { transform: 'translateY(-10rem)' },
-        '100%': { transform: 'translateY(100vh)' },
+      'showcase-wave': {
+        '0%, 100%': { transform: 'scaleY(0.35)' },
+        '50%': { transform: 'scaleY(1)' },
+      },
+      'showcase-blip': {
+        '0%': { opacity: 0 },
+        '15%, 80%': { opacity: 1 },
+        '100%': { opacity: 0 },
+      },
+      'showcase-progress': {
+        '0%': { transform: 'scaleX(0)' },
+        '100%': { transform: 'scaleX(1)' },
       },
       wiggle: {
         '0%': { transform: 'translateX(0)' },
@@ -373,8 +365,10 @@ const tailwindConfig = {
     animation: {
       ...defaultTheme.animation,
       wiggle: 'wiggle 0.5s ease-in-out',
-      'login-grid': 'login-grid-drift 24s linear infinite',
-      'login-scan': 'login-scan 9s cubic-bezier(0.45, 0, 0.55, 1) infinite',
+      'showcase-rise': 'showcase-rise 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both',
+      'showcase-wave': 'showcase-wave 0.9s ease-in-out infinite',
+      'showcase-blip': 'showcase-blip 1.1s ease-in-out both',
+      'showcase-progress': 'showcase-progress 4.5s linear both',
       'fade-in-up': 'fade-in-up 0.3s ease-out',
       'loader-pulse': 'loader-pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
       'card-select': 'card-select 0.25s ease-in-out',
