@@ -20,7 +20,11 @@ export const useCallHistoryStore = defineStore('callHistory', {
         const { data } = await CallsAPI.get(params);
         // A newer fetch (filter/page change) superseded this one; drop the result.
         if (this.fetchRequestToken !== requestToken) return this.records;
-        this.records = camelcaseKeys(data.payload, { deep: true });
+        // `variables` are the AI's own extraction keys; keep them verbatim.
+        this.records = camelcaseKeys(data.payload, {
+          deep: true,
+          stopPaths: ['variables'],
+        });
         this.meta = camelcaseKeys(data.meta);
         return this.records;
       } catch (error) {

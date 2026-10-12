@@ -69,6 +69,14 @@ export const getVoiceCallProvider = inbox => {
 
 export const isVoiceCallEnabled = inbox => getVoiceCallProvider(inbox) !== null;
 
+/**
+ * A phone line whose calls belong on the calls page: a Pathors-backed Voice
+ * inbox, or a Twilio / WhatsApp inbox with voice calling on.
+ */
+export const isCallLineInbox = inbox =>
+  (inbox?.channel_type || inbox?.channelType) === INBOX_TYPES.VOICE ||
+  isVoiceCallEnabled(inbox);
+
 // Combined channel + voice-wave badge glyph per voice-call provider.
 export const VOICE_CALL_ICONS = {
   [VOICE_CALL_PROVIDERS.WHATSAPP]: 'i-woot-whatsapp-voice',
