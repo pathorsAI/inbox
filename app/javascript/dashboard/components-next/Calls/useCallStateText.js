@@ -24,10 +24,18 @@ export function useCallStateText() {
           t('CALLS_PAGE.DETAIL.TRANSFER_TARGET', { target: state.target }),
         state.reasonKey && t(state.reasonKey),
       ]),
-    [CALL_STATE.DIALING]: (call, state) =>
-      state.target
+    [CALL_STATE.DIALING]: (call, state) => {
+      if (state.cancellable) {
+        return state.target
+          ? t('CALLS_PAGE.DETAIL.DIALING_CAN_TAKE_OVER', {
+              target: state.target,
+            })
+          : t('CALLS_PAGE.DETAIL.CAN_TAKE_OVER');
+      }
+      return state.target
         ? t('CALLS_PAGE.DETAIL.DIALING', { target: state.target })
-        : '',
+        : '';
+    },
     [CALL_STATE.TRANSFERRED]: (call, state) =>
       state.target
         ? t('CALLS_PAGE.DETAIL.TRANSFERRED_TO', { target: state.target })

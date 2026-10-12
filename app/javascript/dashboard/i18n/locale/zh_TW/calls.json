@@ -44,7 +44,8 @@
       "TIMEOUT": "無人接聽",
       "CALLER_HUNG_UP": "來電者已掛斷",
       "NO_TRUNK": "沒有可轉接的線路",
-      "ERROR": "系統問題"
+      "ERROR": "系統問題",
+      "HUMAN_TAKEOVER": "轉接已取消：真人接手"
     },
     "REASON": {
       "LOOPING": "對話鬼打牆",
@@ -59,6 +60,7 @@
       "TRANSFERRED": "已轉接",
       "DIALING": "轉接撥號中",
       "DIALING_NO_JOIN": "撥號中不能接手，轉接失敗時會自動開放",
+      "DIALING_TAKE_OVER": "接手（取消轉接）",
       "HUMAN": "{name} 接手中",
       "HUMAN_ME": "你正在通話中",
       "REQUESTED": "AI 請求支援",
@@ -69,6 +71,8 @@
     "DETAIL": {
       "TRANSFER_TARGET": "轉給 {target}",
       "DIALING": "正在撥給 {target}",
+      "DIALING_CAN_TAKE_OVER": "正在撥給 {target}，你可以先接",
+      "CAN_TAKE_OVER": "正在撥號轉接，你可以先接",
       "TRANSFERRED_TO": "已轉接給 {target}"
     },
     "CHIPS": {

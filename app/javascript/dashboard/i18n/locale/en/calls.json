@@ -44,7 +44,8 @@
       "TIMEOUT": "No one picked up",
       "CALLER_HUNG_UP": "The caller hung up",
       "NO_TRUNK": "No line to transfer to",
-      "ERROR": "System problem"
+      "ERROR": "System problem",
+      "HUMAN_TAKEOVER": "Transfer cancelled: a human took over"
     },
     "REASON": {
       "LOOPING": "The conversation is going in circles",
@@ -59,6 +60,7 @@
       "TRANSFERRED": "Transferred",
       "DIALING": "Dialing transfer",
       "DIALING_NO_JOIN": "You can't take over while the transfer is dialing; it opens up again if the transfer fails",
+      "DIALING_TAKE_OVER": "Take over (cancel transfer)",
       "HUMAN": "{name} is on the call",
       "HUMAN_ME": "You're on this call",
       "REQUESTED": "AI asked for help",
@@ -69,6 +71,8 @@
     "DETAIL": {
       "TRANSFER_TARGET": "To {target}",
       "DIALING": "Calling {target}",
+      "DIALING_CAN_TAKE_OVER": "Dialing {target} — you can pick up first",
+      "CAN_TAKE_OVER": "Dialing a transfer — you can pick up first",
       "TRANSFERRED_TO": "Transferred to {target}"
     },
     "CHIPS": {

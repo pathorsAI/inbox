@@ -56,6 +56,10 @@ export const TAKEOVER_REASONS = Object.freeze([
   'other',
 ]);
 
+// A ringing transfer the agent cancelled because a human joined: reported as
+// a failed transfer, but a human has the call, so nothing failed.
+export const HUMAN_TAKEOVER_FAILURE_REASON = 'human_takeover';
+
 // What the agent reports when a transfer did not connect (pathors
 // `TRANSFER_FAILURE_REASONS`).
 export const TRANSFER_FAILURE_REASONS = Object.freeze([
@@ -65,6 +69,7 @@ export const TRANSFER_FAILURE_REASONS = Object.freeze([
   'caller_hung_up',
   'no_trunk',
   'error',
+  HUMAN_TAKEOVER_FAILURE_REASON,
 ]);
 
 const TRANSFER_PHASE = { DIALING: 'dialing', CONNECTED: 'connected' };
@@ -122,7 +127,9 @@ const isFailedTransferOpen = call => {
   const { transfer } = attentionOf(call);
   if (transfer) {
     return (
-      transfer.phase === FAILED_PHASE && unansweredSince(call, transfer.at)
+      transfer.phase === FAILED_PHASE &&
+      transfer.failureReason !== HUMAN_TAKEOVER_FAILURE_REASON &&
+      unansweredSince(call, transfer.at)
     );
   }
   return !!call.live?.transferFailed && !call.acceptedAt;
@@ -200,6 +207,32 @@ const humanState = (call, currentUserId) => {
   };
 };
 
+// A transfer still ringing. Most dials leave nothing to take over until they
+// fail; a cancellable one (`transfer.cancellable`) may be taken over now, and
+// the backend hangs up the ringing leg when a human joins.
+const dialingState = transfer => {
+  const base = {
+    key: CALL_STATE.DIALING,
+    tone: CALL_TONE.BLUE,
+    labelKey: `${I18N}.STATE.DIALING`,
+    target: transfer.targetMasked || '',
+    detail: '',
+  };
+  return transfer.cancellable
+    ? {
+        ...base,
+        cancellable: true,
+        canJoin: true,
+        joinLabelKey: `${I18N}.STATE.DIALING_TAKE_OVER`,
+      }
+    : {
+        ...base,
+        cancellable: false,
+        canJoin: false,
+        joinDisabledReasonKey: `${I18N}.STATE.DIALING_NO_JOIN`,
+      };
+};
+
 const aiState = (call, now) => {
   const elapsed = callElapsedSeconds(toEpochMs(call.startedAt), now);
   const alerts = getPathorsCallAlerts(
@@ -221,8 +254,8 @@ const aiState = (call, now) => {
  * @param {{ now?: number, currentUserId?: number|null }} [options]
  * @returns {{ key: string, tone: string, labelKey: string, labelParams?: Object,
  *   detail: string, canJoin: boolean, joinDisabledReasonKey?: string,
- *   reasonKey?: string, target?: string, at?: number|null, alerts?: Array,
- *   isMine?: boolean }}
+ *   joinLabelKey?: string, cancellable?: boolean, reasonKey?: string,
+ *   target?: string, at?: number|null, alerts?: Array, isMine?: boolean }}
  */
 export const primaryCallState = (
   call,
@@ -253,18 +286,12 @@ export const primaryCallState = (
       canJoin: false,
     };
   }
-  if (transfer?.phase === TRANSFER_PHASE.DIALING) {
-    return {
-      key: CALL_STATE.DIALING,
-      tone: CALL_TONE.BLUE,
-      labelKey: `${I18N}.STATE.DIALING`,
-      target: transfer.targetMasked || '',
-      detail: '',
-      canJoin: false,
-      joinDisabledReasonKey: `${I18N}.STATE.DIALING_NO_JOIN`,
-    };
-  }
+  const isDialing = transfer?.phase === TRANSFER_PHASE.DIALING;
+  if (isDialing && !transfer.cancellable) return dialingState(transfer);
+  // Someone joined a cancellable dial: theirs until the backend reports it
+  // cancelled.
   if (agentIdOf(call)) return humanState(call, currentUserId);
+  if (isDialing) return dialingState(transfer);
 
   const needsAction =
     call.needsAction ?? (isRequestOpen(call) || isFailedTransferOpen(call));

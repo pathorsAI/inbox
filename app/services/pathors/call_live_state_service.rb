@@ -78,6 +78,8 @@ class Pathors::CallLiveStateService
   end
 
   # Backends that predate `attention` send none; it is stored as nil then.
+  # `transfer.cancellable` (a still-ringing dial a human may take over, which
+  # cancels it) is absent from older backends, and absent means false.
   def stored_attention
     attention = payload[:attention]
     return if attention.nil?
@@ -88,7 +90,8 @@ class Pathors::CallLiveStateService
       takeover_request: request && { reason: request[:reason], detail: request[:detail].truncate(MAX_DETAIL_LENGTH),
                                      source: request[:source], at: request[:at] },
       transfer: transfer && { phase: transfer[:phase], target_masked: transfer[:target_masked],
-                              failure_reason: transfer[:failure_reason], at: transfer[:at] },
+                              failure_reason: transfer[:failure_reason], cancellable: transfer[:cancellable] == true,
+                              at: transfer[:at] },
       human_left_at: attention[:human_left_at]
     }
   end
@@ -142,7 +145,7 @@ class Pathors::CallLiveStateService
 
   def transfer_message
     "attention.transfer needs phase #{TRANSFER_PHASES.join(', ')}, optional strings target_masked and failure_reason " \
-      "of at most #{MAX_CODE_LENGTH} chars, and an integer at"
+      "of at most #{MAX_CODE_LENGTH} chars, an optional boolean cancellable, and an integer at"
   end
 
   def optional_hash?(value)
@@ -156,6 +159,7 @@ class Pathors::CallLiveStateService
 
   def valid_transfer?(transfer)
     TRANSFER_PHASES.include?(transfer[:phase]) && non_negative_integer?(transfer[:at]) &&
+      [nil, true, false].include?(transfer[:cancellable]) &&
       [transfer[:target_masked], transfer[:failure_reason]].all? { |value| value.nil? || short_string?(value, MAX_CODE_LENGTH) }
   end
 

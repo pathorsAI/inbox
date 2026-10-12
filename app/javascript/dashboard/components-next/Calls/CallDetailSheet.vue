@@ -145,7 +145,10 @@ const statusDetail = computed(() => {
   const { key, alerts, joinDisabledReasonKey } = state.value;
   if (isFollowUp.value) return t(outcomeLabelKey(props.call.outcome));
   if (key === CALL_STATE.DIALING) {
-    return [stateDetail(props.call, state.value), t(joinDisabledReasonKey)]
+    return [
+      stateDetail(props.call, state.value),
+      joinDisabledReasonKey && t(joinDisabledReasonKey),
+    ]
       .filter(Boolean)
       .join(' · ');
   }
@@ -164,6 +167,9 @@ const showTakeOver = computed(
 const isTakeOverDisabled = computed(
   () =>
     !state.value.canJoin || session.isJoined.value || session.isJoining.value
+);
+const takeOverLabel = computed(() =>
+  t(state.value.joinLabelKey || 'CONVERSATION.VOICE_CALL.TAKE_OVER_CALL')
 );
 const showDismiss = computed(() => isNeedsHuman.value && !props.call.dismissed);
 
@@ -348,7 +354,7 @@ onBeforeUnmount(() => {
       >
         <Button
           v-if="showTakeOver"
-          :label="t('CONVERSATION.VOICE_CALL.TAKE_OVER_CALL')"
+          :label="takeOverLabel"
           icon="i-lucide-phone"
           size="md"
           variant="solid"

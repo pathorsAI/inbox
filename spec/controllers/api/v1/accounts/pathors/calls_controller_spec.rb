@@ -1251,8 +1251,31 @@ RSpec.describe 'Pathors Calls API', type: :request do
       expect(stored['takeover_request']).to include('reason' => 'customer_confused', 'source' => 'agent', 'at' => 1_760_000_000_000)
       expect(stored['takeover_request']['detail'].length).to eq(Pathors::CallLiveStateService::MAX_DETAIL_LENGTH)
       expect(stored['transfer']).to eq('phase' => 'failed', 'target_masked' => '+8869****678', 'failure_reason' => 'busy',
-                                       'at' => 1_760_000_000_500)
+                                       'cancellable' => false, 'at' => 1_760_000_000_500)
       expect(stored['human_left_at']).to be_nil
+    end
+
+    it 'stores whether a ringing transfer can be taken over' do
+      put_live({ transfer: { phase: 'dialing', target_masked: '+8869****678', cancellable: true, at: 1_760_000_000_500 } })
+
+      expect(response).to have_http_status(:ok)
+      expect(call.reload.live.dig('attention', 'transfer')).to include('phase' => 'dialing', 'cancellable' => true)
+      expect(call.needs_action).to be(false)
+    end
+
+    it 'does not hand over a transfer a human took over while it rang' do
+      put_live({ transfer: { phase: 'failed', failure_reason: 'human_takeover', cancellable: false, at: 1_760_000_000_500 } })
+
+      expect(response).to have_http_status(:ok)
+      expect(call.reload.needs_action).to be(false)
+      expect(voice_conversation.reload.status).to eq('pending')
+    end
+
+    it 'rejects a non-boolean cancellable' do
+      put_live({ transfer: { phase: 'dialing', cancellable: 'yes', at: 1 } })
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response.parsed_body['error']).to start_with('attention.transfer')
     end
 
     it 'hands the conversation to the inbox agents and broadcasts needs_action' do

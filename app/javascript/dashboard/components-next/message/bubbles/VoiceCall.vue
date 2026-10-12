@@ -359,7 +359,8 @@ const isPathorsJoinBlocked = computed(
   () =>
     isPathorsCallLive.value &&
     !isJoinedPathorsCall.value &&
-    pathorsState.value.key === CALL_STATE.DIALING
+    pathorsState.value.key === CALL_STATE.DIALING &&
+    !pathorsState.value.canJoin
 );
 // The full transcript, AI extraction and controls live on the calls page.
 const pathorsCallPageRoute = computed(() => {
@@ -552,14 +553,19 @@ const handleCallBack = async () => {
       <NextButton
         v-if="canJoinPathorsCall"
         type="button"
-        :label="$t('CONVERSATION.VOICE_CALL.TAKE_OVER_CALL')"
+        :label="
+          $t(
+            pathorsState.joinLabelKey ||
+              'CONVERSATION.VOICE_CALL.TAKE_OVER_CALL'
+          )
+        "
         icon="i-ph-phone-bold"
         teal
         class="!rounded-full"
         :disabled="isJoiningPathorsCall"
         @click="handlePathorsJoin"
       />
-      <!-- The AI is dialing a transfer: no take-over until it fails -->
+      <!-- The AI is dialing a transfer it cannot cancel: no take-over until it fails -->
       <div v-else-if="isPathorsJoinBlocked" class="flex flex-col gap-1">
         <NextButton
           type="button"
