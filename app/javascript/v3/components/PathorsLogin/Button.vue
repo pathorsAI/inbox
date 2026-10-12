@@ -78,7 +78,7 @@ const action = computed(() => {
       v-else
       type="submit"
       data-testid="pathors-login-button"
-      class="flex items-center justify-center w-full h-11 gap-3 px-4 text-sm font-medium text-white transition-colors rounded-lg bg-n-brand hover:bg-n-brand/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-n-brand/50"
+      class="flex items-center justify-center w-full h-11 gap-3 px-4 text-sm font-medium text-white transition-colors rounded-lg bg-n-brand hover:bg-n-brand/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-brand/50"
     >
       <img :src="PATHORS_MARK_URL" alt="" class="rounded size-5 bg-white" />
       <span>{{ $t('LOGIN.PATHORS.LOGIN') }}</span>

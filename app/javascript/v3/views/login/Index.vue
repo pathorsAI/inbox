@@ -474,8 +474,7 @@ export default {
           class="block w-auto h-7 mb-10 lg:hidden dark:hidden"
         />
         <img
-          v-if="globalConfig.logoDark"
-          :src="globalConfig.logoDark"
+          :src="globalConfig.logoDark || globalConfig.logo"
           :alt="globalConfig.installationName"
           class="hidden w-auto h-7 mb-10 dark:block dark:lg:hidden"
         />
