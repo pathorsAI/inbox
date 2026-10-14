@@ -283,6 +283,31 @@ watch(
   { immediate: true }
 );
 
+// `?conversation=<display id>`: where a link to a call's conversation is sent
+// (see helper/callConversationRoute). It becomes the call it belongs to.
+const openConversationCall = async conversationId => {
+  let callId = null;
+  try {
+    const { data } = await CallsAPI.get({ conversation_id: conversationId });
+    callId = data.payload[0]?.id ?? null;
+  } catch {
+    // Reported below like a link to a call that is gone.
+  }
+  if (route.query.conversation !== conversationId) return;
+  if (!callId) useAlert(t('CALLS_PAGE.SHEET.NOT_FOUND'));
+  updateQuery({ conversation: null, call: callId }, { resetPage: false });
+};
+
+watch(
+  () => route.query.conversation,
+  conversationId => {
+    if (typeof conversationId === 'string' && conversationId) {
+      openConversationCall(conversationId);
+    }
+  },
+  { immediate: true }
+);
+
 const openCall = call => updateQuery({ call: call.id }, { resetPage: false });
 const closeSheet = () => updateQuery({ call: null }, { resetPage: false });
 

@@ -496,6 +496,36 @@ describe('#getters', () => {
       getCurrentAccountId: 1,
     };
 
+    it('leaves calls out of the filtered list', () => {
+      const call = {
+        id: 4,
+        status: 'open',
+        meta: { channel: 'Channel::Voice' },
+        last_activity_at: 4000,
+      };
+      const state = {
+        allConversations: [...mockConversations, call],
+        chatSortFilter: 'last_activity_at_desc',
+        appliedFilters: [],
+      };
+      const rootGetters = {
+        ...mockRootGetters,
+        getCurrentUser: {
+          ...mockRootGetters.getCurrentUser,
+          accounts: [{ id: 1, role: 'administrator', permissions: [] }],
+        },
+      };
+
+      const result = getters.getFilteredConversations(
+        state,
+        {},
+        {},
+        rootGetters
+      );
+
+      expect(result.map(conversation => conversation.id)).toEqual([3, 2, 1]);
+    });
+
     it('filters conversations based on role permissions for administrator', () => {
       const state = {
         allConversations: mockConversations,
