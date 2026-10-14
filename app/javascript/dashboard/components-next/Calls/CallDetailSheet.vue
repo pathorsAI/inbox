@@ -671,14 +671,15 @@ onBeforeUnmount(() => {
       </section>
     </div>
 
-    <div
+    <fieldset
       v-if="phase === CALL_SHEET_PHASE.LIVE"
-      class="flex flex-wrap items-center gap-2 px-5 py-3 border-t shrink-0 border-n-strong"
-      role="group"
-      :aria-label="t('CALLS_PAGE.SHEET.QUICK_TAGS.TITLE')"
+      class="flex flex-wrap items-center min-w-0 gap-2 px-5 py-3 m-0 border-0 border-t shrink-0 border-n-strong"
       data-test-id="call-quick-tags"
     >
-      <span class="text-xs text-n-slate-11 me-1">
+      <legend class="sr-only">
+        {{ t('CALLS_PAGE.SHEET.QUICK_TAGS.TITLE') }}
+      </legend>
+      <span class="text-xs text-n-slate-11 me-1" aria-hidden="true">
         {{ t('CALLS_PAGE.SHEET.QUICK_TAGS.TITLE') }}
       </span>
       <Button
@@ -692,6 +693,6 @@ onBeforeUnmount(() => {
         :data-tag="tag"
         @click="addQuickTag(tag)"
       />
-    </div>
+    </fieldset>
   </aside>
 </template>

@@ -48,11 +48,13 @@ const FIELD_KIND_BY_LABEL = {
 const TECHNICAL_HEADING = 'Agent 自訂欄位';
 const TRANSCRIPT_HEADING = '逐字稿';
 
-const BLOCK_SEPARATOR = /\n\s*-{3,}\s*\n/;
+// Whitespace runs are spelled out as [ \t] next to "\n" and a non-space first
+// character, so no two quantifiers can match the same text (no backtracking).
+const BLOCK_SEPARATOR = /\n[ \t]*-{3,}[ \t]*\n/;
 const BLOCK_HEADING = /^\*\*([^*]+)\*\*$/;
 // "**意圖**：…", optionally after an emoji ("⚠️ **警示**：…").
-const SUMMARY_FIELD = /^(?:\S+ )?\*\*([^*]+)\*\*[：:]\s*(.+)$/;
-const LIST_FIELD = /^- ([^:：]+)[:：]\s*(.*)$/;
+const SUMMARY_FIELD = /^(?:\S+ )?\*\*([^*]+)\*\*[：:][ \t]*(\S.*)$/;
+const LIST_FIELD = /^- ([^:：]+)[:：][ \t]*(\S.*)?$/;
 
 /** The voice bridge's post-call summary note. */
 export const isCallSummaryNote = message =>
@@ -90,7 +92,7 @@ export const parseCallSummaryNote = content => {
     .split('\n')
     .slice(1)
     .forEach(line => {
-      const match = line.trim().match(SUMMARY_FIELD);
+      const match = SUMMARY_FIELD.exec(line.trim());
       if (match) {
         fields.push(fieldOf(match[1].trim(), match[2].trim()));
       } else {
@@ -102,11 +104,13 @@ export const parseCallSummaryNote = content => {
   const footer = [];
   blocks.forEach(block => {
     const [first, ...lines] = block.split('\n');
-    const heading = first.trim().match(BLOCK_HEADING)?.[1].trim();
+    const heading = BLOCK_HEADING.exec(first.trim())?.[1].trim();
     if (heading === TECHNICAL_HEADING) {
       lines.forEach(line => {
-        const match = line.trim().match(LIST_FIELD);
-        if (match) technical.push({ key: match[1].trim(), value: match[2] });
+        const match = LIST_FIELD.exec(line.trim());
+        if (match) {
+          technical.push({ key: match[1].trim(), value: match[2] ?? '' });
+        }
       });
       return;
     }
