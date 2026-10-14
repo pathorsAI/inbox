@@ -105,7 +105,6 @@
     },
     "SHEET": {
       "NOT_FOUND": "找不到這通電話，或你沒有權限查看。",
-      "OPEN_CONVERSATION": "開啟對話",
       "CLOSE": "關閉",
       "SIGNAL_AGO": "{label} · {time}",
       "RESOLVE_FOLLOW_UP": "標記已處理",
@@ -123,7 +122,27 @@
       "METRIC_DURATION": "通話時間",
       "METRIC_TURNS": "輪數",
       "METRIC_INTERRUPTIONS": "打斷",
-      "RECORDING": "錄音"
+      "RECORDING": "錄音",
+      "NOTES": {
+        "TITLE": "私人備註",
+        "LOADING": "載入備註中…",
+        "LOAD_FAILED": "無法載入備註",
+        "EMPTY": "還沒有備註",
+        "PLACEHOLDER": "留給同事的備註（⌘/Ctrl + Enter 儲存）",
+        "ADD": "新增備註",
+        "SAVE_FAILED": "無法儲存備註",
+        "UNKNOWN_AUTHOR": "某位同事",
+        "BYLINE": "{author} · {time}"
+      }
+    },
+    "CONTACT": {
+      "LOADING": "載入中…",
+      "LOAD_FAILED": "無法載入聯絡人",
+      "LABELS": "標籤",
+      "NO_LABELS": "沒有標籤",
+      "EARLIER_CALLS": "過去的通話",
+      "NO_EARLIER_CALLS": "沒有其他通話",
+      "OPEN_CONTACT": "開啟聯絡人"
     },
     "ATTENTION": {
       "REGION": "需要接手的通話",

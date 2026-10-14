@@ -3,6 +3,8 @@ import { ref } from 'vue';
 import { createPinia, setActivePinia } from 'pinia';
 import { withFullI18n } from 'test-i18n';
 import CallDetailSheet from '../CallDetailSheet.vue';
+import CallContactPopover from '../CallContactPopover.vue';
+import CallNotes from '../CallNotes.vue';
 
 withFullI18n('zh_TW');
 
@@ -36,7 +38,14 @@ const buildCall = overrides => ({
 const mountSheet = call =>
   mount(CallDetailSheet, {
     props: { call, accountId: 1, currentUserId: ME },
-    global: { stubs: { RouterLink: true, AudioPlayer: true } },
+    global: {
+      stubs: {
+        RouterLink: true,
+        AudioPlayer: true,
+        CallNotes: true,
+        CallContactPopover: true,
+      },
+    },
   });
 
 const find = (wrapper, id) => wrapper.find(`[data-test-id="${id}"]`);
@@ -256,5 +265,32 @@ describe('CallDetailSheet', () => {
     });
 
     expect(find(wrapper, 'call-variables').text()).toContain('餐飲業');
+  });
+
+  it('has no way out to the conversation', () => {
+    const wrapper = mountSheet(buildCall());
+
+    expect(wrapper.findComponent({ name: 'RouterLink' }).exists()).toBe(false);
+    expect(wrapper.text()).not.toContain('開啟對話');
+  });
+
+  it("keeps the notes of the call's conversation, from a list row or a live record", () => {
+    const fromList = mountSheet(buildCall());
+    expect(fromList.findComponent(CallNotes).props('conversationId')).toBe(12);
+
+    const fromLive = mountSheet(
+      buildCall({ conversation: undefined, conversationId: 34 })
+    );
+    expect(fromLive.findComponent(CallNotes).props('conversationId')).toBe(34);
+  });
+
+  it('opens the caller from the title and passes on an earlier call picked there', () => {
+    const wrapper = mountSheet(buildCall());
+    const contact = wrapper.findComponent(CallContactPopover);
+
+    expect(contact.props('title')).toBe('+886933963188');
+    contact.vm.$emit('openCall', 55);
+
+    expect(wrapper.emitted('openCall')).toEqual([[55]]);
   });
 });

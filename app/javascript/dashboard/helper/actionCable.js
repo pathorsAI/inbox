@@ -204,6 +204,7 @@ class ActionCableConnector extends BaseActionCableConnector {
     DashboardAudioNotificationHelper.onNewMessage(data);
     this.app.$store.dispatch('addMessage', data);
     usePathorsLiveCallsStore().syncHandoffCard(data);
+    if (data.private) emitter.emit(BUS_EVENTS.PRIVATE_NOTE_CREATED, data);
     this.app.$store.dispatch('updateConversationLastActivity', {
       lastActivityAt,
       conversationId,

@@ -396,6 +396,7 @@ onMounted(async () => {
       :account-id="accountId"
       :current-user-id="currentUserId"
       @close="closeSheet"
+      @open-call="callId => openCall({ id: callId })"
       @dismissed="onDismissed"
       @follow-up-resolved="onFollowUpResolved"
     />

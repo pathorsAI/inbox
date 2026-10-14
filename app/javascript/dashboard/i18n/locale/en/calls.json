@@ -105,7 +105,6 @@
     },
     "SHEET": {
       "NOT_FOUND": "This call could not be found, or you do not have access to it.",
-      "OPEN_CONVERSATION": "Open conversation",
       "CLOSE": "Close",
       "SIGNAL_AGO": "{label} · {time}",
       "RESOLVE_FOLLOW_UP": "Mark as handled",
@@ -123,7 +122,27 @@
       "METRIC_DURATION": "Duration",
       "METRIC_TURNS": "Turns",
       "METRIC_INTERRUPTIONS": "Interruptions",
-      "RECORDING": "Recording"
+      "RECORDING": "Recording",
+      "NOTES": {
+        "TITLE": "Private notes",
+        "LOADING": "Loading notes…",
+        "LOAD_FAILED": "Couldn't load the notes",
+        "EMPTY": "No notes yet",
+        "PLACEHOLDER": "Add a note for your team (⌘/Ctrl + Enter to save)",
+        "ADD": "Add note",
+        "SAVE_FAILED": "Couldn't save the note",
+        "UNKNOWN_AUTHOR": "Someone",
+        "BYLINE": "{author} · {time}"
+      }
+    },
+    "CONTACT": {
+      "LOADING": "Loading…",
+      "LOAD_FAILED": "Couldn't load this contact",
+      "LABELS": "Labels",
+      "NO_LABELS": "No labels",
+      "EARLIER_CALLS": "Earlier calls",
+      "NO_EARLIER_CALLS": "No earlier calls",
+      "OPEN_CONTACT": "Open contact"
     },
     "ATTENTION": {
       "REGION": "Calls that need someone",
