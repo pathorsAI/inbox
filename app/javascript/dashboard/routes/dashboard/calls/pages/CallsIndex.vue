@@ -289,6 +289,7 @@ const openConversationCall = async conversationId => {
   let callId = null;
   try {
     const { data } = await CallsAPI.get({ conversation_id: conversationId });
+    // Newest call wins: CallFinder lists by created_at desc unless told otherwise.
     callId = data.payload[0]?.id ?? null;
   } catch {
     // Reported below like a link to a call that is gone.
