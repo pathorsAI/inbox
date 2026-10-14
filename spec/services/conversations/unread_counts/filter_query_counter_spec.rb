@@ -18,4 +18,16 @@ RSpec.describe Conversations::UnreadCounts::FilterQueryCounter do
         .not_to include('inbox_id + 0')
     end
   end
+
+  describe '#perform' do
+    it 'leaves call lines out of a folder count' do
+      voice_inbox = create(:channel_voice, account: account).inbox
+      create(:inbox_member, user: agent, inbox: voice_inbox)
+      create_unread_conversation(account: account, inbox: inbox)
+      create_unread_conversation(account: account, inbox: voice_inbox)
+      query = { payload: [{ attribute_key: 'status', filter_operator: 'equal_to', values: ['open'], query_operator: nil }] }
+
+      expect(described_class.new(account: account, user: agent, query: query).perform).to eq 1
+    end
+  end
 end

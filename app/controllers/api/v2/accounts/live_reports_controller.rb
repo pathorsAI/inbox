@@ -53,7 +53,9 @@ class Api::V2::Accounts::LiveReportsController < Api::V1::Accounts::BaseControll
   end
 
   def load_conversations
-    scope = Current.account.conversations
+    # Calls live on the calls page and count there (pathorsAI/pathors#3624), so
+    # the overview agrees with the conversation lists.
+    scope = Current.account.conversations.excluding_call_lines
     scope = scope.where(team_id: team.id) if team.present?
     @conversations = scope
   end

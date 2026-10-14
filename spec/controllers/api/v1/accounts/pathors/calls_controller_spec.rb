@@ -1183,6 +1183,7 @@ RSpec.describe 'Pathors Calls API', type: :request do
           'conversation_id' => conversation.display_id,
           'inbox_id' => conversation.inbox_id,
           'inbox_name' => conversation.inbox.name,
+          'contact_id' => conversation.contact.id,
           'contact_name' => conversation.contact.name,
           'live' => { 'seq' => 1, 'turns' => 4, 'interruptions' => 1, 'transfer_failed' => false,
                       'transcript' => [{ 'kind' => 'message', 'role' => 'user', 'content' => 'hi' }] }

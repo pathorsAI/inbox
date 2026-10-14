@@ -15,4 +15,7 @@ export const BUS_EVENTS = {
   INSERT_INTO_RICH_EDITOR: 'insertIntoRichEditor',
   MFA_STATE_CHANGED: 'MFA_STATE_CHANGED',
   CAPTAIN_PLAYGROUND_RESPONSE: 'CAPTAIN_PLAYGROUND_RESPONSE',
+  // A private note arrived over the socket; the call sheet lists a call's
+  // notes without the conversation being in the store.
+  PRIVATE_NOTE_CREATED: 'PRIVATE_NOTE_CREATED',
 };

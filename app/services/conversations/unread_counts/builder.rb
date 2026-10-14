@@ -44,6 +44,9 @@ class Conversations::UnreadCounts::Builder
     end
   end
 
+  # Call-line conversations (Channel::Voice inboxes) are stored here too; they
+  # stay out of the counts only because Counter#visible_inbox_ids drops call
+  # lines on read (pathorsAI/pathors#3624). Read inbox keys through it.
   def unread_conversations
     account.conversations
            .open

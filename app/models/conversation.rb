@@ -107,6 +107,10 @@ class Conversation < ApplicationRecord
     order(unread_messages_count_arel.desc).sort_on_last_activity_at('desc')
   }
   scope :unattended, -> { where(first_reply_created_at: nil).or(where.not(waiting_since: nil)) }
+  # A call's conversation stays (assignment, access and notes hang off it), but
+  # the call itself is handled on the calls page, so the conversation lists and
+  # their counts leave it out.
+  scope :excluding_call_lines, -> { where.not(inbox_id: Inbox.call_lines.select(:id)) }
   scope :resolvable_not_waiting, lambda { |auto_resolve_after|
     return none if auto_resolve_after.to_i.zero?
 

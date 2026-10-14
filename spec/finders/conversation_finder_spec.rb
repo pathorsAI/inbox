@@ -299,6 +299,52 @@ describe ConversationFinder do
       end
     end
 
+    context 'with call lines' do
+      let(:voice_inbox) { create(:channel_voice, account: account).inbox }
+      let!(:call_conversation) { create(:conversation, account: account, inbox: voice_inbox, assignee: user_1) }
+
+      before { create(:inbox_member, user: user_1, inbox: voice_inbox) }
+
+      it 'leaves calls out of every assignee view and its counts' do
+        %w[me unassigned assigned all].each do |assignee_type|
+          result = described_class.new(user_1, { assignee_type: assignee_type }).perform
+
+          expect(result[:conversations].map(&:id)).not_to include(call_conversation.id)
+          expect(result[:count]).to eq({ mine_count: 2, assigned_count: 3, unassigned_count: 1, all_count: 4 })
+        end
+      end
+
+      it 'leaves calls out of the meta counts' do
+        expect(described_class.new(admin, {}).perform_meta_only[:count][:all_count]).to eq 4
+      end
+
+      it 'leaves calls out of the call line inbox itself' do
+        result = described_class.new(admin, { inbox_id: voice_inbox.id }).perform
+
+        expect(result[:conversations]).to be_empty
+      end
+
+      it 'leaves calls out of mentions, participating and unattended' do
+        create(:mention, user: user_1, conversation: call_conversation, account: account)
+        create(:conversation_participant, user: user_1, conversation: call_conversation, account: account)
+
+        %w[mention participating unattended].each do |conversation_type|
+          result = described_class.new(user_1, { assignee_type: 'all', conversation_type: conversation_type }).perform
+
+          expect(result[:conversations].map(&:id)).not_to include(call_conversation.id)
+        end
+      end
+
+      it 'keeps a call that sits in a text inbox' do
+        text_conversation = create(:conversation, account: account, inbox: inbox)
+        create(:call, conversation: text_conversation)
+
+        result = described_class.new(user_1, { assignee_type: 'all' }).perform
+
+        expect(result[:conversations].map(&:id)).to include(text_conversation.id)
+      end
+    end
+
     context 'with participating' do
       let(:params) { { status: 'open', assignee_type: 'all', conversation_type: 'participating' } }
 

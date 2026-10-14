@@ -16,6 +16,7 @@ json.payload @calls do |call|
   json.conversation_id call.conversation.display_id
   json.inbox_id call.inbox_id
   json.inbox_name call.inbox.name
+  json.contact_id call.contact_id
   json.contact_name call.contact&.name
   json.contact_phone_number call.contact&.phone_number
   # What the AI extracted, from the handoff card, as the calls list sends it.
