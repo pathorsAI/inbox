@@ -92,6 +92,7 @@ const onKeydown = event => {
       v-model="draft"
       :placeholder="t('CALLS_PAGE.SHEET.NOTES.PLACEHOLDER')"
       :max-length="NOTE_MAX_LENGTH"
+      show-character-count
       :disabled="!conversationId"
       auto-height
       min-height="3rem"

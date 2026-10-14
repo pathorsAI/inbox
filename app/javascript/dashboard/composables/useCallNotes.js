@@ -56,11 +56,22 @@ export function useCallNotes(conversationId) {
   const load = async id => {
     notes.value = [];
     hasLoadError.value = false;
+    // A call without a conversation must not inherit the previous call's
+    // in-flight "loading" (its finally no longer counts as current).
+    isLoading.value = false;
     if (!id) return;
     isLoading.value = true;
     try {
       const messages = await fetchMessages(id);
-      if (isCurrent(id)) notes.value = messages.filter(isCallNote);
+      if (!isCurrent(id)) return;
+      // Merge, not overwrite: a colleague's note can arrive over the socket
+      // while the pages are still loading.
+      const fetched = messages.filter(isCallNote);
+      const fetchedIds = new Set(fetched.map(message => message.id));
+      notes.value = [
+        ...fetched,
+        ...notes.value.filter(message => !fetchedIds.has(message.id)),
+      ].sort(byCreatedAt);
     } catch {
       if (isCurrent(id)) hasLoadError.value = true;
     } finally {

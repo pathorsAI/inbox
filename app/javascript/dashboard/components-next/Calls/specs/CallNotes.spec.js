@@ -177,4 +177,47 @@ describe('CallNotes', () => {
     });
     expect(noteTexts(wrapper)).toEqual([]);
   });
+
+  it('caps a note at 2000 characters', async () => {
+    const wrapper = mountNotes();
+    await flushPromises();
+
+    expect(
+      find(wrapper, 'call-note-input').find('textarea').attributes('maxlength')
+    ).toBe('2000');
+  });
+
+  it('stops loading when it switches to a call without a conversation mid-load', async () => {
+    MessageAPI.getPreviousMessages.mockReturnValue(new Promise(() => {}));
+    const wrapper = mountNotes();
+    await flushPromises();
+    expect(wrapper.text()).toContain('載入備註中');
+
+    await wrapper.setProps({ conversationId: null });
+    await flushPromises();
+
+    expect(wrapper.text()).not.toContain('載入備註中');
+  });
+
+  it("keeps a colleague's note that arrives while the notes are loading", async () => {
+    let resolvePage;
+    MessageAPI.getPreviousMessages.mockReturnValue(
+      new Promise(resolve => {
+        resolvePage = resolve;
+      })
+    );
+    const wrapper = mountNotes();
+    await flushPromises();
+
+    emitter.emit(
+      BUS_EVENTS.PRIVATE_NOTE_CREATED,
+      note(7, { content: '我來回' })
+    );
+    resolvePage({ data: { payload: PAGE } });
+    await flushPromises();
+
+    expect(noteTexts(wrapper)).toHaveLength(3);
+    expect(noteTexts(wrapper).at(-1)).toContain('我來回');
+    wrapper.unmount();
+  });
 });
