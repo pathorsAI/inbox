@@ -48,6 +48,18 @@ RSpec.describe 'Api::V2::Accounts::LiveReports', type: :request do
         expect(response_data['pending']).to eq(1)
       end
 
+      it 'leaves call-line conversations to the calls page' do
+        voice_inbox = create(:channel_voice, account: account).inbox
+        create(:conversation, account: account, inbox: voice_inbox, status: :open)
+        create(:conversation, account: account, inbox: voice_inbox, status: :pending)
+
+        get "/api/v2/accounts/#{account.id}/live_reports/conversation_metrics",
+            headers: admin.create_new_auth_token,
+            as: :json
+
+        expect(response.parsed_body).to include('open' => 3, 'unattended' => 2, 'unassigned' => 1, 'pending' => 1)
+      end
+
       context 'with team_id parameter' do
         before do
           create(:conversation, account: account, status: :open, team_id: team.id)
