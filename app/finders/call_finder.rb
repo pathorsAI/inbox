@@ -27,12 +27,12 @@ class CallFinder
     @calls = Call.where(account_id: @current_account.id)
     filter_by_visibility
     filter_by_inbox
-    filter_by_conversation
-    filter_by_contact
     # The segment badges count what the viewer could switch to, so they ignore
-    # the segment, search and date filters below.
+    # the conversation, contact, segment, search and date filters below.
     counts = segment_counts
 
+    filter_by_conversation
+    filter_by_contact
     filter_by_status
     filter_by_direction
     filter_by_agent
