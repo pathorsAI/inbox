@@ -180,7 +180,7 @@ RSpec.describe 'Calls API', type: :request do
                                              contact: other_conversation.contact)
 
         expect(list(conversation_id: other_conversation.display_id)).to eq([other_call.id])
-        expect(list(conversation_id: other_conversation.display_id + 1)).to be_empty
+        expect(list(conversation_id: 0)).to be_empty
       end
 
       it "filters to a contact's calls" do
