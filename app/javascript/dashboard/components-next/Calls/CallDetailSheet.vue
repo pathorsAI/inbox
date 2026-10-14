@@ -25,8 +25,9 @@ import {
 } from 'dashboard/helper/pathorsLiveCall';
 import AudioPlayer from 'dashboard/components-next/audio/AudioPlayer.vue';
 import Button from 'dashboard/components-next/button/Button.vue';
-import Icon from 'dashboard/components-next/icon/Icon.vue';
 import CallTranscript from './CallTranscript.vue';
+import CallContactPopover from './CallContactPopover.vue';
+import CallNotes from './CallNotes.vue';
 import { summaryText, useCallStateText } from './useCallStateText';
 import { callerName, callerNumber, lineName } from './constants';
 
@@ -42,7 +43,12 @@ const props = defineProps({
   currentUserId: { type: Number, default: null },
 });
 
-const emit = defineEmits(['close', 'dismissed', 'followUpResolved']);
+const emit = defineEmits([
+  'close',
+  'dismissed',
+  'followUpResolved',
+  'openCall',
+]);
 
 const STATUS_BAR_CLASS = {
   [CALL_TONE.RUBY]: 'bg-n-ruby-2 text-n-ruby-12',
@@ -91,15 +97,10 @@ const endedLabel = computed(() => {
   return endedAt ? format(new Date(endedAt), ENDED_FORMAT) : '';
 });
 
-const conversationRoute = computed(() => ({
-  name: 'inbox_conversation',
-  params: {
-    accountId: props.accountId,
-    conversation_id:
-      props.call.conversation?.displayId ?? props.call.conversationId,
-  },
-  query: props.call.messageId ? { messageId: props.call.messageId } : {},
-}));
+// A list row nests the conversation; a live store record carries its id.
+const conversationDisplayId = computed(
+  () => props.call.conversation?.displayId ?? props.call.conversationId ?? null
+);
 
 // --- Status bar ---------------------------------------------------------------
 
@@ -276,8 +277,8 @@ watch(
 
 const onKeydown = event => {
   if (event.key !== 'Escape') return;
-  // A dialog on top handles its own Escape.
-  if (document.querySelector('dialog[open]')) return;
+  // A dialog or the contact popover on top handles its own Escape.
+  if (document.querySelector('dialog[open], [data-popover-content]')) return;
   emit('close');
 };
 // A plain listener rather than @vueuse's onKeyStroke: vueuse runs on its own
@@ -299,9 +300,12 @@ onBeforeUnmount(() => {
       class="flex items-start gap-3 px-5 py-4 border-b shrink-0 border-n-weak"
     >
       <div class="flex flex-col flex-1 min-w-0 gap-0.5">
-        <h2 class="text-base font-medium truncate text-n-slate-12">
-          {{ title }}
-        </h2>
+        <CallContactPopover
+          :call="call"
+          :account-id="accountId"
+          :title="title"
+          @open-call="emit('openCall', $event)"
+        />
         <p v-if="subtitle" class="text-sm truncate text-n-slate-11">
           {{ subtitle }}
         </p>
@@ -318,13 +322,6 @@ onBeforeUnmount(() => {
       <span v-else class="text-xs leading-6 text-n-slate-10 shrink-0">
         {{ endedLabel }}
       </span>
-      <RouterLink
-        :to="conversationRoute"
-        class="inline-flex items-center h-6 gap-1 px-2 text-xs rounded-md outline outline-1 -outline-offset-1 outline-n-weak text-n-slate-11 hover:bg-n-alpha-1 shrink-0"
-      >
-        {{ t('CALLS_PAGE.SHEET.OPEN_CONVERSATION') }}
-        <Icon icon="i-lucide-arrow-up-right" class="size-3.5" />
-      </RouterLink>
       <Button
         icon="i-lucide-x"
         variant="ghost"
@@ -472,6 +469,8 @@ onBeforeUnmount(() => {
               <li v-for="todo in summaryTodos" :key="todo">{{ todo }}</li>
             </ul>
           </section>
+
+          <CallNotes :conversation-id="conversationDisplayId" />
 
           <section class="flex flex-col gap-1.5">
             <h3 class="text-xs font-medium text-n-slate-11">

@@ -498,6 +498,33 @@ describe('ActionCableConnector - Pathors live calls', () => {
     expect(store.records[0].variables).toEqual({ email: null });
   });
 
+  it('announces private notes, for the call sheet', () => {
+    vi.spyOn(
+      DashboardAudioNotificationHelper,
+      'onNewMessage'
+    ).mockImplementation(() => {});
+    const note = {
+      id: 901,
+      account_id: 1,
+      conversation_id: 12,
+      private: true,
+      content_type: 'text',
+      content: '已回撥',
+      conversation: { last_activity_at: 1 },
+    };
+
+    actionCable.onReceived({ event: 'message.created', data: note });
+    actionCable.onReceived({
+      event: 'message.created',
+      data: { ...note, id: 902, private: false },
+    });
+
+    const announced = emitter.emit.mock.calls.filter(
+      ([event]) => event === BUS_EVENTS.PRIVATE_NOTE_CREATED
+    );
+    expect(announced).toEqual([[BUS_EVENTS.PRIVATE_NOTE_CREATED, note]]);
+  });
+
   it('ignores a broadcast for another account', () => {
     actionCable.onReceived({
       event: 'pathors_call.live_updated',
