@@ -38,6 +38,17 @@ RSpec.describe Conversations::UnreadCounts::FilteredCounter do
     )
   end
 
+  it 'leaves call lines out of the built-in filter counts' do
+    voice_inbox = create(:channel_voice, account: account).inbox
+    create(:inbox_member, user: agent, inbox: voice_inbox)
+    call_conversation = create_unread_conversation(account: account, inbox: voice_inbox)
+    call_conversation.update!(agent_last_seen_at: 1.hour.ago, first_reply_created_at: nil)
+    create(:mention, account: account, conversation: call_conversation, user: agent)
+    create(:conversation_participant, account: account, conversation: call_conversation, user: agent)
+
+    expect(counter.perform).to include(mentions_count: 0, participating_count: 0, unattended_count: 0)
+  end
+
   it 'returns stale built-in counts until the refresh interval elapses' do
     mentioned = create_visible_unread_conversation
     create(:mention, account: account, conversation: mentioned, user: agent)

@@ -27,6 +27,8 @@ class CallFinder
     @calls = Call.where(account_id: @current_account.id)
     filter_by_visibility
     filter_by_inbox
+    filter_by_conversation
+    filter_by_contact
     # The segment badges count what the viewer could switch to, so they ignore
     # the segment, search and date filters below.
     counts = segment_counts
@@ -83,6 +85,19 @@ class CallFinder
 
   def filter_by_inbox
     @calls = @calls.where(inbox_id: @params[:inbox_id]) if @params[:inbox_id].present?
+  end
+
+  # By the conversation's display id: where a link to a call's conversation is
+  # sent instead, since the conversation views no longer show calls.
+  def filter_by_conversation
+    return if @params[:conversation_id].blank?
+
+    @calls = @calls.where(conversation_id: @current_account.conversations.where(display_id: @params[:conversation_id]).select(:id))
+  end
+
+  # A caller's earlier calls, for the contact card on the call sheet.
+  def filter_by_contact
+    @calls = @calls.where(contact_id: @params[:contact_id]) if @params[:contact_id].present?
   end
 
   def filter_by_agent

@@ -178,7 +178,7 @@ class Conversations::UnreadCounts::FilteredCounter
   end
 
   def unread_conversations
-    account.conversations
+    account.conversations.excluding_call_lines
            .joins(:messages)
            .merge(Message.incoming.reorder(nil))
            .where(messages: { account_id: account.id })

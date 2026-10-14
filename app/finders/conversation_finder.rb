@@ -87,7 +87,7 @@ class ConversationFinder
   end
 
   def find_conversation_by_inbox
-    @conversations = current_account.conversations
+    @conversations = current_account.conversations.excluding_call_lines
 
     return unless params[:inbox_id]
 
