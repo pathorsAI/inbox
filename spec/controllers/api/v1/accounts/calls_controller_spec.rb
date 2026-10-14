@@ -174,8 +174,23 @@ RSpec.describe 'Calls API', type: :request do
         expect(response.parsed_body['payload'].pluck('id')).to eq([done_call.id])
       end
 
+      it 'finds the call of a conversation by its display id' do
+        other_conversation = create(:conversation, account: account, inbox: inbox)
+        other_call = create(:call, :pathors, account: account, conversation: other_conversation, inbox: inbox,
+                                             contact: other_conversation.contact)
+
+        expect(list(conversation_id: other_conversation.display_id)).to eq([other_call.id])
+        expect(list(conversation_id: 0)).to be_empty
+      end
+
+      it "filters to a contact's calls" do
+        expect(list(contact_id: contact.id)).to eq([needs_help.id])
+        expect(list(contact_id: other_contact.id)).to contain_exactly(live_call.id, follow_up_call.id, done_call.id)
+      end
+
       it 'rejects unknown filter values' do
-        [{ segment: 'all' }, { outcome: 'great' }, { since: 'yesterday' }].each do |params|
+        [{ segment: 'all' }, { outcome: 'great' }, { since: 'yesterday' }, { conversation_id: '1 OR 1=1' },
+         { contact_id: 'me' }].each do |params|
           get "/api/v1/accounts/#{account.id}/calls", params: params, headers: admin.create_new_auth_token, as: :json
 
           expect(response).to have_http_status(:unprocessable_entity)

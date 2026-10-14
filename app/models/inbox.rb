@@ -88,6 +88,9 @@ class Inbox < ApplicationRecord
   after_destroy_commit :invalidate_filtered_unread_counts_after_destroy
 
   scope :order_by_name, -> { order('lower(name) ASC') }
+  # Phone lines bound to a Pathors agent. Their conversations are calls and live
+  # on the calls page only; see Conversation.excluding_call_lines.
+  scope :call_lines, -> { where(channel_type: 'Channel::Voice') }
 
   # Adds multiple members to the inbox
   # @param user_ids [Array<Integer>] Array of user IDs to add as members

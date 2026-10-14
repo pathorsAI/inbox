@@ -1034,4 +1034,25 @@ describe Conversations::FilterService do
       expect(result[:conversations].count).to eq 1
     end
   end
+
+  describe 'call lines' do
+    it 'leaves the conversations of call lines out of the results and the counts' do
+      voice_inbox = create(:channel_voice, account: account).inbox
+      create(:inbox_member, user: user_1, inbox: voice_inbox)
+      call_conversation = create(:conversation, account: account, inbox: voice_inbox, assignee: user_1, status: 'pending')
+      params = {
+        payload: [
+          { attribute_key: 'status', filter_operator: 'equal_to', values: ['pending'], query_operator: nil, custom_attribute_type: '' }
+            .with_indifferent_access
+        ],
+        page: 1
+      }
+
+      result = filter_service.new(params, user_1, account).perform
+
+      expect(result[:conversations].map(&:id)).to contain_exactly(en_conversation_1.id, en_conversation_2.id)
+      expect(result[:conversations].map(&:id)).not_to include(call_conversation.id)
+      expect(result[:count][:all_count]).to eq 2
+    end
+  end
 end

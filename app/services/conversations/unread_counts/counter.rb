@@ -179,12 +179,13 @@ class Conversations::UnreadCounts::Counter
     @account_user ||= account.account_users.find_by(user_id: user.id)
   end
 
+  # Call lines are left out: their conversations are not on the conversation
+  # lists, so their unread calls must not count towards them either.
   def visible_inbox_ids
-    @visible_inbox_ids ||= if account_user&.administrator?
-                             account.inboxes.pluck(:id)
-                           else
-                             user.inboxes.where(account_id: account.id).pluck(:id)
-                           end
+    @visible_inbox_ids ||= begin
+      inboxes = account_user&.administrator? ? account.inboxes : user.inboxes.where(account_id: account.id)
+      inboxes.where.not(id: Inbox.call_lines.select(:id)).pluck(:id)
+    end
   end
 
   def sidebar_label_ids

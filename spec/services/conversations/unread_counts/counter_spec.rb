@@ -96,6 +96,21 @@ RSpec.describe Conversations::UnreadCounts::Counter do
     )
   end
 
+  it 'leaves call lines out of the counts' do
+    voice_inbox = create(:channel_voice, account: account).inbox
+    create_unread_conversation(account: account, inbox: visible_inbox, labels: [label.title], team: visible_team)
+    create_unread_conversation(account: account, inbox: voice_inbox, labels: [label.title], team: visible_team)
+
+    result = described_class.new(account: account, user: admin).perform
+
+    expect(result).to eq(
+      all_count: 1,
+      inboxes: { visible_inbox.id.to_s => 1 },
+      labels: { label.id.to_s => 1 },
+      teams: { visible_team.id.to_s => 1 }
+    )
+  end
+
   it 'merges filtered counts when the filtered count feature is enabled' do
     account.enable_features!(:unread_count_for_filters)
     filtered_counter = instance_double(
