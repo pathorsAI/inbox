@@ -1,5 +1,10 @@
 import { MESSAGE_TYPE } from 'shared/constants/messages';
-import { applyPageFilters, applyRoleFilter, sortComparator } from './helpers';
+import {
+  applyPageFilters,
+  applyRoleFilter,
+  isCallConversation,
+  sortComparator,
+} from './helpers';
 import filterQueryGenerator from 'dashboard/helper/filterQueryGenerator';
 import { createFiltersMatcher } from './helpers/filterHelpers';
 import {
@@ -34,6 +39,8 @@ const getters = {
 
     return allConversations
       .filter(conversation => {
+        if (isCallConversation(conversation)) return false;
+
         const matchesFilterResult = matchesFilters(conversation);
         const allowedForRole = applyRoleFilter(
           conversation,

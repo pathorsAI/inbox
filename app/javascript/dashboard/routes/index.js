@@ -13,6 +13,7 @@ import {
   requiresShopifyBilling,
 } from 'v3/helpers/AuthHelper';
 import AnalyticsHelper from '../helper/AnalyticsHelper';
+import { callRedirectFor } from '../helper/callConversationRoute';
 import {
   consumeLoginReturnPath,
   rememberLoginReturnPath,
@@ -194,6 +195,13 @@ export const initalizeRouter = () => {
     await userAuthentication;
     await validateAuthenticateRoutePermission(to, next, store);
   });
+
+  // A global guard rather than a per-route beforeEnter: switching between two
+  // conversations only changes params, which beforeEnter never sees.
+  router.beforeEach(
+    async to =>
+      (await callRedirectFor(to, store.getters.getConversationById)) || true
+  );
 };
 
 export default router;

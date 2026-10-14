@@ -5,6 +5,7 @@ import {
   filterByTeam,
   filterByLabel,
   filterByUnattended,
+  isCallConversation,
 } from '../../conversations/helpers';
 
 const conversationList = [
@@ -56,7 +57,33 @@ describe('#findPendingMessageIndex', () => {
   });
 });
 
+describe('#isCallConversation', () => {
+  it('is true only for a conversation of a call line', () => {
+    expect(isCallConversation({ meta: { channel: 'Channel::Voice' } })).toBe(
+      true
+    );
+    expect(isCallConversation({ meta: { channel: 'Channel::Whatsapp' } })).toBe(
+      false
+    );
+    expect(isCallConversation({})).toBe(false);
+    expect(isCallConversation(null)).toBe(false);
+  });
+});
+
 describe('#applyPageFilters', () => {
+  describe('#filter-call-lines', () => {
+    it('leaves a call out whatever the filters', () => {
+      const call = {
+        ...conversationList[0],
+        meta: { channel: 'Channel::Voice' },
+      };
+      expect(applyPageFilters(call, { status: 'all' })).toBe(false);
+      expect(applyPageFilters(conversationList[0], { status: 'all' })).toBe(
+        true
+      );
+    });
+  });
+
   describe('#filter-team', () => {
     it('returns true if conversation has team and team filter is active', () => {
       const filters = {

@@ -1,4 +1,10 @@
 import { CONVERSATION_PRIORITY_ORDER } from 'shared/constants/messages';
+import { INBOX_TYPES } from 'dashboard/helper/inbox';
+
+// A call's conversation lives on the calls page, never in a conversation list
+// (the API leaves them out; this catches the ones the socket pushes in).
+export const isCallConversation = conversation =>
+  conversation?.meta?.channel === INBOX_TYPES.VOICE;
 
 export const findPendingMessageIndex = (chat, message) => {
   const { echo_id: tempMessageId } = message;
@@ -36,6 +42,8 @@ export const filterByUnattended = (
 };
 
 export const applyPageFilters = (conversation, filters) => {
+  if (isCallConversation(conversation)) return false;
+
   const { inboxId, status, labels = [], teamId, conversationType } = filters;
   const {
     status: chatStatus,
