@@ -1,5 +1,7 @@
 import { CALL_STATE, CALL_TONE } from 'dashboard/helper/pathorsCallState';
 import {
+  CALL_SHEET_PHASE,
+  callSheetPhase,
   callerNumber,
   callSection,
   dateRangeParams,
@@ -151,5 +153,23 @@ describe('callerNumber', () => {
         toNumber: customer,
       })
     ).toBe('+886955000111');
+  });
+});
+
+describe('callSheetPhase', () => {
+  it('lays the sheet out for the AI, a hand-off or a finished call', () => {
+    const phaseOf = key => callSheetPhase({ key });
+
+    [
+      CALL_STATE.AI,
+      CALL_STATE.WARN,
+      CALL_STATE.REQUESTED,
+      CALL_STATE.TRANSFER_FAILED,
+      CALL_STATE.DIALING,
+      CALL_STATE.LIVE,
+    ].forEach(key => expect(phaseOf(key)).toBe(CALL_SHEET_PHASE.LIVE));
+    expect(phaseOf(CALL_STATE.HUMAN)).toBe(CALL_SHEET_PHASE.HANDED_OFF);
+    expect(phaseOf(CALL_STATE.TRANSFERRED)).toBe(CALL_SHEET_PHASE.HANDED_OFF);
+    expect(phaseOf(CALL_STATE.ENDED)).toBe(CALL_SHEET_PHASE.ENDED);
   });
 });

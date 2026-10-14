@@ -1,4 +1,5 @@
 import { flushPromises, mount } from '@vue/test-utils';
+import { defineComponent, h, reactive, toRef } from 'vue';
 import { withFullI18n } from 'test-i18n';
 import MessageAPI from 'dashboard/api/inbox/message';
 import { useAlert } from 'dashboard/composables';
@@ -7,6 +8,7 @@ import { BUS_EVENTS } from 'shared/constants/busEvents';
 import {
   CALL_IN_PROGRESS_NOTE_PREFIX,
   isCallNote,
+  useCallNotes,
 } from 'dashboard/composables/useCallNotes';
 import CallNotes from '../CallNotes.vue';
 
@@ -36,8 +38,38 @@ const PAGE = [
   note(5, { content: '客人下午三點後方便回撥' }),
 ];
 
+// The call sheet owns the notes and hands them to CallNotes; this stands in
+// for it.
+const NotesHost = defineComponent({
+  props: { conversationId: { type: Number, default: null } },
+  setup(props) {
+    const notes = reactive(useCallNotes(toRef(props, 'conversationId')));
+    return () =>
+      h(CallNotes, {
+        notes: notes.notes,
+        isLoading: notes.isLoading,
+        hasLoadError: notes.hasLoadError,
+        isSaving: notes.isSaving,
+        canWrite: !!props.conversationId,
+        create: notes.create,
+      });
+  },
+});
+
+const dompurifyHtml = {
+  mounted: (el, { value }) => {
+    el.innerHTML = value;
+  },
+  updated: (el, { value }) => {
+    el.innerHTML = value;
+  },
+};
+
 const mountNotes = (conversationId = 12) =>
-  mount(CallNotes, { props: { conversationId } });
+  mount(NotesHost, {
+    props: { conversationId },
+    global: { directives: { 'dompurify-html': dompurifyHtml } },
+  });
 
 const find = (wrapper, id) => wrapper.find(`[data-test-id="${id}"]`);
 const noteTexts = wrapper =>
@@ -176,6 +208,23 @@ describe('CallNotes', () => {
       before: undefined,
     });
     expect(noteTexts(wrapper)).toEqual([]);
+  });
+
+  it("renders a note's markdown instead of showing its symbols", async () => {
+    MessageAPI.getPreviousMessages.mockResolvedValue({
+      data: {
+        payload: [
+          note(3, { content: '**記得**回撥 [官網](https://pathors.com)' }),
+        ],
+      },
+    });
+    const wrapper = mountNotes();
+    await flushPromises();
+    const item = find(wrapper, 'call-note');
+
+    expect(item.text()).not.toContain('**');
+    expect(item.find('strong').text()).toBe('記得');
+    expect(item.find('a').attributes('href')).toBe('https://pathors.com');
   });
 
   it('caps a note at 2000 characters', async () => {

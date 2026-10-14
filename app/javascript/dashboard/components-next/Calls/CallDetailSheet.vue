@@ -1,11 +1,19 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import {
+  computed,
+  onBeforeUnmount,
+  onMounted,
+  reactive,
+  ref,
+  watch,
+} from 'vue';
 import { useI18n } from 'vue-i18n';
 import { format } from 'date-fns';
 import { useAlert } from 'dashboard/composables';
 import { useClock } from 'dashboard/composables/useClock';
 import { formatDuration } from 'shared/helpers/timeHelper';
 import PathorsCallsAPI from 'dashboard/api/pathorsCalls';
+import { useCallNotes } from 'dashboard/composables/useCallNotes';
 import { usePathorsLiveCallsStore } from 'dashboard/stores/pathorsLiveCalls';
 import {
   usePathorsCallSession,
@@ -20,20 +28,44 @@ import {
   toEpochMs,
 } from 'dashboard/helper/pathorsCallState';
 import {
+  PATHORS_ALERT_THRESHOLDS,
   callElapsedSeconds,
   isLiveCallStatus,
 } from 'dashboard/helper/pathorsLiveCall';
 import AudioPlayer from 'dashboard/components-next/audio/AudioPlayer.vue';
 import Button from 'dashboard/components-next/button/Button.vue';
+import TabBar from 'dashboard/components-next/tabbar/TabBar.vue';
 import CallTranscript from './CallTranscript.vue';
 import CallContactPopover from './CallContactPopover.vue';
+import CallMetrics from './CallMetrics.vue';
+import CallNoteCard from './CallNoteCard.vue';
 import CallNotes from './CallNotes.vue';
-import { summaryText, useCallStateText } from './useCallStateText';
-import { callerName, callerNumber, lineName } from './constants';
+import CallSummaryCard from './CallSummaryCard.vue';
+import CallVariables from './CallVariables.vue';
+import { useCallStateText } from './useCallStateText';
+import {
+  latestSummaryNote,
+  parseCallSummaryNote,
+  structuredCallSummary,
+} from './callSummary';
+import {
+  CALL_QUICK_TAGS,
+  CALL_SHEET_PHASE,
+  CALL_SHEET_TAB,
+  CALL_SHEET_TABS,
+  callSheetPhase,
+  callerName,
+  callerNumber,
+  lineName,
+} from './constants';
 
 // The detail of one call, docked to the right of the calls page. Not modal:
 // the table stays usable beside it, so it neither locks scrolling nor traps
 // focus; Escape and the close button dismiss it.
+//
+// Its tabs follow the call (CALL_SHEET_TABS): while the AI is on it, the live
+// transcript, with the three metrics and quick tags around it; once a human
+// has it, what the AI handed over; once it ended, the AI's summary.
 
 const props = defineProps({
   // A calls-list row merged with the live store (see mergeLiveCall), or a
@@ -56,6 +88,15 @@ const STATUS_BAR_CLASS = {
   [CALL_TONE.SLATE]: 'bg-n-alpha-1 text-n-slate-12',
 };
 const ENDED_FORMAT = 'MM/dd HH:mm';
+const METRIC_PLACEHOLDER = '—';
+const TAB_LABEL_KEYS = {
+  [CALL_SHEET_TAB.TRANSCRIPT]: 'CALLS_PAGE.SHEET.TABS.TRANSCRIPT',
+  [CALL_SHEET_TAB.VARIABLES]: 'CALLS_PAGE.SHEET.TABS.VARIABLES',
+  [CALL_SHEET_TAB.NOTES]: 'CALLS_PAGE.SHEET.TABS.NOTES',
+  [CALL_SHEET_TAB.HANDOFF]: 'CALLS_PAGE.SHEET.TABS.HANDOFF',
+  [CALL_SHEET_TAB.SUMMARY]: 'CALLS_PAGE.SHEET.TABS.SUMMARY',
+  [CALL_SHEET_TAB.TECHNICAL]: 'CALLS_PAGE.SHEET.TABS.TECHNICAL',
+};
 
 const { t } = useI18n();
 const now = useClock();
@@ -217,54 +258,142 @@ const resolveFollowUp = async () => {
   }
 };
 
-// --- Side column ---------------------------------------------------------------
+// --- Notes and the AI's summary ---------------------------------------------
 
-const summary = computed(() => props.call.summary || null);
-const summaryTodos = computed(() => summary.value?.todos || []);
+// The sheet owns the notes: the summary, the quick tags and the notes tab all
+// read and write the same list.
+const callNotes = reactive(useCallNotes(conversationDisplayId));
+const phase = computed(() => callSheetPhase(state.value));
 
-const isMissing = value =>
-  value === null || value === undefined || value === '';
-const formatValue = value => {
-  if (typeof value === 'boolean') {
-    return value
-      ? t('CONVERSATION.PATHORS_HANDOFF.YES')
-      : t('CONVERSATION.PATHORS_HANDOFF.NO');
-  }
-  if (typeof value === 'object') return JSON.stringify(value);
-  return String(value);
-};
-// What the AI had extracted when a human took over, from the call's handoff
-// card: a snapshot, which is why the rail titles it "at takeover". The live
-// store fills it in as the card arrives (see syncHandoffCard).
-const variables = computed(() =>
-  Object.entries(props.call.variables || {}).map(([key, value]) => ({
-    key,
-    isMissing: isMissing(value),
-    text: isMissing(value)
-      ? t('CALLS_PAGE.SHEET.NOT_CAPTURED')
-      : formatValue(value),
-  }))
+const summaryNote = computed(() => latestSummaryNote(callNotes.notes));
+const parsedSummaryNote = computed(() =>
+  summaryNote.value ? parseCallSummaryNote(summaryNote.value.content) : null
+);
+// The bridge's note is what Pathors writes today; the call's structured
+// `summary` stands in when a backend sends that instead.
+const summary = computed(() => {
+  if (parsedSummaryNote.value) return parsedSummaryNote.value;
+  return props.call.summary
+    ? structuredCallSummary(props.call.summary, t)
+    : null;
+});
+// Once a human has the call or it ended, the sheet shows the summary note as
+// the summary, so the notes leave it out rather than repeat it; while the AI
+// is on the call nothing shows it, so it stays a note.
+const listedNotes = computed(() => {
+  const shownId =
+    phase.value !== CALL_SHEET_PHASE.LIVE && parsedSummaryNote.value
+      ? summaryNote.value.id
+      : null;
+  return callNotes.notes.filter(note => note.id !== shownId);
+});
+const hasVariables = computed(
+  () => Object.keys(props.call.variables || {}).length > 0
+);
+const latestNote = computed(() => listedNotes.value.at(-1) || null);
+const technicalFields = computed(
+  () => parsedSummaryNote.value?.technical || []
 );
 
-const metrics = computed(() => [
-  {
-    key: 'duration',
-    label: t('CALLS_PAGE.SHEET.METRIC_DURATION'),
-    value: formatDuration(
-      isLive.value ? elapsedSeconds.value : props.call.durationSeconds
+const addQuickTag = async key => {
+  const saved = await callNotes.create(
+    t('CALLS_PAGE.SHEET.QUICK_TAGS.NOTE', {
+      tag: t(`CALLS_PAGE.SHEET.QUICK_TAGS.${key}`),
+      time: formatDuration(elapsedSeconds.value),
+    })
+  );
+  if (!saved) useAlert(t('CALLS_PAGE.SHEET.NOTES.SAVE_FAILED'));
+};
+
+// --- Metrics -------------------------------------------------------------------
+
+// When the call left the AI: the human's join, or the connected transfer.
+const handedOffAtMs = computed(() =>
+  state.value.key === CALL_STATE.HUMAN
+    ? toEpochMs(props.call.acceptedAt)
+    : toEpochMs(live.value.attention?.transfer?.at)
+);
+// The AI's turn counters stop once it is off the call; the clock does not, so
+// a handed-off call shows the time up to the hand-off.
+const metricSeconds = computed(() => {
+  if (phase.value === CALL_SHEET_PHASE.ENDED) return props.call.durationSeconds;
+  if (
+    phase.value === CALL_SHEET_PHASE.HANDED_OFF &&
+    handedOffAtMs.value &&
+    startedAtMs.value
+  ) {
+    return callElapsedSeconds(startedAtMs.value, handedOffAtMs.value);
+  }
+  return elapsedSeconds.value;
+});
+
+const metrics = computed(() => {
+  const { DURATION_SECONDS, TURNS, INTERRUPTIONS } = PATHORS_ALERT_THRESHOLDS;
+  const { turns, interruptions } = live.value;
+  const seconds = metricSeconds.value;
+  return [
+    {
+      key: 'duration',
+      label: t(
+        phase.value === CALL_SHEET_PHASE.HANDED_OFF
+          ? 'CALLS_PAGE.SHEET.METRIC_DURATION_AT_HANDOFF'
+          : 'CALLS_PAGE.SHEET.METRIC_DURATION'
+      ),
+      value: formatDuration(seconds) || METRIC_PLACEHOLDER,
+      limit: formatDuration(DURATION_SECONDS),
+      isOver: seconds > DURATION_SECONDS,
+    },
+    {
+      key: 'turns',
+      label: t('CALLS_PAGE.SHEET.METRIC_TURNS'),
+      value: turns ?? METRIC_PLACEHOLDER,
+      limit: TURNS,
+      isOver: turns > TURNS,
+    },
+    {
+      key: 'interruptions',
+      label: t('CALLS_PAGE.SHEET.METRIC_INTERRUPTIONS'),
+      value: interruptions ?? METRIC_PLACEHOLDER,
+      limit: INTERRUPTIONS,
+      isOver: interruptions > INTERRUPTIONS,
+    },
+  ];
+});
+const metricsLabel = computed(() =>
+  t(
+    phase.value === CALL_SHEET_PHASE.HANDED_OFF
+      ? 'CALLS_PAGE.SHEET.METRICS_AT_HANDOFF'
+      : 'CALLS_PAGE.SHEET.METRICS'
+  )
+);
+
+// --- Tabs ----------------------------------------------------------------------
+
+const tabIds = computed(() => CALL_SHEET_TABS[phase.value]);
+// The agent's pick, until the call moves on (or another call opens): then the
+// new phase's first tab.
+const pickedTab = ref(null);
+watch([phase, () => props.call.id], () => {
+  pickedTab.value = null;
+});
+const activeTab = computed(() =>
+  tabIds.value.includes(pickedTab.value) ? pickedTab.value : tabIds.value[0]
+);
+const tabs = computed(() =>
+  tabIds.value.map(id => ({
+    id,
+    label: t(
+      id === CALL_SHEET_TAB.TRANSCRIPT && phase.value === CALL_SHEET_PHASE.LIVE
+        ? 'CALLS_PAGE.SHEET.TABS.LIVE_TRANSCRIPT'
+        : TAB_LABEL_KEYS[id]
     ),
-  },
-  {
-    key: 'turns',
-    label: t('CALLS_PAGE.SHEET.METRIC_TURNS'),
-    value: live.value.turns ?? '',
-  },
-  {
-    key: 'interruptions',
-    label: t('CALLS_PAGE.SHEET.METRIC_INTERRUPTIONS'),
-    value: live.value.interruptions ?? '',
-  },
-]);
+    count: id === CALL_SHEET_TAB.NOTES ? listedNotes.value.length : 0,
+  }))
+);
+const activeTabIndex = computed(() => tabIds.value.indexOf(activeTab.value));
+const pickTab = tab => {
+  pickedTab.value = tab.id;
+};
 
 // --- Lifecycle -------------------------------------------------------------------
 
@@ -292,12 +421,12 @@ onBeforeUnmount(() => {
 
 <template>
   <aside
-    class="absolute inset-y-0 end-0 z-20 flex flex-col w-full max-w-[40rem] overflow-hidden border-s shadow-lg bg-n-surface-1 border-n-weak"
+    class="absolute inset-y-0 end-0 z-20 flex flex-col w-full max-w-[40rem] overflow-hidden border-s shadow-lg bg-n-surface-1 border-n-strong"
     :aria-label="title"
     data-test-id="call-detail-sheet"
   >
     <header
-      class="flex items-start gap-3 px-5 py-4 border-b shrink-0 border-n-weak"
+      class="flex items-start gap-3 px-5 py-4 border-b shrink-0 border-n-strong"
     >
       <div class="flex flex-col flex-1 min-w-0 gap-0.5">
         <CallContactPopover
@@ -334,7 +463,7 @@ onBeforeUnmount(() => {
     </header>
 
     <section
-      class="flex flex-wrap items-center gap-x-4 gap-y-2 px-5 py-3 border-b shrink-0 border-n-weak"
+      class="flex flex-wrap items-center gap-x-4 gap-y-2 px-5 py-3 border-b shrink-0 border-n-strong"
       :class="STATUS_BAR_CLASS[statusTone]"
       data-test-id="call-status-bar"
       :data-state="state.key"
@@ -408,99 +537,161 @@ onBeforeUnmount(() => {
       </div>
     </section>
 
-    <!-- Laid out against the sheet's own width, not the viewport's: below
-         35rem the side column stacks under the transcript. -->
-    <div class="flex flex-1 min-h-0 [container-type:inline-size]">
-      <div
-        class="flex flex-col flex-1 min-w-0 [@container(min-width:35rem)]:flex-row"
+    <div
+      v-if="phase !== CALL_SHEET_PHASE.ENDED"
+      class="px-5 py-3 border-b shrink-0 border-n-strong"
+    >
+      <CallMetrics :metrics="metrics" :label="metricsLabel" />
+    </div>
+
+    <nav
+      class="px-5 py-2.5 overflow-x-auto border-b shrink-0 border-n-strong"
+      :aria-label="t('CALLS_PAGE.SHEET.TABS.LABEL')"
+      data-test-id="call-tabs"
+    >
+      <TabBar
+        :tabs="tabs"
+        :initial-active-tab="activeTabIndex"
+        @tab-changed="pickTab"
+      />
+    </nav>
+
+    <div
+      v-if="activeTab === CALL_SHEET_TAB.TRANSCRIPT"
+      class="flex flex-col flex-1 min-h-0"
+      data-test-id="call-tab-transcript"
+    >
+      <section
+        v-if="phase === CALL_SHEET_PHASE.ENDED && call.recordingUrl"
+        class="flex flex-col gap-2 px-5 pt-4 shrink-0"
       >
-        <CallTranscript
-          :key="call.id"
-          :entries="live.transcript || []"
-          :seq="live.seq || 0"
-          :is-live="isLive"
-          class="flex-1 min-w-0"
+        <h3 class="text-sm font-medium text-n-slate-12">
+          {{ t('CALLS_PAGE.SHEET.RECORDING') }}
+        </h3>
+        <AudioPlayer
+          :src="call.recordingUrl"
+          :fallback-duration="call.durationSeconds || 0"
         />
+      </section>
+      <CallTranscript
+        :key="call.id"
+        :entries="live.transcript || []"
+        :seq="live.seq || 0"
+        :is-live="isLive"
+        class="flex-1"
+      />
+    </div>
 
-        <div
-          class="flex flex-col gap-5 px-5 py-4 overflow-y-auto border-t shrink-0 max-h-44 border-n-weak [@container(min-width:35rem)]:w-56 [@container(min-width:35rem)]:max-h-none [@container(min-width:35rem)]:border-t-0 [@container(min-width:35rem)]:border-s"
-          data-test-id="call-detail-rail"
+    <div
+      v-else
+      class="flex flex-col flex-1 min-h-0 gap-6 px-5 py-4 overflow-y-auto"
+      :data-test-id="`call-tab-${activeTab}`"
+    >
+      <template v-if="activeTab === CALL_SHEET_TAB.SUMMARY">
+        <CallMetrics :metrics="metrics" :label="metricsLabel" />
+        <CallSummaryCard
+          v-if="summary"
+          :summary="summary"
+          :title="t('CALLS_PAGE.SHEET.SUMMARY')"
+        />
+        <p v-else class="text-sm text-n-slate-10">
+          {{ t('CALLS_PAGE.SHEET.SUMMARY_EMPTY') }}
+        </p>
+        <CallVariables v-if="hasVariables" :variables="call.variables" />
+        <section class="flex flex-col gap-2" data-test-id="call-latest-note">
+          <h3 class="text-sm font-medium text-n-slate-12">
+            {{ t('CALLS_PAGE.SHEET.LATEST_NOTE') }}
+          </h3>
+          <CallNoteCard v-if="latestNote" :note="latestNote" />
+          <p v-else class="text-sm text-n-slate-10">
+            {{ t('CALLS_PAGE.SHEET.NOTES.EMPTY') }}
+          </p>
+        </section>
+      </template>
+
+      <template v-else-if="activeTab === CALL_SHEET_TAB.HANDOFF">
+        <p class="text-sm text-n-slate-11">
+          {{ t('CALLS_PAGE.SHEET.HANDOFF_HINT') }}
+        </p>
+        <CallVariables
+          :variables="call.variables"
+          :empty-text="t('CALLS_PAGE.SHEET.VARIABLES_PENDING')"
+        />
+        <CallSummaryCard
+          v-if="summary"
+          :summary="summary"
+          :title="t('CALLS_PAGE.SHEET.HANDOFF_SUMMARY')"
+        />
+      </template>
+
+      <CallVariables
+        v-else-if="activeTab === CALL_SHEET_TAB.VARIABLES"
+        :variables="call.variables"
+        :empty-text="t('CALLS_PAGE.SHEET.VARIABLES_AT_TAKEOVER')"
+      />
+
+      <CallNotes
+        v-else-if="activeTab === CALL_SHEET_TAB.NOTES"
+        :notes="listedNotes"
+        :is-loading="callNotes.isLoading"
+        :has-load-error="callNotes.hasLoadError"
+        :is-saving="callNotes.isSaving"
+        :can-write="!!conversationDisplayId"
+        :create="callNotes.create"
+      />
+
+      <section
+        v-else-if="activeTab === CALL_SHEET_TAB.TECHNICAL"
+        class="flex flex-col gap-2"
+        data-test-id="call-technical"
+      >
+        <dl
+          class="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1.5 font-mono text-xs"
         >
-          <section
-            v-if="variables.length"
-            class="flex flex-col gap-1.5"
-            data-test-id="call-variables"
+          <dt class="text-n-slate-11">
+            {{ t('CALLS_PAGE.SHEET.TECHNICAL.CALL_ID') }}
+          </dt>
+          <dd class="break-all text-n-slate-12">
+            {{ call.callId || METRIC_PLACEHOLDER }}
+          </dd>
+        </dl>
+        <template v-if="technicalFields.length">
+          <h3 class="pt-3 text-sm font-medium text-n-slate-12">
+            {{ t('CALLS_PAGE.SHEET.TECHNICAL.AGENT_FIELDS') }}
+          </h3>
+          <dl
+            class="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1.5 font-mono text-xs"
           >
-            <h3 class="text-xs font-medium text-n-slate-11">
-              {{ t('CALLS_PAGE.SHEET.VARIABLES') }}
-            </h3>
-            <dl class="flex flex-col gap-1 text-sm">
-              <div
-                v-for="variable in variables"
-                :key="variable.key"
-                class="flex justify-between gap-3"
-              >
-                <dt class="max-w-[45%] truncate shrink-0 text-n-slate-11">
-                  {{ variable.key }}
-                </dt>
-                <dd
-                  class="flex-1 min-w-0 text-end break-words"
-                  :class="
-                    variable.isMissing ? 'text-n-slate-9' : 'text-n-slate-12'
-                  "
-                >
-                  {{ variable.text }}
-                </dd>
-              </div>
-            </dl>
-          </section>
+            <template v-for="field in technicalFields" :key="field.key">
+              <dt class="text-n-slate-11">{{ field.key }}</dt>
+              <dd class="break-all text-n-slate-12">{{ field.value }}</dd>
+            </template>
+          </dl>
+        </template>
+      </section>
+    </div>
 
-          <section v-if="summary" class="flex flex-col gap-1.5">
-            <h3 class="text-xs font-medium text-n-slate-11">
-              {{ t('CALLS_PAGE.SHEET.SUMMARY') }}
-            </h3>
-            <p class="text-sm break-words text-n-slate-12">
-              {{ summaryText(summary) }}
-            </p>
-            <ul
-              v-if="summaryTodos.length"
-              class="flex flex-col gap-1 ps-4 text-sm list-disc text-n-slate-12"
-            >
-              <li v-for="todo in summaryTodos" :key="todo">{{ todo }}</li>
-            </ul>
-          </section>
-
-          <CallNotes :conversation-id="conversationDisplayId" />
-
-          <section class="flex flex-col gap-1.5">
-            <h3 class="text-xs font-medium text-n-slate-11">
-              {{ t('CALLS_PAGE.SHEET.METRICS') }}
-            </h3>
-            <dl class="grid grid-cols-3 gap-2">
-              <div
-                v-for="metric in metrics"
-                :key="metric.key"
-                class="flex flex-col gap-0.5"
-              >
-                <dt class="text-xs text-n-slate-10">{{ metric.label }}</dt>
-                <dd class="text-sm font-medium tabular-nums text-n-slate-12">
-                  {{ metric.value }}
-                </dd>
-              </div>
-            </dl>
-          </section>
-
-          <section v-if="call.recordingUrl" class="flex flex-col gap-1.5">
-            <h3 class="text-xs font-medium text-n-slate-11">
-              {{ t('CALLS_PAGE.SHEET.RECORDING') }}
-            </h3>
-            <AudioPlayer
-              :src="call.recordingUrl"
-              :fallback-duration="call.durationSeconds || 0"
-            />
-          </section>
-        </div>
-      </div>
+    <div
+      v-if="phase === CALL_SHEET_PHASE.LIVE"
+      class="flex flex-wrap items-center gap-2 px-5 py-3 border-t shrink-0 border-n-strong"
+      role="group"
+      :aria-label="t('CALLS_PAGE.SHEET.QUICK_TAGS.TITLE')"
+      data-test-id="call-quick-tags"
+    >
+      <span class="text-xs text-n-slate-11 me-1">
+        {{ t('CALLS_PAGE.SHEET.QUICK_TAGS.TITLE') }}
+      </span>
+      <Button
+        v-for="tag in CALL_QUICK_TAGS"
+        :key="tag"
+        :label="t(`CALLS_PAGE.SHEET.QUICK_TAGS.${tag}`)"
+        size="sm"
+        variant="faded"
+        color="slate"
+        :disabled="!conversationDisplayId || callNotes.isSaving"
+        :data-tag="tag"
+        @click="addQuickTag(tag)"
+      />
     </div>
   </aside>
 </template>

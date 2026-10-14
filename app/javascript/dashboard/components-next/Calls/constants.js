@@ -42,6 +42,63 @@ export const CALL_SECTIONS = Object.freeze([
   'earlier',
 ]);
 
+// What the call sheet is laid out for: the AI (or nobody yet) on the line, a
+// human who took it over or a transfer that connected, or a finished call.
+export const CALL_SHEET_PHASE = Object.freeze({
+  LIVE: 'live',
+  HANDED_OFF: 'handedOff',
+  ENDED: 'ended',
+});
+
+export const CALL_SHEET_TAB = Object.freeze({
+  TRANSCRIPT: 'transcript',
+  VARIABLES: 'variables',
+  NOTES: 'notes',
+  HANDOFF: 'handoff',
+  SUMMARY: 'summary',
+  TECHNICAL: 'technical',
+});
+
+// Each phase's tabs, the one it opens on first.
+export const CALL_SHEET_TABS = Object.freeze({
+  [CALL_SHEET_PHASE.LIVE]: [
+    CALL_SHEET_TAB.TRANSCRIPT,
+    CALL_SHEET_TAB.VARIABLES,
+    CALL_SHEET_TAB.NOTES,
+  ],
+  [CALL_SHEET_PHASE.HANDED_OFF]: [
+    CALL_SHEET_TAB.HANDOFF,
+    CALL_SHEET_TAB.TRANSCRIPT,
+    CALL_SHEET_TAB.NOTES,
+  ],
+  [CALL_SHEET_PHASE.ENDED]: [
+    CALL_SHEET_TAB.SUMMARY,
+    CALL_SHEET_TAB.NOTES,
+    CALL_SHEET_TAB.TRANSCRIPT,
+    CALL_SHEET_TAB.TECHNICAL,
+  ],
+});
+
+/**
+ * The sheet's phase for a call's primaryCallState.
+ * @param {{ key: string }} state
+ */
+export const callSheetPhase = state => {
+  if (state.key === CALL_STATE.ENDED) return CALL_SHEET_PHASE.ENDED;
+  if ([CALL_STATE.HUMAN, CALL_STATE.TRANSFERRED].includes(state.key)) {
+    return CALL_SHEET_PHASE.HANDED_OFF;
+  }
+  return CALL_SHEET_PHASE.LIVE;
+};
+
+// The one-click notes under a live call (CALLS_PAGE.SHEET.QUICK_TAGS.*).
+export const CALL_QUICK_TAGS = Object.freeze([
+  'CALL_BACK',
+  'INTERESTED',
+  'QUOTE',
+  'COMPLAINT',
+]);
+
 export const CALL_TONE_CHIP_CLASS = Object.freeze({
   [CALL_TONE.RUBY]: 'bg-n-ruby-3 text-n-ruby-11',
   [CALL_TONE.AMBER]: 'bg-n-amber-3 text-n-amber-11',
