@@ -111,6 +111,20 @@ describe('parseCallSummaryNote', () => {
     expect(JSON.stringify(parsed)).not.toContain('AI：您好');
   });
 
+  it('keeps a "---" line inside the transcript out of the footer', () => {
+    const parsed = parseCallSummaryNote(
+      [FULL_NOTE, '客人：我唸一下', '---', '客人：後面這段'].join('\n')
+    );
+
+    expect(parsed.footer).not.toContain('後面這段');
+    expect(parsed.footer).not.toContain('我唸一下');
+    expect(parsed.technical.map(field => field.key)).toEqual([
+      'roomName',
+      'fsCallerUuid',
+      '備註',
+    ]);
+  });
+
   it('keeps text it cannot tell apart as a body to render whole', () => {
     const parsed = parseCallSummaryNote(NO_SUMMARY_NOTE);
 

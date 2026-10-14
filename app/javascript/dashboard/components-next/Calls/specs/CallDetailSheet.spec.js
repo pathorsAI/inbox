@@ -345,6 +345,20 @@ describe('CallDetailSheet', () => {
       expect(handoff.text()).toContain('未取得');
     });
 
+    it('holds the pre-takeover time until the takeover time arrives', () => {
+      const wrapper = mountSheet(
+        buildCall({
+          startedAt: NOW_SECONDS() - 200,
+          acceptedByAgentId: ME,
+          acceptedByAgentName: 'Grace',
+        })
+      );
+
+      expect(metric(wrapper, 'duration').text()).toContain('接手前通話時間');
+      expect(metric(wrapper, 'duration').text()).toContain('—');
+      expect(metric(wrapper, 'duration').text()).not.toContain('03:20');
+    });
+
     it('leaves out what came before the takeover when there is no summary', () => {
       const wrapper = mountSheet(
         buildCall({ acceptedByAgentId: ME, acceptedByAgentName: 'Grace' })
@@ -483,6 +497,15 @@ describe('CallDetailSheet', () => {
         '還沒有 AI 摘要'
       );
       expect(find(wrapper, 'call-latest-note').text()).toContain('還沒有備註');
+    });
+
+    it('does not say there is no summary while the notes are still loading', () => {
+      notesState.isLoading.value = true;
+      const wrapper = mountSheet(endedCall());
+
+      expect(find(wrapper, 'call-tab-summary').text()).not.toContain(
+        '還沒有 AI 摘要'
+      );
     });
 
     it('shows what the AI extracted at takeover in the summary', () => {

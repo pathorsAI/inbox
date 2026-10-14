@@ -102,9 +102,13 @@ export const parseCallSummaryNote = content => {
 
   const technical = [];
   const footer = [];
-  blocks.forEach(block => {
+  // The transcript is the note's last block (buildCallNote), and a "---" line
+  // inside it would split it again: stop at its heading so none of it lands in
+  // the footer.
+  blocks.some(block => {
     const [first, ...lines] = block.split('\n');
     const heading = BLOCK_HEADING.exec(first.trim())?.[1].trim();
+    if (heading === TRANSCRIPT_HEADING) return true;
     if (heading === TECHNICAL_HEADING) {
       lines.forEach(line => {
         const match = LIST_FIELD.exec(line.trim());
@@ -112,9 +116,10 @@ export const parseCallSummaryNote = content => {
           technical.push({ key: match[1].trim(), value: match[2] ?? '' });
         }
       });
-      return;
+    } else {
+      footer.push(block);
     }
-    if (heading !== TRANSCRIPT_HEADING) footer.push(block);
+    return false;
   });
 
   return {

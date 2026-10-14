@@ -315,14 +315,16 @@ const handedOffAtMs = computed(() =>
 );
 // The AI's turn counters stop once it is off the call; the clock does not, so
 // a handed-off call shows the time up to the hand-off.
+// Until the hand-off time arrives (the live broadcast carries who joined, not
+// when: accepted_at comes with the next fetch) the handed-off metric shows a
+// placeholder rather than a clock that keeps counting under a "before
+// takeover" label.
 const metricSeconds = computed(() => {
   if (phase.value === CALL_SHEET_PHASE.ENDED) return props.call.durationSeconds;
-  if (
-    phase.value === CALL_SHEET_PHASE.HANDED_OFF &&
-    handedOffAtMs.value &&
-    startedAtMs.value
-  ) {
-    return callElapsedSeconds(startedAtMs.value, handedOffAtMs.value);
+  if (phase.value === CALL_SHEET_PHASE.HANDED_OFF) {
+    return handedOffAtMs.value && startedAtMs.value
+      ? callElapsedSeconds(startedAtMs.value, handedOffAtMs.value)
+      : null;
   }
   return elapsedSeconds.value;
 });
@@ -594,7 +596,7 @@ onBeforeUnmount(() => {
           :summary="summary"
           :title="t('CALLS_PAGE.SHEET.SUMMARY')"
         />
-        <p v-else class="text-sm text-n-slate-10">
+        <p v-else-if="!callNotes.isLoading" class="text-sm text-n-slate-10">
           {{ t('CALLS_PAGE.SHEET.SUMMARY_EMPTY') }}
         </p>
         <CallVariables v-if="hasVariables" :variables="call.variables" />
