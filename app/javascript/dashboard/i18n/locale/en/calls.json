@@ -95,7 +95,8 @@
       "LENGTH": "Length",
       "HANDLER": "Handled by",
       "HANDLER_AI": "AI",
-      "UNKNOWN_CALLER": "Unknown caller"
+      "UNKNOWN_CALLER": "Unknown caller",
+      "INTERRUPTIONS": "Interrupted {count} time | Interrupted {count} times"
     },
     "EMPTY": {
       "NEED": "No calls need attention right now",

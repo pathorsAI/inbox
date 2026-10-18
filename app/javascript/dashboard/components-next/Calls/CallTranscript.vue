@@ -4,14 +4,15 @@ import { useI18n } from 'vue-i18n';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
 
 // The transcript window the Pathors backend pushes on every AI turn (kept on
-// the call after it ends), as a timeline: one row per line, and the call's
-// events (help requested, transfer, human left) as dividers. It fills the
-// height its parent gives it and is the only thing in it that scrolls. The
-// sheet's tab names it, so it carries no title of its own.
+// the call after it ends), as a chat: the caller's lines on the left, the
+// AI's on the right (like the hand-off card), and the call's events (help
+// requested, transfer, human left) as dividers. It fills the height its
+// parent gives it and is the only thing in it that scrolls. The sheet's tab
+// names it, so it carries no title of its own.
 
 const props = defineProps({
   // `live.transcript` entries: { kind: 'message', role, content, interrupted }
-  // or { kind: 'system', code, text }.
+  // (role is 'user' or 'assistant') or { kind: 'system', code, text }.
   entries: { type: Array, default: () => [] },
   // Bumps on every turn; a live call follows it to the bottom.
   seq: { type: Number, default: 0 },
@@ -38,14 +39,25 @@ const DEFAULT_SYSTEM_CLASS = 'text-n-slate-10 before:bg-n-weak after:bg-n-weak';
 
 const { t } = useI18n();
 
+// The speaker is named only when it changes: a run of lines from the same
+// side shares one name, and a divider starts a new run.
 const rows = computed(() =>
-  props.entries.map((entry, index) => ({
-    ...entry,
-    key: `${entry.at ?? ''}-${index}`,
-    isSystem: entry.kind === KIND_SYSTEM,
-    isAssistant: entry.role === ROLE_ASSISTANT,
-    systemClass: SYSTEM_CODE_CLASS[entry.code] || DEFAULT_SYSTEM_CLASS,
-  }))
+  props.entries.map((entry, index) => {
+    const previous = props.entries[index - 1];
+    const isSystem = entry.kind === KIND_SYSTEM;
+    return {
+      ...entry,
+      key: `${entry.at ?? ''}-${index}`,
+      isSystem,
+      isAssistant: entry.role === ROLE_ASSISTANT,
+      showRole:
+        !isSystem &&
+        (!previous ||
+          previous.kind === KIND_SYSTEM ||
+          previous.role !== entry.role),
+      systemClass: SYSTEM_CODE_CLASS[entry.code] || DEFAULT_SYSTEM_CLASS,
+    };
+  })
 );
 
 const listRef = ref(null);
@@ -115,32 +127,44 @@ watch(
         <li
           v-else
           class="flex flex-col gap-0.5"
+          :class="row.isAssistant ? 'items-end' : 'items-start'"
           :data-test-id="
             row.isAssistant ? 'call-transcript-ai' : 'call-transcript-caller'
           "
         >
           <span
-            class="flex gap-1.5 text-xs"
-            :class="row.isAssistant ? 'text-n-slate-11' : 'text-n-blue-11'"
+            v-if="row.showRole"
+            class="text-xs text-n-slate-11"
+            data-test-id="call-transcript-role"
           >
             {{
               row.isAssistant
                 ? t('CALLS_PAGE.SHEET.ROLE_AI')
                 : t('CALLS_PAGE.SHEET.ROLE_CALLER')
             }}
-            <span v-if="row.interrupted" class="text-n-amber-11">
-              {{ t('CALLS_PAGE.SHEET.INTERRUPTED') }}
-            </span>
           </span>
+          <!-- An outline, not a border, so a cut-off line keeps its size. -->
           <p
-            class="text-sm leading-relaxed whitespace-pre-wrap break-words text-n-slate-12"
-            :class="{
-              'underline decoration-dashed decoration-n-amber-9 underline-offset-4':
-                row.interrupted,
-            }"
+            class="max-w-[82%] px-3 py-2 text-sm leading-relaxed whitespace-pre-wrap break-words rounded-2xl text-n-slate-12"
+            :class="[
+              row.isAssistant
+                ? 'bg-n-blue-3 rounded-ee-md'
+                : 'bg-n-slate-3 rounded-es-md',
+              {
+                'outline-dashed outline-1 outline-n-amber-9 -outline-offset-1':
+                  row.interrupted,
+              },
+            ]"
           >
             {{ row.content }}
           </p>
+          <span
+            v-if="row.interrupted"
+            class="px-1.5 text-xs rounded-full text-n-amber-11 bg-n-amber-3"
+            data-test-id="call-transcript-interrupted"
+          >
+            {{ t('CALLS_PAGE.SHEET.INTERRUPTED') }}
+          </span>
         </li>
       </template>
     </ol>

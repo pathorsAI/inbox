@@ -95,7 +95,8 @@
       "LENGTH": "長度",
       "HANDLER": "處理",
       "HANDLER_AI": "AI",
-      "UNKNOWN_CALLER": "未知來電"
+      "UNKNOWN_CALLER": "未知來電",
+      "INTERRUPTIONS": "被打斷 {count} 次"
     },
     "EMPTY": {
       "NEED": "目前沒有需要處理的通話",

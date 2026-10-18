@@ -1,11 +1,13 @@
 <script setup>
 import { useI18n } from 'vue-i18n';
+import Icon from 'dashboard/components-next/icon/Icon.vue';
 
 // The call's three numbers — duration, AI turns, interruptions — each with
-// the limit past which the call turns amber (PATHORS_ALERT_THRESHOLDS).
+// the limit past which the call turns amber (PATHORS_ALERT_THRESHOLDS). A
+// metric may carry an icon, the same one the calls list marks it with.
 
 defineProps({
-  // [{ key, label, value, limit, isOver }]
+  // [{ key, label, value, limit, isOver, icon? }]
   metrics: { type: Array, required: true },
   label: { type: String, required: true },
 });
@@ -30,7 +32,12 @@ const { t } = useI18n();
       <dt
         class="flex flex-wrap justify-between gap-x-2 text-xs text-n-slate-11"
       >
-        <span>{{ metric.label }}</span>
+        <span class="inline-flex items-center gap-1">
+          <span v-if="metric.icon" class="inline-flex" aria-hidden="true">
+            <Icon :icon="metric.icon" class="size-3" />
+          </span>
+          {{ metric.label }}
+        </span>
         <span class="tabular-nums">
           {{ t('CALLS_PAGE.SHEET.METRIC_LIMIT', { limit: metric.limit }) }}
         </span>
