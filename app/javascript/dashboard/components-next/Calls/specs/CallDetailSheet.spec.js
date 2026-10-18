@@ -300,6 +300,17 @@ describe('CallDetailSheet', () => {
       expect(metric(pastLimit, 'interruptions').text()).toContain('上限 3');
     });
 
+    it('marks the interruptions card with the hand the calls list uses', () => {
+      const wrapper = mountSheet(buildCall());
+
+      expect(
+        metric(wrapper, 'interruptions').find('dt .i-lucide-hand').exists()
+      ).toBe(true);
+      expect(metric(wrapper, 'turns').find('dt .i-lucide-hand').exists()).toBe(
+        false
+      );
+    });
+
     it('shows them on an ended call too, from its duration', () => {
       const wrapper = mountSheet(endedCall({ durationSeconds: 412 }));
       const summaryTab = find(wrapper, 'call-tab-summary');

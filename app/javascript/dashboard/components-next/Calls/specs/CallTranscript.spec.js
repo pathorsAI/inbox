@@ -38,6 +38,96 @@ const list = wrapper => wrapper.find('[data-test-id="call-transcript"]');
 const jump = wrapper => wrapper.find('[data-test-id="call-transcript-jump"]');
 
 describe('CallTranscript', () => {
+  describe('as a chat', () => {
+    const say = (role, content, extra = {}) => ({
+      kind: 'message',
+      role,
+      content,
+      ...extra,
+    });
+    const divider = {
+      kind: 'system',
+      code: 'transfer_started',
+      text: '轉接中',
+    };
+    const messages = wrapper =>
+      wrapper.findAll(
+        '[data-test-id="call-transcript-ai"], [data-test-id="call-transcript-caller"]'
+      );
+    const roleOf = row => {
+      const role = row.find('[data-test-id="call-transcript-role"]');
+      return role.exists() ? role.text() : null;
+    };
+
+    it('puts the caller on the left and the AI on the right', async () => {
+      const wrapper = await mountTranscript({
+        entries: [say('user', '你好'), say('assistant', '您好')],
+      });
+      const caller = wrapper.find('[data-test-id="call-transcript-caller"]');
+      const ai = wrapper.find('[data-test-id="call-transcript-ai"]');
+
+      expect(caller.classes()).toContain('items-start');
+      expect(caller.find('p').classes()).toContain('bg-n-slate-3');
+      expect(ai.classes()).toContain('items-end');
+      expect(ai.find('p').classes()).toContain('bg-n-blue-3');
+      wrapper.unmount();
+    });
+
+    it('names the speaker only when it changes, and again after a divider', async () => {
+      const wrapper = await mountTranscript({
+        entries: [
+          say('assistant', '您好'),
+          say('assistant', '請問有什麼需要'),
+          say('user', '我想問報價'),
+          say('user', '還有合約'),
+          divider,
+          say('user', '喂？'),
+          say('assistant', '幫您轉接'),
+        ],
+      });
+
+      expect(messages(wrapper).map(roleOf)).toEqual([
+        'AI',
+        null,
+        '客人',
+        null,
+        '客人',
+        'AI',
+      ]);
+      wrapper.unmount();
+    });
+
+    it('frames a cut-off line and tags it underneath', async () => {
+      const wrapper = await mountTranscript({
+        entries: [say('assistant', '我們的方案有', { interrupted: true })],
+      });
+      const row = wrapper.find('[data-test-id="call-transcript-ai"]');
+      const bubble = row.find('p');
+      const tag = row.find('[data-test-id="call-transcript-interrupted"]');
+
+      expect(bubble.classes()).toContain('outline-dashed');
+      expect(bubble.classes()).toContain('outline-n-amber-9');
+      expect(tag.text()).toBe('被打斷');
+      // Under the bubble, on the same side.
+      expect(row.element.lastElementChild).toBe(tag.element);
+      expect(row.classes()).toContain('items-end');
+      wrapper.unmount();
+    });
+
+    it('leaves a line that was not cut off unframed and untagged', async () => {
+      const wrapper = await mountTranscript({
+        entries: [say('assistant', '您好')],
+      });
+      const row = wrapper.find('[data-test-id="call-transcript-ai"]');
+
+      expect(row.find('p').classes()).not.toContain('outline-dashed');
+      expect(
+        row.find('[data-test-id="call-transcript-interrupted"]').exists()
+      ).toBe(false);
+      wrapper.unmount();
+    });
+  });
+
   it('draws a transfer a human cancelled as a hand-off, not a failure', async () => {
     const system = (code, text) => ({ kind: 'system', code, text, at: 1 });
     const wrapper = await mountTranscript({

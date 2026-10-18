@@ -11,8 +11,10 @@ import {
 import {
   callElapsedSeconds,
   isLiveCallStatus,
+  isOverInterruptionLimit,
 } from 'dashboard/helper/pathorsLiveCall';
 import { VOICE_CALL_PROVIDERS } from 'dashboard/helper/inbox';
+import Icon from 'dashboard/components-next/icon/Icon.vue';
 import { BaseTable, BaseTableRow, BaseTableCell } from '../table';
 import CallStateChip from './CallStateChip.vue';
 import { useCallStateText } from './useCallStateText';
@@ -67,6 +69,16 @@ const timeLabel = call => {
     isToday(date) || isYesterday(date) ? TIME_FORMAT : DATE_TIME_FORMAT
   );
 };
+
+// How often the caller cut the AI off, beside the time; nothing when never.
+const interruptionCount = call => call.live?.interruptions || 0;
+
+const interruptionsLabel = call =>
+  t(
+    'CALLS_PAGE.TABLE.INTERRUPTIONS',
+    { count: interruptionCount(call) },
+    interruptionCount(call)
+  );
 
 const lengthLabel = call =>
   isLiveCallStatus(call.status) ? '' : formatDuration(call.durationSeconds);
@@ -129,7 +141,7 @@ const displayName = call =>
             data-test-id="calls-row"
             @click="emit('open', call)"
           >
-            <BaseTableCell class="relative ps-3">
+            <BaseTableCell class="relative ps-3 whitespace-nowrap">
               <span
                 class="absolute inset-y-1 start-0 w-[0.1875rem] rounded-full"
                 :class="CALL_TONE_STRIPE_CLASS[state.tone]"
@@ -147,6 +159,27 @@ const displayName = call =>
                   class="rounded-full size-1.5 bg-current motion-safe:animate-pulse"
                 />
                 {{ timeLabel(call) }}
+              </span>
+              <span
+                v-if="interruptionCount(call)"
+                class="ms-2 text-xs tabular-nums"
+                :class="
+                  isOverInterruptionLimit(interruptionCount(call))
+                    ? 'text-n-amber-11 font-medium'
+                    : 'text-n-slate-10'
+                "
+                :title="interruptionsLabel(call)"
+                data-test-id="call-row-interruptions"
+              >
+                <!-- Icon drops non-class attrs, so the wrapper hides both. -->
+                <span
+                  class="inline-flex items-center gap-0.5"
+                  aria-hidden="true"
+                >
+                  <Icon icon="i-lucide-hand" class="size-3" />
+                  {{ interruptionCount(call) }}
+                </span>
+                <span class="sr-only">{{ interruptionsLabel(call) }}</span>
               </span>
             </BaseTableCell>
             <BaseTableCell>

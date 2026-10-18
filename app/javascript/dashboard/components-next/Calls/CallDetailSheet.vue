@@ -31,6 +31,7 @@ import {
   PATHORS_ALERT_THRESHOLDS,
   callElapsedSeconds,
   isLiveCallStatus,
+  isOverInterruptionLimit,
 } from 'dashboard/helper/pathorsLiveCall';
 import AudioPlayer from 'dashboard/components-next/audio/AudioPlayer.vue';
 import Button from 'dashboard/components-next/button/Button.vue';
@@ -355,9 +356,10 @@ const metrics = computed(() => {
     {
       key: 'interruptions',
       label: t('CALLS_PAGE.SHEET.METRIC_INTERRUPTIONS'),
+      icon: 'i-lucide-hand',
       value: interruptions ?? METRIC_PLACEHOLDER,
       limit: INTERRUPTIONS,
-      isOver: interruptions > INTERRUPTIONS,
+      isOver: isOverInterruptionLimit(interruptions),
     },
   ];
 });

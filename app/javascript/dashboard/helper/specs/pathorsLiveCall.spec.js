@@ -5,6 +5,7 @@ import {
   callElapsedSeconds,
   getPathorsCallAlerts,
   isAiHandlingCall,
+  isOverInterruptionLimit,
 } from '../pathorsLiveCall';
 
 const NOW = Date.parse('2026-10-04T10:00:00Z');
@@ -42,6 +43,20 @@ describe('isAiHandlingCall', () => {
       isAiHandlingCall({ status: 'in-progress', acceptedByAgentId: 7 })
     ).toBe(false);
     expect(isAiHandlingCall({ status: 'completed' })).toBe(false);
+  });
+});
+
+describe('isOverInterruptionLimit', () => {
+  const { INTERRUPTIONS } = PATHORS_ALERT_THRESHOLDS;
+
+  it('is true only once the count goes past the limit', () => {
+    expect(isOverInterruptionLimit(INTERRUPTIONS)).toBe(false);
+    expect(isOverInterruptionLimit(INTERRUPTIONS + 1)).toBe(true);
+  });
+
+  it('is false without a count', () => {
+    expect(isOverInterruptionLimit(null)).toBe(false);
+    expect(isOverInterruptionLimit(undefined)).toBe(false);
   });
 });
 

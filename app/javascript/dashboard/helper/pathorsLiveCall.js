@@ -52,6 +52,15 @@ export const callElapsedSeconds = (startedAt, now) => {
 };
 
 /**
+ * The AI was cut off more often than PATHORS_ALERT_THRESHOLDS allows. The
+ * calls list and the call sheet both colour the count with this, so they
+ * agree on where amber starts.
+ * @param {number|null|undefined} count `live.interruptions`
+ */
+export const isOverInterruptionLimit = count =>
+  (count || 0) > PATHORS_ALERT_THRESHOLDS.INTERRUPTIONS;
+
+/**
  * The call is still on the line (display status: ringing or in-progress).
  * @param {string|undefined} status
  */
@@ -101,7 +110,7 @@ export const getPathorsCallAlerts = (call, elapsedSeconds) => {
       'TRANSFER_FAILED'
     );
   }
-  if ((live.interruptions || 0) > PATHORS_ALERT_THRESHOLDS.INTERRUPTIONS) {
+  if (isOverInterruptionLimit(live.interruptions)) {
     add(
       PATHORS_ALERT_TYPE.INTERRUPTIONS,
       PATHORS_ALERT_LEVEL.AMBER,
