@@ -1,4 +1,4 @@
-import { flushPromises, mount } from '@vue/test-utils';
+import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import { withFullI18n } from 'test-i18n';
 import PathorsCallsAPI from 'dashboard/api/pathorsCalls';
@@ -10,6 +10,7 @@ import { useAlert } from 'dashboard/composables';
 import PathorsAttentionStack from '../PathorsAttentionStack.vue';
 
 withFullI18n('zh_TW');
+enableAutoUnmount(afterEach);
 
 const { push, featureEnabled } = vi.hoisted(() => ({
   push: vi.fn(),
