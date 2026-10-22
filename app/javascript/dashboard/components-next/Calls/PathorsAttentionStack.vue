@@ -144,9 +144,11 @@ useEmitter(BUS_EVENTS.WEBSOCKET_RECONNECT_COMPLETED, refresh);
 </script>
 
 <template>
-  <!-- Always mounted (empty and click-through) so aria-live announces new cards. -->
+  <!-- Always mounted (empty and click-through) so aria-live announces new cards.
+       Pinned to the dashboard's main area, not the window, so the app banners
+       above it (the call notification prompt among them) stay clickable. -->
   <section
-    class="fixed z-50 flex flex-col gap-2 top-3 end-4 w-80 max-w-[calc(100vw-2rem)] pointer-events-none"
+    class="absolute z-50 flex flex-col gap-2 top-3 end-4 w-80 max-w-[calc(100%-2rem)] pointer-events-none"
     :aria-label="t('CALLS_PAGE.ATTENTION.REGION')"
     aria-live="polite"
     data-test-id="pathors-attention-stack"
