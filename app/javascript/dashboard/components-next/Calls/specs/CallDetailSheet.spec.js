@@ -1,4 +1,4 @@
-import { flushPromises, mount } from '@vue/test-utils';
+import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils';
 import { ref } from 'vue';
 import { createPinia, setActivePinia } from 'pinia';
 import { withFullI18n } from 'test-i18n';
@@ -8,6 +8,9 @@ import CallDetailSheet from '../CallDetailSheet.vue';
 import CallContactPopover from '../CallContactPopover.vue';
 
 withFullI18n('zh_TW');
+// The sheet's clock ticks every second; an unmounted sheet keeps re-rendering
+// after the test environment is gone.
+enableAutoUnmount(afterEach);
 
 const { session, notesState } = vi.hoisted(() => ({
   session: {},

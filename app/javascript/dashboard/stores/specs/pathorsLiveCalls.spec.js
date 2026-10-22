@@ -397,7 +397,11 @@ describe('pathorsLiveCalls store', () => {
       expect(store.liveById[77].seq).toBe(5);
     });
 
-    it('lists calls needing a human, unmuted, most recent request first', async () => {
+    // A minute into calls that started at 10:00: nothing is amber by the clock.
+    const NOW = Date.parse('2026-10-11T10:01:00Z');
+    const ids = store => store.attentionCallsAt(NOW).map(call => call.id);
+
+    it('lists red calls, unmuted, most recent request first', async () => {
       const store = await seed([
         activeCall(1, {
           needs_action: true,
@@ -417,10 +421,32 @@ describe('pathorsLiveCalls store', () => {
         activeCall(4, { needs_action: false }),
       ]);
 
-      expect(store.attentionCalls.map(call => call.id)).toEqual([2, 1]);
-      expect(store.attentionCalls[0].live.attention.transfer.phase).toBe(
-        'failed'
-      );
+      const calls = store.attentionCallsAt(NOW);
+      expect(calls.map(call => call.id)).toEqual([2, 1]);
+      expect(calls[0].live.attention.transfer.phase).toBe('failed');
+      expect(calls[0].callState.key).toBe('transfer_failed');
+    });
+
+    it('lists amber calls after the red ones', async () => {
+      const store = await seed([
+        activeCall(1, { live: { seq: 1, interruptions: 4 } }),
+        activeCall(2, { needs_action: true }),
+        activeCall(3, { live: { seq: 1, interruptions: 3 } }),
+      ]);
+
+      expect(ids(store)).toEqual([2, 1]);
+      expect(store.attentionCallsAt(NOW)[1].callState.key).toBe('warn');
+    });
+
+    it('turns a long call amber by the clock alone', async () => {
+      const store = await seed([activeCall(1)]);
+
+      expect(ids(store)).toEqual([]);
+      expect(
+        store
+          .attentionCallsAt(Date.parse('2026-10-11T10:06:00Z'))
+          .map(call => call.id)
+      ).toEqual([1]);
     });
 
     it('dismisses optimistically and keeps it once the server agrees', async () => {
@@ -432,8 +458,8 @@ describe('pathorsLiveCalls store', () => {
         })
       );
 
-      const pending = store.dismiss(77);
-      expect(store.attentionCalls).toEqual([]);
+      const pending = store.dismissAttention(77, 'red');
+      expect(ids(store)).toEqual([]);
       resolveRequest({ dismissed: true });
       await pending;
 
@@ -445,10 +471,38 @@ describe('pathorsLiveCalls store', () => {
       const store = await seed([activeCall(77, { needs_action: true })]);
       PathorsCallsAPI.dismiss.mockRejectedValue(new Error('nope'));
 
-      await expect(store.dismiss(77)).rejects.toThrow('nope');
+      await expect(store.dismissAttention(77, 'red')).rejects.toThrow('nope');
 
       expect(store.records[0].dismissed).toBe(false);
-      expect(store.attentionCalls.map(call => call.id)).toEqual([77]);
+      expect(ids(store)).toEqual([77]);
+    });
+
+    it('mutes an amber call here only, and not once the AI asks for help', async () => {
+      const store = await seed([
+        activeCall(77, { live: { seq: 1, interruptions: 4 } }),
+      ]);
+
+      await store.dismissAttention(77, 'amber');
+      expect(PathorsCallsAPI.dismiss).not.toHaveBeenCalled();
+      expect(ids(store)).toEqual([]);
+
+      store.handleLiveUpdated({
+        ...liveUpdate({ seq: 2, interruptions: 4 }),
+        needs_action: true,
+      });
+      expect(ids(store)).toEqual([77]);
+    });
+
+    it('keeps an amber mute across a reload of the active calls', async () => {
+      const store = await seed([
+        activeCall(77, { live: { seq: 1, interruptions: 4 } }),
+      ]);
+      await store.dismissAttention(77, 'amber');
+
+      await store.fetchActive();
+
+      expect(store.records[0].warningMuted).toBe(true);
+      expect(ids(store)).toEqual([]);
     });
 
     describe('handlingSignatureAt', () => {

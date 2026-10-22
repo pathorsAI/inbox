@@ -1,4 +1,5 @@
 <script>
+import { computed } from 'vue';
 import { mapGetters } from 'vuex';
 import { useAlert } from 'dashboard/composables';
 import TableHeaderCell from 'dashboard/components/widgets/TableHeaderCell.vue';
@@ -11,12 +12,30 @@ import {
 import { FEATURE_FLAGS } from 'dashboard/featureFlags';
 import ToggleSwitch from 'dashboard/components-next/switch/Switch.vue';
 import { NOTIFICATION_TYPES } from './constants';
+import { usePathorsCallNotifyPreference } from 'dashboard/composables/usePathorsCallNotifyPreference';
+import { PATHORS_CALL_NOTIFY_FLAG } from 'dashboard/helper/pathorsCallNotification';
 
 export default {
   components: {
     TableHeaderCell,
     ToggleSwitch,
     CheckBox,
+  },
+  setup() {
+    // 通話需要處理: a push-only row (a call is over long before an email
+    // arrives), the same switch as the avatar menu's 通話桌面通知.
+    const callNotify = usePathorsCallNotifyPreference();
+    return {
+      callNotifyFlag: PATHORS_CALL_NOTIFY_FLAG,
+      showCallNotifyRow: computed(
+        () => callNotify.isAvailable.value && callNotify.isSupported
+      ),
+      isCallNotifyOn: callNotify.isOn,
+      isCallNotifyBlocked: computed(
+        () => callNotify.isOn.value && callNotify.isBlocked.value
+      ),
+      setCallNotify: callNotify.setOn,
+    };
   },
   data() {
     return {
@@ -222,6 +241,53 @@ export default {
           </div>
         </div>
       </div>
+      <div
+        v-if="showCallNotifyRow"
+        class="grid items-center content-center grid-cols-12 gap-4 py-2 rounded-t-xl"
+        data-test-id="pathors-call-notify-row"
+      >
+        <div
+          class="flex flex-col col-span-7 px-0 text-sm tracking-[0.5] rtl:text-right"
+        >
+          <span class="text-body-main text-n-slate-12">
+            {{
+              $t(
+                'PROFILE_SETTINGS.FORM.NOTIFICATIONS.TYPES.PATHORS_CALL_ATTENTION'
+              )
+            }}
+          </span>
+          <span
+            class="text-xs"
+            :class="isCallNotifyBlocked ? 'text-n-ruby-11' : 'text-n-slate-11'"
+          >
+            {{
+              isCallNotifyBlocked
+                ? $t('CALLS_PAGE.NOTIFY.BLOCKED')
+                : $t(
+                    'PROFILE_SETTINGS.FORM.NOTIFICATIONS.PATHORS_CALL_ATTENTION_HINT'
+                  )
+            }}
+          </span>
+        </div>
+        <span
+          v-tooltip.top="
+            $t('PROFILE_SETTINGS.FORM.NOTIFICATIONS.PATHORS_CALL_NO_EMAIL')
+          "
+          class="col-span-2 px-0 text-n-slate-10"
+          :aria-label="
+            $t('PROFILE_SETTINGS.FORM.NOTIFICATIONS.PATHORS_CALL_NO_EMAIL')
+          "
+        >
+          <span class="block i-lucide-minus size-4" />
+        </span>
+        <div class="flex items-start col-span-3 px-0">
+          <CheckBox
+            :value="callNotifyFlag"
+            :is-checked="isCallNotifyOn"
+            @update="(id, checked) => setCallNotify(checked)"
+          />
+        </div>
+      </div>
     </div>
     <!--  Layout for mobile devices -->
     <div class="flex flex-col gap-6 sm:hidden">
@@ -267,6 +333,36 @@ export default {
           <span class="text-body-main text-n-slate-12">{{
             $t(notification.label)
           }}</span>
+        </div>
+        <div v-if="showCallNotifyRow" class="flex flex-row items-start gap-2">
+          <CheckBox
+            :value="callNotifyFlag"
+            :is-checked="isCallNotifyOn"
+            @update="(id, checked) => setCallNotify(checked)"
+          />
+          <span class="flex flex-col">
+            <span class="text-body-main text-n-slate-12">
+              {{
+                $t(
+                  'PROFILE_SETTINGS.FORM.NOTIFICATIONS.TYPES.PATHORS_CALL_ATTENTION'
+                )
+              }}
+            </span>
+            <span
+              class="text-xs"
+              :class="
+                isCallNotifyBlocked ? 'text-n-ruby-11' : 'text-n-slate-11'
+              "
+            >
+              {{
+                isCallNotifyBlocked
+                  ? $t('CALLS_PAGE.NOTIFY.BLOCKED')
+                  : $t(
+                      'PROFILE_SETTINGS.FORM.NOTIFICATIONS.PATHORS_CALL_ATTENTION_HINT'
+                    )
+              }}
+            </span>
+          </span>
         </div>
       </div>
     </div>

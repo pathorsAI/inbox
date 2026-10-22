@@ -188,7 +188,18 @@
       "DISMISS_FAILED": "無法略過這通通話",
       "MINUTES_AGO": "{minutes} 分鐘前",
       "JUST_NOW": "剛剛",
-      "MORE": "還有 {count} 通"
+      "MORE": "還有 {count} 通",
+      "ON_CALL_FOR": "通話 {minutes} 分鐘"
+    },
+    "NOTIFY": {
+      "TOGGLE": "通話桌面通知",
+      "TOGGLE_HINT": "狀態是「線上」時，需要處理的通話會在桌面跳通知，直到有人處理。",
+      "BLOCKED": "瀏覽器封鎖了這個網站的通知。點網址列左邊的鎖頭 → 通知 → 允許，再重新整理。分頁標題閃爍和提示音照常。",
+      "PROMPT": "你現在是「線上」。需要處理的通話要在桌面跳通知嗎？",
+      "PROMPT_ENABLE": "開啟",
+      "PROMPT_DECLINE": "不用",
+      "TITLE_FLASH": "● {title}",
+      "SAVE_FAILED": "無法儲存通知設定"
     }
   }
 }

@@ -300,6 +300,22 @@ export const primaryCallState = (
   return aiState(call, now);
 };
 
+const RED_STATES = new Set([CALL_STATE.REQUESTED, CALL_STATE.TRANSFER_FAILED]);
+
+/**
+ * How loudly a call in the calls page's 需要處理 asks for someone: red when a
+ * human is needed now (the AI asked for help, a transfer failed), amber when
+ * the AI still holds it but should be looked at (Call.warning). Null for a
+ * call that is not in 需要處理 at all.
+ * @param {{ key: string }} state from primaryCallState
+ * @returns {string|null} one of PATHORS_ALERT_LEVEL, or null
+ */
+export const attentionLevelOf = state => {
+  if (RED_STATES.has(state.key)) return PATHORS_ALERT_LEVEL.RED;
+  if (state.key === CALL_STATE.WARN) return PATHORS_ALERT_LEVEL.AMBER;
+  return null;
+};
+
 /**
  * Whether the AI ever asked for help on this call, answered or not — a
  * secondary chip once the call has moved on.
