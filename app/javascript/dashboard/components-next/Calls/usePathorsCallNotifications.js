@@ -164,7 +164,7 @@ export function usePathorsCallNotifications() {
     if (gone.length) {
       postToWorker({
         type: PATHORS_CALL_SW_MESSAGE.CLOSE,
-        tags: gone.map(callNotificationTag),
+        tags: gone.map(callId => callNotificationTag(callId)),
       });
       gone.forEach(callId => known.delete(callId));
     }
