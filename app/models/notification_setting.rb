@@ -29,7 +29,13 @@ class NotificationSetting < ApplicationRecord
 
   EMAIL_NOTIFICATION_FLAGS = ::Notification::NOTIFICATION_TYPES.transform_keys { |key| "email_#{key}".to_sym }.invert.freeze
   PUSH_NOTIFICATION_FLAGS = ::Notification::NOTIFICATION_TYPES.transform_keys { |key| "push_#{key}".to_sym }.invert.freeze
+  # Pathors: push-only preferences with no Notification type behind them. The
+  # dashboard shows these itself (a live call needing a human, see
+  # usePathorsCallNotifications), so nothing is ever sent through
+  # Notification::PushNotificationService. Positions sit far above Chatwoot's
+  # own so a new upstream notification type never takes the same bit.
+  PATHORS_PUSH_FLAGS = { 24 => :push_pathors_call_attention }.freeze
 
   has_flags EMAIL_NOTIFICATION_FLAGS.merge(column: 'email_flags').merge(DEFAULT_QUERY_SETTING)
-  has_flags PUSH_NOTIFICATION_FLAGS.merge(column: 'push_flags').merge(DEFAULT_QUERY_SETTING)
+  has_flags PUSH_NOTIFICATION_FLAGS.merge(PATHORS_PUSH_FLAGS).merge(column: 'push_flags').merge(DEFAULT_QUERY_SETTING)
 end

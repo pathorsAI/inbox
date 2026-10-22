@@ -172,9 +172,12 @@
           "PARTICIPATING_CONVERSATION_NEW_MESSAGE": "參與中的對話有新訊息",
           "SLA_MISSED_FIRST_RESPONSE": "對話未達首次回應 SLA",
           "SLA_MISSED_NEXT_RESPONSE": "對話未達下次回應 SLA",
-          "SLA_MISSED_RESOLUTION": "對話未達解決 SLA"
+          "SLA_MISSED_RESOLUTION": "對話未達解決 SLA",
+          "PATHORS_CALL_ATTENTION": "通話需要處理"
         },
-        "BROWSER_PERMISSION": "請啟用瀏覽器推播通知，以便接收通知"
+        "BROWSER_PERMISSION": "請啟用瀏覽器推播通知，以便接收通知",
+        "PATHORS_CALL_ATTENTION_HINT": "只在你的狀態是「線上」時送；頭像選單也能開關。",
+        "PATHORS_CALL_NO_EMAIL": "不寄信：信到的時候電話早就結束了"
       },
       "API": {
         "UPDATE_SUCCESS": "您的通知偏好設定已成功更新",

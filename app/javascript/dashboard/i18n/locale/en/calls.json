@@ -188,7 +188,18 @@
       "DISMISS_FAILED": "Couldn't dismiss this call",
       "MINUTES_AGO": "{minutes} min ago",
       "JUST_NOW": "Just now",
-      "MORE": "{count} more"
+      "MORE": "{count} more",
+      "ON_CALL_FOR": "On the call {minutes} min"
+    },
+    "NOTIFY": {
+      "TOGGLE": "Desktop alerts for calls",
+      "TOGGLE_HINT": "While you are online, calls that need someone pop up on your desktop until they are handled.",
+      "BLOCKED": "Your browser blocks notifications from this site. Click the lock icon in the address bar, allow Notifications, then reload. The tab title and sound still alert you.",
+      "PROMPT": "You are online. Get a desktop alert when a call needs someone?",
+      "PROMPT_ENABLE": "Turn on",
+      "PROMPT_DECLINE": "Not now",
+      "TITLE_FLASH": "● {title}",
+      "SAVE_FAILED": "Could not save your notification setting"
     }
   }
 }

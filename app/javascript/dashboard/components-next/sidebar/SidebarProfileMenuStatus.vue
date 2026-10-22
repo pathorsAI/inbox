@@ -5,6 +5,7 @@ import wootConstants from 'dashboard/constants/globals';
 import { useAlert } from 'dashboard/composables';
 import { useI18n } from 'vue-i18n';
 import { useImpersonation } from 'dashboard/composables/useImpersonation';
+import { usePathorsCallNotifyPreference } from 'dashboard/composables/usePathorsCallNotifyPreference';
 
 import {
   DropdownContainer,
@@ -58,6 +59,20 @@ const autoOfflineToggle = computed({
     });
   },
 });
+
+// 通話桌面通知: only reaches the agent while they are online, which is why it
+// sits next to their status.
+const callNotify = usePathorsCallNotifyPreference();
+const showCallNotify = computed(
+  () => callNotify.isAvailable.value && callNotify.isSupported
+);
+const callNotifyToggle = computed({
+  get: () => callNotify.isOn.value,
+  set: value => callNotify.setOn(value),
+});
+const isCallNotifyBlocked = computed(
+  () => callNotify.isOn.value && callNotify.isBlocked.value
+);
 
 function changeAvailabilityStatus(availability) {
   if (isImpersonating.value) {
@@ -124,6 +139,24 @@ function changeAvailabilityStatus(availability) {
           />
         </div>
         <ToggleSwitch v-model="autoOfflineToggle" />
+      </DropdownItem>
+      <DropdownItem
+        v-if="showCallNotify"
+        data-test-id="pathors-call-notify-toggle"
+      >
+        <div class="flex-grow min-w-0">
+          {{ $t('CALLS_PAGE.NOTIFY.TOGGLE') }}
+          <Icon
+            v-tooltip.top="
+              isCallNotifyBlocked
+                ? $t('CALLS_PAGE.NOTIFY.BLOCKED')
+                : $t('CALLS_PAGE.NOTIFY.TOGGLE_HINT')
+            "
+            :icon="isCallNotifyBlocked ? 'i-lucide-bell-off' : 'i-lucide-info'"
+            class="inline-block align-middle ms-1 size-4 text-n-slate-10"
+          />
+        </div>
+        <ToggleSwitch v-model="callNotifyToggle" />
       </DropdownItem>
     </div>
   </DropdownSection>

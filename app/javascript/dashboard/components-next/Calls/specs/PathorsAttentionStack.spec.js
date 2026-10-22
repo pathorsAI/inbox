@@ -28,6 +28,11 @@ vi.mock('dashboard/api/pathorsCalls', () => ({
 
 vi.mock('dashboard/composables', () => ({ useAlert: vi.fn() }));
 
+// The desktop side has its own spec.
+vi.mock('../usePathorsCallNotifications', () => ({
+  usePathorsCallNotifications: vi.fn(),
+}));
+
 vi.mock('dashboard/composables/store', async () => {
   const { computed } = await import('vue');
   const getters = {
@@ -106,7 +111,11 @@ describe('PathorsAttentionStack', () => {
     const wrapper = await mountStack([
       activeCall(1, requested()),
       activeCall(2, failed(NOW - 60_000)),
-      activeCall(3, {}, { needs_action: false }),
+      activeCall(
+        3,
+        {},
+        { needs_action: false, started_at: '2026-10-11T09:59:00Z' }
+      ),
     ]);
 
     expect(PathorsCallsAPI.active).toHaveBeenCalledTimes(1);
@@ -121,6 +130,36 @@ describe('PathorsAttentionStack', () => {
     expect(shown[1].text()).toContain('AI 請求支援');
     expect(shown[1].text()).toContain('3 分鐘前');
     expect(shown[1].text()).toContain('聽不清楚客人 · 收訊很差');
+  });
+
+  it('lists amber calls after the red ones, with why and how long', async () => {
+    const wrapper = await mountStack([
+      activeCall(1, { interruptions: 4 }, { needs_action: false }),
+      activeCall(2, requested()),
+    ]);
+
+    const shown = cards(wrapper);
+    expect(shown.map(card => card.attributes('data-call-id'))).toEqual([
+      '2',
+      '1',
+    ]);
+    expect(shown[1].text()).toContain('被打斷 4 次');
+    expect(shown[1].text()).toContain('客人一直插話，可能不耐煩');
+    expect(shown[1].text()).toContain('通話 10 分鐘');
+  });
+
+  it('mutes an amber call in this tab without asking the server', async () => {
+    const wrapper = await mountStack([
+      activeCall(1, { interruptions: 4 }, { needs_action: false }),
+    ]);
+
+    await wrapper
+      .find('[data-test-id="pathors-attention-dismiss"]')
+      .trigger('click');
+    await flushPromises();
+
+    expect(PathorsCallsAPI.dismiss).not.toHaveBeenCalled();
+    expect(cards(wrapper)).toHaveLength(0);
   });
 
   it('falls back to the inbox list for a call first seen through its message', async () => {

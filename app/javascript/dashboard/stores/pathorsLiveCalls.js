@@ -3,8 +3,14 @@ import { defineStore } from 'pinia';
 import PathorsCallsAPI from 'dashboard/api/pathorsCalls';
 import { CONTENT_TYPES } from 'dashboard/components-next/message/constants';
 import { VOICE_CALL_PROVIDERS } from 'dashboard/helper/inbox';
-import { primaryCallState } from 'dashboard/helper/pathorsCallState';
-import { isLiveCallStatus } from 'dashboard/helper/pathorsLiveCall';
+import {
+  attentionLevelOf,
+  primaryCallState,
+} from 'dashboard/helper/pathorsCallState';
+import {
+  PATHORS_ALERT_LEVEL,
+  isLiveCallStatus,
+} from 'dashboard/helper/pathorsLiveCall';
 import { MESSAGE_TYPE } from 'shared/constants/messages';
 
 /**
@@ -15,7 +21,8 @@ import { MESSAGE_TYPE } from 'shared/constants/messages';
  * - `records`: the calls themselves (camelized `call` shape plus the
  *   conversation, inbox and caller fields the message keeps, and the handling
  *   state: needsAction, followUp, dismissed, acceptedAt, takeoverRequested,
- *   and the variables the AI extracted, verbatim).
+ *   and the variables the AI extracted, verbatim), plus `warningMuted`: an
+ *   amber call this tab muted (see dismissAttention).
  *   Seeded from GET pathors/calls/active, then kept current by the voice_call
  *   message broadcasts every status change already produces (see
  *   helper/voice.js), by `pathors_call.live_updated`, which carries
@@ -50,6 +57,9 @@ const attentionAt = (record, live) =>
   live?.attention?.transfer?.at ??
   (record.startedAt ? Date.parse(record.startedAt) : 0);
 
+const isAmber = call =>
+  Number(attentionLevelOf(call.callState) === PATHORS_ALERT_LEVEL.AMBER);
+
 export const usePathorsLiveCallsStore = defineStore('pathorsLiveCalls', {
   state: () => ({
     records: [],
@@ -75,15 +85,29 @@ export const usePathorsLiveCallsStore = defineStore('pathorsLiveCalls', {
         .sort()
         .join(','),
 
-    // Live calls a human is needed on that this agent has not muted, most
-    // recent request first, each with its live state attached.
-    attentionCalls: state =>
+    // Live calls in the calls page's 需要處理 that this agent has not muted:
+    // red ones (a human is needed now) before amber ones (the AI should be
+    // looked at), each most recent request first. Each carries its live state
+    // and its primaryCallState as `callState`. Amber can come from the clock
+    // alone (a long call), hence `now` (epoch ms).
+    attentionCallsAt: state => now =>
       state.records
-        .filter(record => record.needsAction && !record.dismissed)
-        .map(record => ({ ...record, live: state.liveById[record.id] || null }))
+        .filter(record => !record.dismissed)
+        .map(record => {
+          const call = { ...record, live: state.liveById[record.id] || null };
+          return { ...call, callState: primaryCallState(call, { now }) };
+        })
+        .filter(call => {
+          const level = attentionLevelOf(call.callState);
+          return level === PATHORS_ALERT_LEVEL.AMBER
+            ? !call.warningMuted
+            : !!level;
+        })
         .sort(
           (a, b) =>
-            attentionAt(b, b.live) - attentionAt(a, a.live) || b.id - a.id
+            isAmber(a) - isAmber(b) ||
+            attentionAt(b, b.live) - attentionAt(a, a.live) ||
+            b.id - a.id
         ),
 
     hasLiveCallInConversation: state => conversationDisplayId =>
@@ -106,11 +130,12 @@ export const usePathorsLiveCallsStore = defineStore('pathorsLiveCalls', {
       const existingById = new Map(
         this.records.map(record => [record.id, record])
       );
-      const fetched = calls.map(({ live, ...call }) =>
-        syncedSinceFetch.has(call.id)
-          ? { ...call, ...existingById.get(call.id) }
-          : call
-      );
+      // An amber mute only lives here (see dismissAttention); keep it.
+      const fetched = calls.map(({ live, ...call }) => {
+        const existing = existingById.get(call.id);
+        if (syncedSinceFetch.has(call.id)) return { ...call, ...existing };
+        return existing?.warningMuted ? { ...call, warningMuted: true } : call;
+      });
       // A call that rang while the request was in flight is not in its payload.
       const addedMeanwhile = this.records.filter(
         record => !fetchedIds.has(record.id) && syncedSinceFetch.has(record.id)
@@ -192,6 +217,23 @@ export const usePathorsLiveCallsStore = defineStore('pathorsLiveCalls', {
         if (record) record.dismissed = previous;
         throw error;
       }
+    },
+
+    /**
+     * "略過" on a call in 需要處理, by how loud it is. An amber call is only
+     * muted in this tab and stays muted until reload: the server's mute is for
+     * the call as a whole, and an amber call the AI later asks help on must
+     * still reach this agent.
+     * @param {number} callId
+     * @param {string} level one of PATHORS_ALERT_LEVEL
+     */
+    async dismissAttention(callId, level) {
+      if (level !== PATHORS_ALERT_LEVEL.AMBER) {
+        await this.dismiss(callId);
+        return;
+      }
+      const record = this.records.find(item => item.id === callId);
+      if (record) record.warningMuted = true;
     },
 
     /**
