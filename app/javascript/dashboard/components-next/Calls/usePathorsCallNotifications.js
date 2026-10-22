@@ -21,20 +21,41 @@ import { useCallStateText } from './useCallStateText';
 const CLOCK_TICK_MS = 15_000;
 const TITLE_FLASH_MS = 1000;
 const ALERT_SOUND_URL = '/audio/dashboard/bell.mp3';
-// Every open dashboard tab runs this; the first to claim a call's alert in
-// localStorage plays the sound, so two tabs never ring twice.
+// Every open dashboard tab runs this; a call's alert is claimed in
+// localStorage once one tab has rung it, so the others stay quiet. A claim
+// lasts while the call stays in 需要處理: it is released when the call leaves,
+// so the next time it needs someone (a retried transfer failing again) rings.
 const ALERT_CLAIM_PREFIX = 'pathors-call-alert:';
 const ALERT_CLAIM_TTL_MS = 24 * 60 * 60 * 1000;
+const ALERT_LEVELS = [PATHORS_ALERT_LEVEL.RED, PATHORS_ALERT_LEVEL.AMBER];
+
+const claimStorageKey = key => `${ALERT_CLAIM_PREFIX}${key}`;
+
+const isAlertClaimed = key => {
+  try {
+    return !!globalThis.localStorage.getItem(claimStorageKey(key));
+  } catch {
+    // Storage blocked: ring, a second tab ringing too is the lesser harm.
+    return false;
+  }
+};
 
 const claimAlert = key => {
   try {
-    const storageKey = `${ALERT_CLAIM_PREFIX}${key}`;
-    if (globalThis.localStorage.getItem(storageKey)) return false;
-    globalThis.localStorage.setItem(storageKey, String(Date.now()));
+    globalThis.localStorage.setItem(claimStorageKey(key), String(Date.now()));
   } catch {
-    // Storage blocked: ring, a second tab ringing too is the lesser harm.
+    // As above.
   }
-  return true;
+};
+
+const releaseAlertClaims = callId => {
+  try {
+    ALERT_LEVELS.forEach(level =>
+      globalThis.localStorage.removeItem(claimStorageKey(`${callId}:${level}`))
+    );
+  } catch {
+    // As above.
+  }
 };
 
 const pruneAlertClaims = () => {
@@ -52,9 +73,15 @@ const pruneAlertClaims = () => {
   }
 };
 
-const playAlertSound = () => {
+// Claimed only once the sound plays: a background tab without the right to
+// play audio rejects play(), and then another tab may still ring it.
+const ringOnce = key => {
+  if (isAlertClaimed(key)) return;
   try {
-    new Audio(ALERT_SOUND_URL).play().catch(() => {});
+    new Audio(ALERT_SOUND_URL)
+      .play()
+      .then(() => claimAlert(key))
+      .catch(() => {});
   } catch {
     // No audio here.
   }
@@ -147,12 +174,8 @@ export function usePathorsCallNotifications() {
       const escalated =
         previous?.level === PATHORS_ALERT_LEVEL.AMBER &&
         item.level === PATHORS_ALERT_LEVEL.RED;
-      if (
-        (isNew || escalated) &&
-        !isWindowFocused() &&
-        claimAlert(`${callId}:${item.level}`)
-      ) {
-        playAlertSound();
+      if ((isNew || escalated) && !isWindowFocused()) {
+        ringOnce(`${callId}:${item.level}`);
       }
       if (canShow && previous?.signature !== item.signature) {
         postToWorker({ type: PATHORS_CALL_SW_MESSAGE.NOTIFY, payload: item });
@@ -166,19 +189,25 @@ export function usePathorsCallNotifications() {
         type: PATHORS_CALL_SW_MESSAGE.CLOSE,
         tags: gone.map(callId => callNotificationTag(callId)),
       });
-      gone.forEach(callId => known.delete(callId));
+      gone.forEach(callId => {
+        known.delete(callId);
+        releaseAlertClaims(callId);
+      });
     }
   };
 
   // Immediate: calls already waiting when the dashboard loads count as new.
   watch(notifications, sync, { immediate: true });
-  // Allowing notifications later shows what is already waiting.
-  watch(preference.permission, () => {
+  // Hands every waiting call to the worker again; it skips what is already
+  // on screen.
+  const resend = () => {
     known.forEach(entry => {
       entry.signature = null;
     });
     sync(notifications.value);
-  });
+  };
+  // Allowing notifications later shows what is already waiting.
+  watch(preference.permission, resend);
   watch(
     preference.isAvailable,
     available => {
@@ -192,25 +221,39 @@ export function usePathorsCallNotifications() {
   const updateFocus = () => {
     isFocused.value = isWindowFocused();
   };
+  // The worker shows nothing while the dashboard is in front, so a call that
+  // came in then and is still waiting reaches the desktop once it is not.
+  watch(isFocused, focused => {
+    if (!focused) resend();
+  });
   let flashTimer = null;
   let restingTitle = '';
+  let flashText = '';
   const stopFlashing = () => {
     if (!flashTimer) return;
     clearInterval(flashTimer);
     flashTimer = null;
-    globalThis.document.title = restingTitle;
+    const { document } = globalThis;
+    if (flashText && document.title === flashText)
+      document.title = restingTitle;
+    flashText = '';
   };
   const startFlashing = () => {
     if (flashTimer) return;
-    restingTitle = globalThis.document.title;
     let showCall = false;
     flashTimer = setInterval(() => {
+      const { document } = globalThis;
+      // The app may retitle the page meanwhile (a route change); follow it.
+      if (!flashText || document.title !== flashText) {
+        restingTitle = document.title;
+      }
       showCall = !showCall;
       const [first] = notifications.value;
-      globalThis.document.title =
+      flashText =
         showCall && first
           ? t('CALLS_PAGE.NOTIFY.TITLE_FLASH', { title: first.title })
-          : restingTitle;
+          : '';
+      document.title = flashText || restingTitle;
     }, TITLE_FLASH_MS);
   };
   watch(

@@ -31,15 +31,18 @@ const windowClient = (path, overrides = {}) => ({
 const loadWorker = () => {
   const handlers = {};
   let shown = [];
+  const takeDown = item => {
+    shown = shown.filter(other => other !== item);
+    // Like Chrome, a close by script fires notificationclose as well.
+    handlers.notificationclose?.({ notification: item });
+  };
   const registration = {
     getNotifications: vi.fn(async ({ tag }) =>
       shown.filter(item => item.tag === tag)
     ),
     showNotification: vi.fn(async (title, options) => {
       const item = { title, ...options, close: vi.fn() };
-      item.close.mockImplementation(() => {
-        shown = shown.filter(other => other !== item);
-      });
+      item.close.mockImplementation(() => takeDown(item));
       shown = [...shown.filter(other => other.tag !== options.tag), item];
     }),
   };
@@ -74,8 +77,7 @@ const loadWorker = () => {
       }),
     close: tags =>
       dispatch('message', { data: { type: 'pathors-call:close', tags } }),
-    closeByHand: notification =>
-      dispatch('notificationclose', { notification }),
+    closeByHand: notification => takeDown(notification),
     click: (notification, action = '') =>
       dispatch('notificationclick', { notification, action }),
   };
@@ -161,14 +163,33 @@ describe('sw.js Pathors call notifications', () => {
   it('keeps a call the agent closed away until it turns red', async () => {
     const worker = loadWorker();
     await worker.notify(payload());
-    const [notification] = worker.shown();
-    notification.close();
-    await worker.closeByHand(notification);
+    worker.closeByHand(worker.shown()[0]);
 
     await worker.notify(payload({ signature: 'amber|5' }));
     expect(worker.registration.showNotification).toHaveBeenCalledTimes(1);
 
     await worker.notify(payload({ level: 'red', signature: 'red|1' }));
+    expect(worker.registration.showNotification).toHaveBeenCalledTimes(2);
+  });
+
+  it('shows a waiting call again after the agent went busy and came back', async () => {
+    const worker = loadWorker();
+    await worker.notify(payload({ level: 'red', signature: 'red|1' }));
+
+    await worker.close(['pathors-call-7']);
+    await worker.notify(payload({ level: 'red', signature: 'red|1' }));
+
+    expect(worker.registration.showNotification).toHaveBeenCalledTimes(2);
+    expect(worker.shown()).toHaveLength(1);
+  });
+
+  it('does not count a clicked notification as closed by hand', async () => {
+    const worker = loadWorker();
+    await worker.notify(payload());
+
+    await worker.click(worker.shown()[0]);
+    await worker.notify(payload({ signature: 'amber|5' }));
+
     expect(worker.registration.showNotification).toHaveBeenCalledTimes(2);
   });
 

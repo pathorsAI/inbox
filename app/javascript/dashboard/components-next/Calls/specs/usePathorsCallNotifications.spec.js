@@ -250,6 +250,43 @@ describe('usePathorsCallNotifications', () => {
     expect(globalThis.Audio).toHaveBeenCalledTimes(1);
   });
 
+  it('rings again when a call comes back to 需要處理 later', async () => {
+    await mountNotifier([activeCall(1, { interruptions: 4 })]);
+    await flushPromises();
+    const store = usePathorsLiveCallsStore();
+
+    store.handleLiveUpdated({ id: 1, live: { seq: 2, interruptions: 0 } });
+    await flushPromises();
+    store.handleLiveUpdated({ id: 1, live: { seq: 3, interruptions: 4 } });
+    await flushPromises();
+
+    expect(globalThis.Audio).toHaveBeenCalledTimes(2);
+  });
+
+  it('leaves the alert to another tab when this one may not play sound', async () => {
+    globalThis.Audio = vi.fn(() => ({
+      play: vi.fn(() => Promise.reject(new Error('NotAllowedError'))),
+    }));
+    await mountNotifier([activeCall(1, { interruptions: 4 })]);
+    await flushPromises();
+
+    expect(globalThis.localStorage.getItem('pathors-call-alert:1:amber')).toBe(
+      null
+    );
+  });
+
+  it('hands calls to the worker again when the dashboard goes behind', async () => {
+    focused = true;
+    await mountNotifier([activeCall(1, { interruptions: 4 })]);
+    expect(posted('pathors-call:notify')).toHaveLength(1);
+
+    focused = false;
+    globalThis.dispatchEvent(new Event('blur'));
+    await flushPromises();
+
+    expect(posted('pathors-call:notify')).toHaveLength(2);
+  });
+
   it('rings again when an amber call turns red', async () => {
     await mountNotifier([activeCall(1, { interruptions: 4 })]);
 

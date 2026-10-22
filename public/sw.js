@@ -21,6 +21,16 @@ let pathorsCallQueue = Promise.resolve();
 // comes back only when it gets worse (amber to red), not on every change.
 // Lost when the browser stops the worker, which costs one more notification.
 const pathorsClosedLevels = new Map();
+// tag → when this worker closed that notification itself (a handled call, a
+// click). Some browsers fire notificationclose for those too; only a close by
+// hand may hold a call back.
+const pathorsSelfClosedAt = new Map();
+const PATHORS_SELF_CLOSE_WINDOW_MS = 5000;
+
+const closeOwnPathorsCall = notification => {
+  pathorsSelfClosedAt.set(notification.tag, Date.now());
+  notification.close();
+};
 
 const pathorsDashboardWindows = () =>
   clients
@@ -74,9 +84,10 @@ const showPathorsCall = async payload => {
 const closePathorsCalls = tags =>
   Promise.all(
     tags.map(async tag => {
+      // The call is handled: forget it was ever closed by hand.
       pathorsClosedLevels.delete(tag);
       const notifications = await self.registration.getNotifications({ tag });
-      notifications.forEach(notification => notification.close());
+      notifications.forEach(closeOwnPathorsCall);
     })
   );
 
@@ -87,6 +98,8 @@ const openPathorsCall = async (data, action) => {
     new URL(client.url).pathname.startsWith(`/app/accounts/${data.accountId}/`)
   );
 
+  // With no dashboard tab on the account, 略過 only takes the notification
+  // away; the call stays unmuted and shows again in the next tab opened.
   if (action === PATHORS_CALL.ACTION_DISMISS) {
     target?.postMessage({ type: PATHORS_CALL.DISMISS, callId: data.callId });
     return;
@@ -117,9 +130,16 @@ self.addEventListener('message', event => {
 
 self.addEventListener('notificationclose', event => {
   const { notification } = event;
-  if (notification.data?.pathorsCall) {
-    pathorsClosedLevels.set(notification.tag, notification.data.level);
+  if (!notification.data?.pathorsCall) return;
+  const selfClosedAt = pathorsSelfClosedAt.get(notification.tag);
+  pathorsSelfClosedAt.delete(notification.tag);
+  if (
+    selfClosedAt &&
+    Date.now() - selfClosedAt < PATHORS_SELF_CLOSE_WINDOW_MS
+  ) {
+    return;
   }
+  pathorsClosedLevels.set(notification.tag, notification.data.level);
 });
 
 self.addEventListener('push', event => {
@@ -139,7 +159,7 @@ self.addEventListener('notificationclick', event => {
   let notification = event.notification;
 
   if (notification.data?.pathorsCall) {
-    notification.close();
+    closeOwnPathorsCall(notification);
     event.waitUntil(openPathorsCall(notification.data, event.action));
     return;
   }
