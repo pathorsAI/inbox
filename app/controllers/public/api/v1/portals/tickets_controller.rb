@@ -113,7 +113,10 @@ class Public::Api::V1::Portals::TicketsController < Public::Api::V1::Portals::Ba
     conversation = create_conversation(contact_inbox)
     create_description_message(conversation, contact_inbox.contact)
 
-    conversation.create_ticket!(account_id: @portal.account_id, subject: @submission[:subject], ticket_type: @submission[:ticket_type])
+    ticket = conversation.create_ticket!(account_id: @portal.account_id, subject: @submission[:subject],
+                                         ticket_type: @submission[:ticket_type])
+    create_acknowledgement_message(conversation)
+    ticket
   end
 
   # ConversationBuilder is bypassed on purpose: on a `lock_to_single_conversation` inbox it
@@ -145,6 +148,32 @@ class Public::Api::V1::Portals::TicketsController < Public::Api::V1::Portals::Ba
       )
     end
     message.save!
+  end
+
+  # The portal tells the customer to reply to the email we sent them, and a reply threads back
+  # onto this conversation only if something outbound went first to carry the Message-ID their
+  # mail client answers. A sender-less outgoing message is not a human response, so it leaves
+  # first_reply_created_at and waiting_since untouched for reporting.
+  def create_acknowledgement_message(conversation)
+    conversation.messages.create!(
+      account_id: conversation.account_id,
+      inbox_id: conversation.inbox_id,
+      message_type: :outgoing,
+      content: acknowledgement_content(conversation)
+    )
+  end
+
+  def acknowledgement_content(conversation)
+    greeting = if @submission[:name].present?
+                 I18n.t('public_portal.tickets.acknowledgement.greeting', name: @submission[:name])
+               else
+                 I18n.t('public_portal.tickets.acknowledgement.greeting_anonymous')
+               end
+
+    body = I18n.t('public_portal.tickets.acknowledgement.body',
+                  portal_name: @portal.localized_value('name', @locale), number: conversation.display_id,
+                  subject: @submission[:subject], description: @submission[:description])
+    "#{greeting}\n\n#{body}"
   end
 
   # On an email inbox the dashboard renders the subject from the email meta header, so
